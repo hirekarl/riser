@@ -29,6 +29,16 @@ dev = [
     "types-python-dateutil>=2.9.0.20260716",
 ]
 
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+extraPaths = ["."]
+reportIncompatibleVariableOverride = false
+reportAttributeAccessIssue = false
+reportArgumentType = false
+
+
 [tool.ruff]
 line-length = 100
 target-version = "py314"
@@ -48,6 +58,7 @@ convention = "google"
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 python_version = "3.14"
 strict = true
+mypy_path = "."
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
