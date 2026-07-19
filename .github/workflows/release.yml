@@ -25,6 +25,12 @@ jobs:
         with:
           version: "0.10.10"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Configure git identity
         run: |
           git config user.name "github-actions[bot]"
@@ -51,6 +57,16 @@ jobs:
           uv lock
           if ! git diff --quiet -- uv.lock; then
             git add uv.lock
+            git commit --amend --no-edit
+          fi
+
+      - name: Regenerate frontend lockfile after version bump
+        if: steps.check.outputs.bump_due == 'true'
+        working-directory: frontend
+        run: |
+          npm install --package-lock-only
+          if ! git diff --quiet -- package-lock.json; then
+            git add package-lock.json
             git commit --amend --no-edit
           fi
 
