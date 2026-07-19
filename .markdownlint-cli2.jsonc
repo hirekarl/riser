@@ -1,0 +1,18 @@
+{
+  // MD013 (line-length) is intentionally disabled: this repo's convention is
+  // one continuous line per paragraph (no manual hard-wrapping), enforced by
+  // Prettier's `proseWrap: never` instead of a line-length limit.
+  "config": {
+    "default": true,
+    "MD013": false,
+    // Plain reference URLs are the established style in this repo's
+    // knowledge-base/ADR "References" sections — not a defect.
+    "MD034": false,
+    // The source PRD and sprint docs use bold lead-ins as informal section
+    // markers rather than real headings; not worth restructuring the PRD's
+    // authored content to satisfy this rule.
+    "MD036": false
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["**/node_modules/**", "**/.venv/**", "**/dist/**"]
+}

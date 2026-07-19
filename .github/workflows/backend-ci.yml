@@ -1,0 +1,71 @@
+name: Backend CI
+
+# Deliberately does NOT filter at the trigger level (on.push.paths /
+# on.pull_request.paths). If it did, this workflow would never run — and
+# its check would never be reported — for a PR that doesn't touch
+# backend/**, which permanently stalls a required status check on that PR
+# ("Expected — waiting for status to be reported"). Instead, the `test`
+# job always runs, and individual steps are skipped via `if:` based on the
+# paths-filter output. This mirrors GitHub's own documented pattern for
+# combining path-scoped work with required status checks.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+
+  test:
+    name: backend-ci / test
+    runs-on: ubuntu-latest
+    needs: changes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        if: needs.changes.outputs.backend == 'true'
+        with:
+          version: "0.10.10"
+
+      - name: Install dependencies
+        if: needs.changes.outputs.backend == 'true'
+        working-directory: backend
+        run: uv sync --locked
+
+      - name: ruff check
+        if: needs.changes.outputs.backend == 'true'
+        working-directory: backend
+        run: uv run ruff check .
+
+      - name: ruff format --check
+        if: needs.changes.outputs.backend == 'true'
+        working-directory: backend
+        run: uv run ruff format --check .
+
+      - name: mypy
+        if: needs.changes.outputs.backend == 'true'
+        working-directory: backend
+        run: uv run mypy .
+
+      - name: ty check
+        if: needs.changes.outputs.backend == 'true'
+        working-directory: backend
+        run: uv run ty check . || echo "::warning::ty check failed or unavailable — mypy remains the authoritative gate"
+
+      - name: pytest --cov (>=90%)
+        if: needs.changes.outputs.backend == 'true'
+        working-directory: backend
+        run: uv run pytest --cov --cov-fail-under=90

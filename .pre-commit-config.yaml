@@ -1,0 +1,116 @@
+default_install_hook_types: [pre-commit, pre-push, commit-msg]
+default_stages: [pre-commit]
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format-backend
+        name: ruff format (backend)
+        language: system
+        entry: bash -c 'cd backend && uv run ruff format .'
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: ruff-check-backend
+        name: ruff check --fix (backend)
+        language: system
+        entry: bash -c 'cd backend && uv run ruff check --fix .'
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: ty-backend
+        name: ty check (backend, fast feedback)
+        language: system
+        entry: bash -c 'cd backend && uv run ty check . || true'
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: mypy-backend
+        name: mypy (backend, authoritative)
+        language: system
+        entry: bash -c 'cd backend && uv run mypy .'
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: eslint-frontend
+        name: eslint (frontend)
+        language: system
+        entry: bash -c 'npm --prefix frontend run lint'
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: tsc-frontend
+        name: tsc --noEmit (frontend)
+        language: system
+        entry: bash -c 'npm --prefix frontend run typecheck'
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: prettier-frontend
+        name: prettier --check (frontend)
+        language: system
+        entry: bash -c 'npm --prefix frontend run format:check'
+        files: ^frontend/.*\.(ts|tsx|json|css|md)$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: pytest-backend
+        name: pytest --cov (backend, full suite, >=90%)
+        language: system
+        entry: bash -c 'cd backend && uv run pytest --cov --cov-fail-under=90'
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: vitest-frontend
+        name: vitest --coverage (frontend, full suite, >=90%)
+        language: system
+        entry: bash -c 'npm --prefix frontend run test:coverage'
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: reject-ai-attribution
+        name: Reject Co-Authored-By trailers referencing Claude/Anthropic
+        language: script
+        entry: scripts/check-claude-attribution.sh
+        stages: [commit-msg]
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.4.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Markdown formatting/linting is repo-wide (root, docs/, .claude/), not
+  # scoped to backend/ or frontend/, so these run via pre-commit's own
+  # self-managed node envs rather than `npm --prefix frontend`.
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.5.1
+    hooks:
+      - id: prettier
+        name: prettier --write (markdown, one line per paragraph)
+        files: \.md$
+        args: ["--prose-wrap=never"]
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.2
+    hooks:
+      - id: markdownlint-cli2
+        name: markdownlint-cli2 (markdown structure/style)
+        files: \.md$

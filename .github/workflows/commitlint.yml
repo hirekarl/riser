@@ -1,0 +1,17 @@
+name: Commit Lint
+
+on:
+  pull_request:
+
+jobs:
+  commitizen-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.10.10"
+      - name: Validate Conventional Commits format for this PR's commits
+        run: uvx commitizen check --rev-range origin/${{ github.base_ref }}..HEAD
