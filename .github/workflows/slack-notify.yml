@@ -1,0 +1,130 @@
+name: Slack Notify
+
+# Posts notable repo activity to Slack via an Incoming Webhook:
+#   - PRs opened or merged
+#   - Issues opened or closed
+#   - CI failures on main (backend-ci / frontend-ci / commitlint)
+#   - Releases / tags published
+#
+# Setup: docs/slack-notifications.md. Requires a repo secret
+# SLACK_WEBHOOK_URL pointing at a Slack Incoming Webhook.
+#
+# Event content (PR/issue titles, branch names, etc.) comes from
+# untrusted input, so it's passed to jq via env vars / --arg rather than
+# interpolated directly into `run:` shell code, per GitHub's guidance on
+# avoiding script injection: https://securitylab.github.com/resources/github-actions-untrusted-input/
+
+on:
+  pull_request:
+    types: [opened, closed]
+  issues:
+    types: [opened, closed]
+  release:
+    types: [published]
+  workflow_run:
+    workflows: ["Backend CI", "Frontend CI", "Commit Lint"]
+    types: [completed]
+
+jobs:
+  pull-request:
+    if: >-
+      github.event_name == 'pull_request' &&
+      (github.event.action == 'opened' ||
+       (github.event.action == 'closed' && github.event.pull_request.merged == true))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_USER: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ "$PR_MERGED" = "true" ]; then
+            EMOJI=":twisted_rightwards_arrows:"; VERB="merged"
+          else
+            EMOJI=":sparkles:"; VERB="opened"
+          fi
+          TEXT=$(jq -n \
+            --arg emoji "$EMOJI" \
+            --arg verb "$VERB" \
+            --arg user "$PR_USER" \
+            --arg url "$PR_URL" \
+            --arg number "$PR_NUMBER" \
+            --arg title "$PR_TITLE" \
+            '"\($emoji) PR \($verb) by *\($user)*: <\($url)|#\($number) \($title)>"')
+          jq -n --argjson text "$TEXT" '{text: $text}' | \
+            curl -sf -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+
+  issue:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ISSUE_ACTION: ${{ github.event.action }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+        run: |
+          if [ "$ISSUE_ACTION" = "closed" ]; then
+            EMOJI=":white_check_mark:"; VERB="closed"
+          else
+            EMOJI=":memo:"; VERB="opened"
+          fi
+          TEXT=$(jq -n \
+            --arg emoji "$EMOJI" \
+            --arg verb "$VERB" \
+            --arg user "$ISSUE_USER" \
+            --arg url "$ISSUE_URL" \
+            --arg number "$ISSUE_NUMBER" \
+            --arg title "$ISSUE_TITLE" \
+            '"\($emoji) Issue \($verb) by *\($user)*: <\($url)|#\($number) \($title)>"')
+          jq -n --argjson text "$TEXT" '{text: $text}' | \
+            curl -sf -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+
+  release:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+        run: |
+          TEXT=$(jq -n \
+            --arg url "$RELEASE_URL" \
+            --arg tag "$RELEASE_TAG" \
+            --arg name "${RELEASE_NAME:-$RELEASE_TAG}" \
+            '":rocket: Release published: <\($url)|\($name) (\($tag))>"')
+          jq -n --argjson text "$TEXT" '{text: $text}' | \
+            curl -sf -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+
+  ci-failure:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          SHORT_SHA=$(echo "$HEAD_SHA" | cut -c1-7)
+          TEXT=$(jq -n \
+            --arg name "$WORKFLOW_NAME" \
+            --arg url "$RUN_URL" \
+            --arg sha "$SHORT_SHA" \
+            '":rotating_light: *\($name)* failed on main (\($sha)): <\($url)|view run>"')
+          jq -n --argjson text "$TEXT" '{text: $text}' | \
+            curl -sf -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
