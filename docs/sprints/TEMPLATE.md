@@ -1,6 +1,6 @@
 # Sprint NN: `short sprint goal`
 
-**Dates:** YYYY-MM-DD – YYYY-MM-DD (2 weeks) **Sprint goal:** `one or two sentences, tied to a PRD outcome in docs/prd/Riser-PRD.md`
+**Dates:** YYYY-MM-DD – YYYY-MM-DD (1 week) **Sprint goal:** `one or two sentences, tied to a PRD outcome in docs/prd/Riser-PRD.md`
 
 ## PRD requirements in scope
 

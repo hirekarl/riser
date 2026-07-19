@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: PRD (product requirements)
+    url: https://github.com/hirekarl/riser/blob/main/docs/prd/Riser-PRD.md
+    about: Check the requirement priorities (P0/P1/P2) before filing a task.
+  - name: Current sprint
+    url: https://github.com/hirekarl/riser/tree/main/docs/sprints
+    about: See what's already in scope for this sprint before filing new work.

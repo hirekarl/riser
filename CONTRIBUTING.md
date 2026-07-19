@@ -12,6 +12,7 @@ Per-sprint task ownership is TBD — see `docs/sprints/` for the current sprint'
 - Branch names: `<type>/<short-description>`, e.g. `feat/ledger-sort`, `fix/due-date-leap-year`.
 - Every PR requires at least one other collaborator's approving review before merge, and all required CI status checks must be green.
 - Repo admins can bypass the _review_ requirement (e.g. for an urgent direct fix) but not the CI requirement — a direct push to `main` still has to pass `backend-ci`, `frontend-ci`, and the commit-lint check.
+- Opening a PR auto-fills `.github/pull_request_template.md`; filing an issue picks between the bug report and task templates in `.github/ISSUE_TEMPLATE/`.
 
 ## Commit messages
 
@@ -21,7 +22,7 @@ Commit messages must never include an AI co-author trailer (e.g. `Co-Authored-By
 
 ## Sprint tracking
 
-Work is tracked in two-week sprints as version-controlled markdown files under `docs/sprints/`. At the start of each cycle, copy `docs/sprints/TEMPLATE.md` to `docs/sprints/sprint-NN.md` (incrementing NN), fill in the sprint goal and the PRD requirement IDs/priorities in scope (from `docs/prd/Riser-PRD.md` section 3), and have each collaborator maintain their own checklist subsection. The `/new-sprint` Claude Code skill automates the file-creation part of this. This is intentionally lightweight and lives in git, not an external tool.
+Work is tracked in one-week sprints (two of them cover the full MVP window) as version-controlled markdown files under `docs/sprints/`. At the start of each cycle, copy `docs/sprints/TEMPLATE.md` to `docs/sprints/sprint-NN.md` (incrementing NN), fill in the sprint goal and the PRD requirement IDs/priorities in scope (from `docs/prd/Riser-PRD.md` section 3), and have each collaborator maintain their own checklist subsection. The `/new-sprint` Claude Code skill automates the file-creation part of this. This is intentionally lightweight and lives in git, not an external tool.
 
 Future upgrade path (not built now): once the team wants heavier project-management tooling, this could migrate to GitHub Projects/Issues/ Milestones.
 

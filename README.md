@@ -114,7 +114,7 @@ Ask the main Claude Code agent to delegate to one of these, or invoke them direc
 
 ### Skills (`.claude/skills/`)
 
-- **`/new-sprint`** — scaffolds the next `docs/sprints/sprint-NN.md` from `TEMPLATE.md`, auto-incrementing the number and the two-week date range.
+- **`/new-sprint`** — scaffolds the next `docs/sprints/sprint-NN.md` from `TEMPLATE.md`, auto-incrementing the number and the one-week date range.
 - **`/dev-check`** — re-runs the same environment check the `SessionStart` hook runs, on demand, mid-session.
 
 ### Useful built-in Claude Code capabilities (not configured by this repo, but worth knowing about here)
