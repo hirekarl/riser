@@ -26,6 +26,7 @@ Uses only the standard library so it works even before `uv sync` has run.
 import json
 import re
 import sys
+from typing import Any, Match
 
 TOPIC_DIR = {
     "django": "django",
@@ -70,7 +71,7 @@ PROXIMITY_CHARS = 200  # max distance between an error match and a topic match
 EXECUTION_TOOLS = {"Bash"}
 
 
-def _tool_use_names(entries: list[dict]) -> dict[str, str]:
+def _tool_use_names(entries: list[dict[str, Any]]) -> dict[str, str]:
     """Map each tool_use id in the window to the tool name that issued it."""
     names: dict[str, str] = {}
     for entry in entries:
@@ -91,7 +92,7 @@ def _tool_use_names(entries: list[dict]) -> dict[str, str]:
     return names
 
 
-def extract_friction_text(entry: dict, tool_names: dict[str, str]) -> str:
+def extract_friction_text(entry: dict[str, Any], tool_names: dict[str, str]) -> str:
     """Flatten an entry to text, but only the parts that are valid friction
     evidence: real user-typed messages, or Bash tool results. Assistant
     prose/thinking and non-execution tool results (Read, Grep, ...) are
@@ -113,7 +114,10 @@ def extract_friction_text(entry: dict, tool_names: dict[str, str]) -> str:
                 continue
             if block.get("type") == "tool_result":
                 tool_use_id = block.get("tool_use_id")
-                if tool_names.get(tool_use_id) not in EXECUTION_TOOLS:
+                if (
+                    isinstance(tool_use_id, str)
+                    and tool_names.get(tool_use_id) not in EXECUTION_TOOLS
+                ):
                     continue
                 value = block.get("content")
                 if isinstance(value, str):
@@ -129,7 +133,7 @@ def extract_friction_text(entry: dict, tool_names: dict[str, str]) -> str:
     return " ".join(parts)
 
 
-def find_colocated_match(text: str) -> re.Match | None:
+def find_colocated_match(text: str) -> Match[str] | None:
     """Return the topic match if an error word and a topic word both appear
     within PROXIMITY_CHARS of each other in text, else None.
     """
@@ -165,7 +169,7 @@ def main() -> int:
     except OSError:
         return 0
 
-    entries: list[dict] = []
+    entries: list[dict[str, Any]] = []
     for line in lines:
         try:
             entries.append(json.loads(line))
