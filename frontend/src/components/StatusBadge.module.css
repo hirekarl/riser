@@ -1,0 +1,38 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.25em 0.75em;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  border: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+/* High-contrast palettes chosen to pass WCAG AA (>= 4.5:1) for the badge text
+   against the badge background, independent of hue perception. */
+
+.compliant {
+  background-color: #e6f4ea;
+  color: #0b6b2c;
+  border-color: #0b6b2c;
+}
+
+.warning {
+  background-color: #fff6e0;
+  color: #7a5200;
+  border-color: #7a5200;
+}
+
+.delinquent {
+  background-color: #fdecea;
+  color: #9c1c12;
+  border-color: #9c1c12;
+}

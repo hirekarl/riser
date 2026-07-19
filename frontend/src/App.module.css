@@ -1,0 +1,16 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header p {
+  color: var(--text-muted);
+  margin: 0.25rem 0 0;
+}
+
+.formsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
