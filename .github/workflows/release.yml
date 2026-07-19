@@ -28,7 +28,7 @@ jobs:
       - name: Check whether a version bump is due
         id: check
         run: |
-          if uvx --from commitizen cz bump --dry-run >/tmp/cz-dry-run.log 2>&1; then
+          if uvx --from commitizen cz bump --dry-run --yes >/tmp/cz-dry-run.log 2>&1; then
             echo "bump_due=true" >> "$GITHUB_OUTPUT"
           else
             echo "bump_due=false" >> "$GITHUB_OUTPUT"
