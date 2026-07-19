@@ -14,4 +14,4 @@ jobs:
         with:
           version: "0.10.10"
       - name: Validate Conventional Commits format for this PR's commits
-        run: uvx commitizen check --rev-range origin/${{ github.base_ref }}..HEAD
+        run: uvx --from commitizen cz check --rev-range origin/${{ github.base_ref }}..HEAD
