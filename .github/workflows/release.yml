@@ -44,6 +44,16 @@ jobs:
         if: steps.check.outputs.bump_due == 'true'
         run: uvx --from commitizen cz bump --changelog --yes
 
+      - name: Regenerate backend lockfile after version bump
+        if: steps.check.outputs.bump_due == 'true'
+        working-directory: backend
+        run: |
+          uv lock
+          if ! git diff --quiet -- uv.lock; then
+            git add uv.lock
+            git commit --amend --no-edit
+          fi
+
       - name: Open release PR
         if: steps.check.outputs.bump_due == 'true'
         uses: peter-evans/create-pull-request@v7
