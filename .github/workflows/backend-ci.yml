@@ -68,4 +68,12 @@ jobs:
       - name: pytest --cov (>=90%)
         if: needs.changes.outputs.backend == 'true'
         working-directory: backend
-        run: uv run pytest --cov --cov-fail-under=90
+        run: uv run pytest --cov --cov-report=xml --cov-fail-under=90
+
+      - name: Upload coverage to Codecov
+        if: needs.changes.outputs.backend == 'true'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/coverage.xml
+          flags: backend
