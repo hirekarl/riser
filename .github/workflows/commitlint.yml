@@ -5,6 +5,7 @@ on:
 
 jobs:
   commitizen-check:
+    name: Commit Lint / commitizen-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
