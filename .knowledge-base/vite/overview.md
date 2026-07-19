@@ -16,9 +16,9 @@ Official docs: https://vite.dev/config/, https://vite.dev/guide/env-and-mode.htm
 
 ## Project-Specific Gotchas
 
-- `frontend/vite.config.ts` in this repo currently only registers `@vitejs/plugin-react()` — no `resolve.alias`, no `test` block yet. When Vitest is added, decide up front: extend this same file (adding `/// <reference types="vitest/config" />` plus a `test: {}` block) vs. a sibling `vitest.config.ts` — mixing partial config in both is a common source of "why isn't my test config applying" confusion.
+- `frontend/vite.config.ts` extends Vite with `/// <reference types="vitest/config" />` and contains the full Vitest configuration (`environment: "jsdom"`, setup files, v8 coverage, 90% threshold).
 - This project uses `vite@^8.1.1` and `@vitejs/plugin-react@^6.0.3` — Vite major-version bumps have historically changed default `esbuild`/Rollup target output and dropped older Node engine support; check the engines field before assuming a CI Node version still works after any Vite major bump.
-- No `VITE_`-prefixed env vars currently exist in the repo config that was inspected — when backend API base URLs or feature flags are introduced client-side, they must be prefixed `VITE_` or `import.meta.env` will return `undefined` silently (no build error).
+- Client-side API base URLs use the `VITE_` prefix (e.g. `VITE_API_BASE_URL` in `render.yaml`) so they are exposed to client code via `import.meta.env.VITE_API_BASE_URL`.
 - `npm run build` runs `tsc -b && vite build` — a passing `vite dev` session does not guarantee `vite build` succeeds, since `tsc` type-checks are not part of Vite's dev server pipeline.
 
 ## Minimal Example

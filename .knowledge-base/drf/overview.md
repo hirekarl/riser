@@ -20,7 +20,7 @@ Official docs: https://www.django-rest-framework.org/api-guide/viewsets/, https:
 - `basename` for a router registration is derived from `.queryset.model` — if a viewset removes the static `queryset` attribute (common when overriding `get_queryset()` for per-request scoping), you must pass `basename=` explicitly to `router.register()` or route generation breaks.
 - The `action` attribute on a viewset (e.g. `"list"`, `"create"`) is not yet set when `get_parsers()`, `get_authenticators()`, or `get_content_negotiator()` run — don't branch on `self.action` inside those overrides.
 - Computed/non-stored fields (`SerializerMethodField`) are inherently read-only and are not included in `.validated_data` — if a computed field name collides with a real model field name listed in `fields`, DRF's auto-generation can silently shadow it; declare the method field explicitly above `Meta`.
-- This repo pins `djangorestframework>=3.17.1` against `django>=6.0.7` — DRF releases lag Django major versions by weeks to months; check DRF's changelog before bumping Django further to confirm the two stay compatible (there is no `drf-stubs` equivalent baked into this repo's dev-dependencies beyond django-stubs, so DRF-specific type coverage under mypy/ty is looser than the model layer).
+- This repo pins `djangorestframework>=3.17.1` alongside `djangorestframework-stubs>=3.17.0` and `mypy_drf_plugin.main` in `backend/pyproject.toml` for complete type-checking support under mypy.
 
 ## Minimal Example
 

@@ -1,32 +1,26 @@
-# React + TypeScript + Vite
+# Riser Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Frontend single-page application (SPA) for **Riser** built with React 19, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+## Available Scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+In the `frontend/` directory, you can run:
 
-## React Compiler
+- `npm run dev` — Starts the Vite development server with HMR.
+- `npm run build` — Type-checks with `tsc -b` and builds the production bundle into `dist/`.
+- `npm run preview` — Serves the built `dist/` directory locally.
+- `npm run lint` — Runs ESLint across TypeScript and TSX files.
+- `npm run typecheck` — Runs `tsc -b` to verify type correctness.
+- `npm run format` — Formats files using Prettier.
+- `npm run format:check` — Checks formatting using Prettier.
+- `npm run test` — Runs component and unit tests using Vitest (`vitest run`).
+- `npm run test:coverage` — Runs Vitest with v8 coverage (enforcing 90% threshold).
+- `npm run test:e2e` — Runs end-to-end tests using Playwright (`playwright test`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Toolchain & Stack
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+- **Framework:** React 19 + TypeScript
+- **Bundler:** Vite 8
+- **Linter & Formatter:** ESLint 9 (flat config in `eslint.config.js`), Prettier
+- **Unit & Component Testing:** Vitest, `@testing-library/react`, `jsdom`, `vitest-axe`
+- **E2E Testing:** Playwright (`@playwright/test`, `@axe-core/playwright`)

@@ -9,7 +9,7 @@ Fast-reference lookup for Claude Code agents working in this repo. Each row link
 | React | [react/overview.md](react/overview.md) | React 19 hooks, Actions/useActionState, ref-as-prop, `use()` |
 | TypeScript | [typescript/overview.md](typescript/overview.md) | Everyday type syntax, unions/narrowing, utility types, this repo's strict tsconfig flags |
 | Vite | [vite/overview.md](vite/overview.md) | vite.config.ts structure, env vars/modes, VITE\_ prefix rule |
-| ESLint | [eslint/overview.md](eslint/overview.md) | Flat config (eslint.config.js) syntax — note: repo currently lints via oxlint, not ESLint |
+| ESLint | [eslint/overview.md](eslint/overview.md) | Flat config (eslint.config.js) syntax with typescript-eslint, react-hooks, and jsx-a11y plugins |
 | uv | [uv/overview.md](uv/overview.md) | uv add/remove, dependency-groups (PEP 735), uv sync --locked vs --frozen, uv run |
 | ruff | [ruff/overview.md](ruff/overview.md) | pyproject.toml [tool.ruff] lint/format config, select vs extend-select |
 | mypy & ty | [mypy-and-ty/overview.md](mypy-and-ty/overview.md) | Both checkers run intentionally (ty fast/local, mypy authoritative/CI); django-stubs wiring |
