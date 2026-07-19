@@ -7,7 +7,7 @@ A web app that gives commercial property managers a single, prioritized view of 
 ## Team
 
 - [Karl Johnson](https://github.com/hirekarl)
-- [Andrew Ballares](https://github.com/AndresBallares)
+- [Andres Ballares](https://github.com/AndresBallares)
 - [Schiffon Lola Wise](https://github.com/Roamwell-Travel-Co)
 - [Cornell Robertson](https://github.com/CodeToTheCore)
 
