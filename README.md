@@ -1,6 +1,15 @@
 # Riser
 
+[![codecov](https://codecov.io/gh/hirekarl/riser/graph/badge.svg)](https://codecov.io/gh/hirekarl/riser) [![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/) [![Django](https://img.shields.io/badge/Django-6.0-092E20?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/) [![Django REST Framework](https://img.shields.io/badge/DRF-3.17-red?style=flat&logo=django&logoColor=white)](https://www.django-rest-framework.org/) [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/) [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![uv](https://img.shields.io/badge/uv-astral-DE5D43?style=flat&logo=astral&logoColor=white)](https://astral.sh/uv/)
+
 A web app that gives commercial property managers a single, prioritized view of every elevator's NYC DOB compliance status across their portfolio — automatically calculating due dates and surfacing Delinquent/Warning/Compliant risk so nothing slips past a filing deadline. Full product requirements: `docs/prd/Riser-PRD.md`.
+
+## Team
+
+- [Karl Johnson](https://github.com/hirekarl)
+- [Andrew Ballares](https://github.com/AndresBallares)
+- [Schiffon Lola Wise](https://github.com/Roamwell-Travel-Co)
+- [Cornell Robertson](https://github.com/CodeToTheCore)
 
 ## Prerequisites
 
