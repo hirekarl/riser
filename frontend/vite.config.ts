@@ -10,6 +10,7 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
     coverage: {
       provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
       exclude: [
         "e2e/**",
         "playwright.config.ts",
