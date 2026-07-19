@@ -17,11 +17,11 @@ Status: direct WebFetch to `docs.pytest.org` and `pytest-django.readthedocs.io` 
 
 ## Project-Specific Gotchas
 
-- `backend/pyproject.toml`'s dev group has `pytest>=9.1.1`, `pytest-django>=4.12.0`, `pytest-cov>=7.1.0`, and `time-machine>=3.2.0` — but no `pytest.ini`/`[tool.pytest.ini_options]` block was found among the files inspected in `backend/`. `DJANGO_SETTINGS_MODULE` wiring needs to be added (pointing at `config.settings.local` per `backend/config/settings/`) before `pytest` will run any Django-touching test without every test author passing `--ds=` by hand.
-- This repo has three settings modules (`backend/config/settings/{base,local,production}.py`) — make sure pytest's `DJANGO_SETTINGS_MODULE` points at `local` (or a dedicated `test` settings module if one gets added later), never `production`, to avoid accidentally requiring production-only env vars (e.g. real DB credentials) just to run the test suite.
+- `backend/pyproject.toml` includes `[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE = "config.settings.local"`, `python_files = ["test_*.py"]`, and `addopts = "--reuse-db"`.
+- This repo has three settings modules (`backend/config/settings/{base,local,production}.py`) — pytest's `DJANGO_SETTINGS_MODULE` points at `local` so test runs don't require production-only environment variables.
 - `@pytest.mark.django_db` wraps each test in a transaction that's rolled back afterward (fast, isolated) — use `@pytest.mark.django_db(transaction=True)` only when a test genuinely needs real transaction/commit behavior (e.g. testing `on_commit` hooks), since it's markedly slower (real table truncation between tests instead of a rollback).
 - `time-machine` is the chosen library here (not `freezegun`) specifically for its C-level patching speed — don't mix in `freezegun` for "just one test," since the two libraries patching the same stdlib functions differently in the same suite is a real source of flaky, hard-to-debug date test failures.
-- `pytest-cov` is present in the dev group but no coverage threshold config was found — decide early whether coverage gating happens via `pytest --cov --cov-fail-under=N` flags in CI or via a `[tool.coverage.report] fail_under` config block, so the threshold lives in exactly one place.
+- Coverage enforcement is configured in `backend/pyproject.toml` under `[tool.coverage.report]` with `fail_under = 90` (and run via `pytest --cov --cov-fail-under=90`).
 
 ## Minimal Example
 
