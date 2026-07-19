@@ -25,6 +25,11 @@ jobs:
         with:
           version: "0.10.10"
 
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Check whether a version bump is due
         id: check
         run: |
