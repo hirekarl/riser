@@ -13,7 +13,7 @@ Official docs: https://commitizen-tools.github.io/commitizen/
 
 ## Project-Specific Gotchas
 
-- **No `[tool.commitizen]` block exists yet** in `backend/pyproject.toml` (not found among files inspected), and this is a monorepo with independently versioned-feeling `backend/` (uv-managed, currently `version = "0.1.0"`) and `frontend/` (npm-managed, currently `version = "0.0.0"`) trees — decide up front whether Commitizen manages one unified repo-level version, or whether `version_files` is configured to bump _both_ `backend/pyproject.toml:version` and `frontend/package.json`'s `"version"` field together on every `cz bump`, so they don't silently drift apart.
+- The `[tool.commitizen]` block lives in a root-level **`.cz.toml`**, not in `backend/pyproject.toml` — look there first, since `backend/pyproject.toml` only holds the bumped `version` value itself, not the Commitizen config. `version_files` is set to `["backend/pyproject.toml:version", "frontend/package.json:version"]`, so `cz bump` keeps both trees in lockstep (both currently `0.2.0`) rather than versioning them independently.
 - Commitizen's changelog/bump logic depends entirely on commit messages already following Conventional Commits — pairing it with a pre-commit `commit-msg` stage hook (see pre-commit leaf) that rejects non-conforming messages _before_ they land is what actually enforces the format; installing Commitizen alone without that hook only helps commits made through `cz commit` itself, not commits made via plain `git commit`.
 - `version_files` patterns must exactly match how the version string is written in each target file — a `package.json` entry needs the JSON-appropriate pattern (Commitizen supports common formats out of the box, but a custom version string layout, e.g. embedded in a Python `__version__ = "x.y.z"` with unusual quoting, can silently fail to update and only be caught by re-diffing after a bump).
 - Given this repo's toolchain also includes ruff/mypy/ty pre-commit gates, sequence commit-msg validation (commitizen) as a separate, fast, independent hook stage — don't chain it after the linting hooks in a way where a linting failure prevents the commit-msg check from ever running and giving useful format feedback.
@@ -21,15 +21,18 @@ Official docs: https://commitizen-tools.github.io/commitizen/
 ## Minimal Example
 
 ```toml
-# pyproject.toml
+# .cz.toml (repo root)
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0"
+version = "0.2.0"
 version_files = [
     "backend/pyproject.toml:version",
-    "frontend/package.json",
+    "frontend/package.json:version",
 ]
+tag_format = "v$version"
 update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+major_version_zero = true
 ```
 
 ## References
