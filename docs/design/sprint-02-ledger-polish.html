@@ -1,0 +1,856 @@
+<title>Riser — Sprint 02 ledger polish</title>
+
+<style>
+  /* ---------------------------------------------------------------
+     Tokens — extends the real frontend/src/index.css palette.
+     Semantic status colors are unchanged from the shipped app.
+     --focus doubles as the one interactive accent (chips, links,
+     toggle, buttons) so no new hue is introduced.
+  ----------------------------------------------------------------*/
+  :root {
+    --text: #1f2430;
+    --text-muted: #4b5261;
+    --bg: #ffffff;
+    --bg-subtle: #f6f7f9;
+    --border: #d9dde3;
+    --focus: #2c5cf6;
+    --focus-subtle: #eaf0ff;
+
+    --compliant-bg: #e6f4ea;
+    --compliant-fg: #0b6b2c;
+    --warning-bg: #fff6e0;
+    --warning-fg: #7a5200;
+    --delinquent-bg: #fdecea;
+    --delinquent-fg: #9c1c12;
+
+    --font-ui: system-ui, "Segoe UI", Roboto, sans-serif;
+    --font-data: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --sp-7: 48px;
+
+    --radius: 6px;
+    --radius-lg: 10px;
+
+    color-scheme: light dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: #e7e9ee;
+      --text-muted: #a7adba;
+      --bg: #14161b;
+      --bg-subtle: #1c1f26;
+      --border: #333844;
+      --focus: #8ab4ff;
+      --focus-subtle: rgba(138, 180, 255, 0.14);
+    }
+  }
+  :root[data-theme="dark"] {
+    --text: #e7e9ee;
+    --text-muted: #a7adba;
+    --bg: #14161b;
+    --bg-subtle: #1c1f26;
+    --border: #333844;
+    --focus: #8ab4ff;
+    --focus-subtle: rgba(138, 180, 255, 0.14);
+  }
+  :root[data-theme="light"] {
+    --text: #1f2430;
+    --text-muted: #4b5261;
+    --bg: #ffffff;
+    --bg-subtle: #f6f7f9;
+    --border: #d9dde3;
+    --focus: #2c5cf6;
+    --focus-subtle: #eaf0ff;
+  }
+
+  * { box-sizing: border-box; }
+
+  .riser-page {
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--sp-6) var(--sp-5) var(--sp-7);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-7);
+  }
+
+  .riser-page :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: var(--sp-5);
+  }
+  .masthead-heading h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 var(--sp-1);
+    text-wrap: balance;
+  }
+  .masthead-heading p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 46ch;
+  }
+  .draft-tag {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--focus);
+    background: var(--focus-subtle);
+    border: 1px solid var(--focus);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-2);
+    white-space: nowrap;
+    align-self: flex-start;
+  }
+
+  /* ---------- section scaffolding ---------- */
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 0 0 var(--sp-3);
+  }
+
+  /* ---------- forms row ---------- */
+  .forms-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--sp-4);
+  }
+  .form-card {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-4);
+  }
+  .form-card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 var(--sp-3);
+  }
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--sp-3);
+    align-items: end;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    min-width: 0;
+  }
+  .field label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .field input,
+  .field select {
+    font: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--sp-2) var(--sp-3);
+    min-width: 0;
+  }
+  .field input:focus-visible,
+  .field select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+  .btn-primary {
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--focus);
+    border: 1px solid var(--focus);
+    border-radius: var(--radius);
+    padding: var(--sp-2) var(--sp-4);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { filter: brightness(1.06); }
+  .btn-secondary {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--focus);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--sp-2) var(--sp-3);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-secondary:hover { border-color: var(--focus); }
+
+  /* ---------- toolbar: filter chips + group toggle ---------- */
+  .ledger-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--sp-3) var(--sp-4);
+  }
+  .chip-row {
+    display: flex;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+  }
+  .chip {
+    font: inherit;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-3);
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .chip[aria-pressed="true"] {
+    color: var(--focus);
+    background: var(--focus-subtle);
+    border-color: var(--focus);
+    font-weight: 600;
+  }
+  .chip:hover { border-color: var(--focus); }
+
+  .group-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .switch {
+    position: relative;
+    width: 34px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .switch input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .switch .track {
+    position: absolute;
+    inset: 0;
+    background: var(--focus);
+    border-radius: 999px;
+    transition: background 0.15s ease;
+  }
+  .switch .thumb {
+    position: absolute;
+    top: 2px;
+    left: 16px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: left 0.15s ease;
+  }
+  .switch input:focus-visible ~ .track {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* ---------- table ---------- */
+  .table-frame {
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    overflow: hidden;
+  }
+  .table-scroll {
+    overflow-x: auto;
+  }
+  table.ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 640px;
+  }
+  table.ledger caption {
+    text-align: left;
+    caption-side: top;
+    padding: var(--sp-3) var(--sp-4);
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+  }
+  table.ledger thead th {
+    position: sticky;
+    top: 0;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: var(--sp-3) var(--sp-4);
+    white-space: nowrap;
+  }
+  table.ledger tbody td {
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  table.ledger tbody tr:last-child td { border-bottom: none; }
+  table.ledger tbody tr:hover td { background: var(--bg-subtle); }
+  .cell-date {
+    font-family: var(--font-data);
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .cell-muted { color: var(--text-muted); }
+
+  .group-row td {
+    background: var(--bg-subtle);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: var(--sp-2) var(--sp-4);
+    border-bottom: 1px solid var(--border);
+  }
+  .group-row .group-count {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- status badge (unchanged shipped component) ---------- */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 3px 10px 3px 8px;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .status-badge .icon { font-size: 12px; line-height: 1; }
+  .status-badge.compliant {
+    background: var(--compliant-bg);
+    color: var(--compliant-fg);
+    border-color: var(--compliant-fg);
+  }
+  .status-badge.warning {
+    background: var(--warning-bg);
+    color: var(--warning-fg);
+    border-color: var(--warning-fg);
+  }
+  .status-badge.delinquent {
+    background: var(--delinquent-bg);
+    color: var(--delinquent-fg);
+    border-color: var(--delinquent-fg);
+  }
+
+  /* ---------- design detail callouts ---------- */
+  .detail {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+  .detail-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+  .detail-heading h2 {
+    font-size: 16px;
+    margin: 0;
+  }
+  .detail-heading .eyebrow {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--focus);
+    margin-bottom: var(--sp-1);
+  }
+  .detail p.detail-copy {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    max-width: 62ch;
+  }
+
+  /* ---------- empty state ---------- */
+  .empty-state {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-6) var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--sp-3);
+  }
+  .empty-state .glyph {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--focus);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--focus);
+    margin-bottom: var(--sp-1);
+  }
+  .empty-state h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .empty-state p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 44ch;
+  }
+  .empty-state .empty-actions {
+    display: flex;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ---------- status-change highlight demo ---------- */
+  .demo-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .demo-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    padding: var(--sp-2) var(--sp-4);
+  }
+  .demo-toolbar .demo-caption {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  table.demo-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.demo-table thead th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: var(--sp-3) var(--sp-4);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.demo-table tbody td {
+    padding: var(--sp-3) var(--sp-4);
+    vertical-align: middle;
+  }
+  #demo-row {
+    position: relative;
+  }
+  #demo-row .swap {
+    position: relative;
+    display: inline-grid;
+  }
+  #demo-row .swap .state {
+    grid-area: 1 / 1;
+    transition: opacity 0.35s ease;
+  }
+  #demo-row .before-val { opacity: 1; }
+  #demo-row .after-val { opacity: 0; }
+  #demo-row.is-after .before-val { opacity: 0; }
+  #demo-row.is-after .after-val { opacity: 1; }
+
+  #demo-row td { position: relative; z-index: 1; }
+  #demo-row.is-highlighting::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--focus-subtle);
+    border-left: 3px solid var(--focus);
+    animation: sweep-fade 1.7s ease-out forwards;
+    z-index: 0;
+  }
+  @keyframes sweep-fade {
+    0% { opacity: 0; }
+    12% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #demo-row .swap .state { transition: none; }
+    #demo-row.is-highlighting::before { animation: none; opacity: 0; }
+    #demo-row.is-highlighting td { background: var(--focus-subtle); }
+  }
+
+  .replay-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--focus);
+    background: var(--bg);
+    border: 1px solid var(--focus);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-3);
+    cursor: pointer;
+  }
+  .replay-btn:hover { background: var(--focus-subtle); }
+
+  @media (max-width: 640px) {
+    .riser-page { padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+    .ledger-toolbar { align-items: flex-start; flex-direction: column; }
+  }
+</style>
+
+<div class="riser-page">
+
+  <header class="masthead">
+    <div class="masthead-heading">
+      <h1>Riser</h1>
+      <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
+    </div>
+    <span class="draft-tag">Design draft &middot; Sprint 02 P1</span>
+  </header>
+
+  <!-- ============ add building / add elevator forms ============ -->
+  <section class="forms-row" aria-label="Add building and add elevator">
+    <div class="form-card">
+      <h2>Add a building</h2>
+      <div class="field-grid">
+        <div class="field">
+          <label for="bname">Building name</label>
+          <input id="bname" type="text" placeholder="e.g. 245 Park Avenue" />
+        </div>
+        <div class="field">
+          <label for="baddr">Address</label>
+          <input id="baddr" type="text" placeholder="Street, borough" />
+        </div>
+        <button class="btn-primary" type="button">Add building</button>
+      </div>
+    </div>
+    <div class="form-card">
+      <h2>Add an elevator</h2>
+      <div class="field-grid">
+        <div class="field">
+          <label for="ebldg">Building</label>
+          <select id="ebldg">
+            <option>245 Park Avenue</option>
+            <option>1 Liberty Plaza</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="etype">Inspection type</label>
+          <select id="etype">
+            <option>CAT1 &mdash; annual</option>
+            <option>CAT5 &mdash; 5-year</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="edate">Last inspection date</label>
+          <input id="edate" type="date" />
+        </div>
+        <button class="btn-primary" type="button">Add elevator</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ P1.2 — filter / group control + ledger ============ -->
+  <section aria-label="Portfolio ledger">
+    <p class="section-label">Portfolio ledger</p>
+
+    <div class="ledger-toolbar">
+      <div class="chip-row" role="group" aria-label="Filter by building">
+        <button class="chip" type="button" aria-pressed="true">All buildings (10)</button>
+        <button class="chip" type="button" aria-pressed="false">245 Park Avenue (3)</button>
+        <button class="chip" type="button" aria-pressed="false">1 Liberty Plaza (3)</button>
+        <button class="chip" type="button" aria-pressed="false">370 Lexington Avenue (2)</button>
+        <button class="chip" type="button" aria-pressed="false">88 Pine Street (2)</button>
+      </div>
+      <label class="group-toggle">
+        Group by building
+        <span class="switch">
+          <input type="checkbox" checked aria-label="Group ledger rows by building" />
+          <span class="track" aria-hidden="true"></span>
+          <span class="thumb" aria-hidden="true"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="table-frame">
+      <div class="table-scroll">
+        <table class="ledger">
+          <caption>Portfolio compliance ledger, sorted by urgency &mdash; grouped by building, worst status first</caption>
+          <thead>
+            <tr>
+              <th scope="col">Status</th>
+              <th scope="col">Building</th>
+              <th scope="col">Device</th>
+              <th scope="col">Inspection type</th>
+              <th scope="col">Last inspection date</th>
+              <th scope="col">Due date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="group-row">
+              <td colspan="6">245 Park Avenue <span class="group-count">&middot; 3 elevators &middot; most urgent: delinquent</span></td>
+            </tr>
+            <tr>
+              <td><span class="status-badge delinquent"><span class="icon">&#10007;</span>Delinquent</span></td>
+              <td>245 Park Avenue</td>
+              <td>Elevator 2</td>
+              <td>CAT1</td>
+              <td class="cell-date">2025-06-02</td>
+              <td class="cell-date">2026-06-02</td>
+            </tr>
+            <tr>
+              <td><span class="status-badge warning"><span class="icon">&#9888;</span>Warning</span></td>
+              <td>245 Park Avenue</td>
+              <td>Freight Elevator A</td>
+              <td>CAT5</td>
+              <td class="cell-date">2021-08-01</td>
+              <td class="cell-date">2026-08-01</td>
+            </tr>
+            <tr>
+              <td><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></td>
+              <td>245 Park Avenue</td>
+              <td>Elevator 1</td>
+              <td>CAT1</td>
+              <td class="cell-date">2026-01-15</td>
+              <td class="cell-date">2027-01-15</td>
+            </tr>
+
+            <tr class="group-row">
+              <td colspan="6">1 Liberty Plaza <span class="group-count">&middot; 3 elevators &middot; most urgent: warning</span></td>
+            </tr>
+            <tr>
+              <td><span class="status-badge warning"><span class="icon">&#9888;</span>Warning</span></td>
+              <td>1 Liberty Plaza</td>
+              <td>Elevator 3</td>
+              <td>CAT1</td>
+              <td class="cell-date">2025-07-25</td>
+              <td class="cell-date">2026-07-25</td>
+            </tr>
+            <tr>
+              <td><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></td>
+              <td>1 Liberty Plaza</td>
+              <td>Elevator 1</td>
+              <td>CAT1</td>
+              <td class="cell-date">2026-02-10</td>
+              <td class="cell-date">2027-02-10</td>
+            </tr>
+            <tr>
+              <td><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></td>
+              <td>1 Liberty Plaza</td>
+              <td>Elevator 2</td>
+              <td>CAT5</td>
+              <td class="cell-date">2022-03-01</td>
+              <td class="cell-date">2027-03-01</td>
+            </tr>
+
+            <tr class="group-row">
+              <td colspan="6">370 Lexington Avenue <span class="group-count">&middot; 2 elevators &middot; most urgent: compliant</span></td>
+            </tr>
+            <tr>
+              <td><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></td>
+              <td>370 Lexington Avenue</td>
+              <td>Elevator 1</td>
+              <td>CAT1</td>
+              <td class="cell-date">2026-05-01</td>
+              <td class="cell-date">2027-05-01</td>
+            </tr>
+            <tr>
+              <td><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></td>
+              <td>370 Lexington Avenue</td>
+              <td>Elevator 2</td>
+              <td>CAT1</td>
+              <td class="cell-date">2026-04-18</td>
+              <td class="cell-date">2027-04-18</td>
+            </tr>
+
+            <tr class="group-row">
+              <td colspan="6">88 Pine Street <span class="group-count">&middot; 2 elevators &middot; most urgent: compliant</span></td>
+            </tr>
+            <tr>
+              <td><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></td>
+              <td>88 Pine Street</td>
+              <td>Elevator 1</td>
+              <td>CAT1</td>
+              <td class="cell-date">2026-06-30</td>
+              <td class="cell-date">2027-06-30</td>
+            </tr>
+            <tr>
+              <td><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></td>
+              <td>88 Pine Street</td>
+              <td>Elevator 2</td>
+              <td>CAT5</td>
+              <td class="cell-date">2023-09-12</td>
+              <td class="cell-date">2028-09-12</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ P1.1 — polished empty state ============ -->
+  <section class="detail" aria-label="Design detail: empty state">
+    <div class="detail-heading">
+      <div>
+        <span class="eyebrow">Design detail</span>
+        <h2>Polished empty state</h2>
+      </div>
+    </div>
+    <p class="detail-copy">Replaces the current dashed-border placeholder. Same message, but the action a manager needs next &mdash; adding an elevator &mdash; is now a real button instead of implied by prose, and a plain outline glyph keeps it visually quiet.</p>
+
+    <div class="empty-state">
+      <span class="glyph" aria-hidden="true">&#8645;</span>
+      <h3>No elevators yet</h3>
+      <p>Add your first building, then add an elevator to it, to start tracking compliance deadlines across your portfolio.</p>
+      <div class="empty-actions">
+        <button class="btn-primary" type="button">Add your first building</button>
+        <button class="btn-secondary" type="button">Add an elevator instead</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ P1.3 — status-change highlight ============ -->
+  <section class="detail" aria-label="Design detail: status-change highlight">
+    <div class="detail-heading">
+      <div>
+        <span class="eyebrow">Design detail</span>
+        <h2>Status-change highlight</h2>
+      </div>
+      <button class="replay-btn" type="button" onclick="riserReplayDemo()">&#8635; Replay update</button>
+    </div>
+    <p class="detail-copy">When a manager edits an elevator's last-inspection date, its status, due date, and row rank change together. A brief accent sweep on the row makes that recalculation legible instead of silent. Loads in the &ldquo;before&rdquo; state &mdash; press Replay to watch 245 Park Avenue&rsquo;s Elevator&nbsp;2 get logged as inspected.</p>
+
+    <div class="demo-frame">
+      <div class="demo-toolbar">
+        <span class="demo-caption">Simulated edit: last inspection date recorded as 2026-07-18</span>
+      </div>
+      <table class="demo-table">
+        <thead>
+          <tr>
+            <th scope="col">Status</th>
+            <th scope="col">Building</th>
+            <th scope="col">Device</th>
+            <th scope="col">Last inspection date</th>
+            <th scope="col">Due date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="demo-row">
+            <td>
+              <span class="swap">
+                <span class="state before-val"><span class="status-badge delinquent"><span class="icon">&#10007;</span>Delinquent</span></span>
+                <span class="state after-val"><span class="status-badge compliant"><span class="icon">&#10003;</span>Compliant</span></span>
+              </span>
+            </td>
+            <td>245 Park Avenue</td>
+            <td>Elevator 2</td>
+            <td class="cell-date">
+              <span class="swap">
+                <span class="state before-val">2025-06-02</span>
+                <span class="state after-val">2026-07-18</span>
+              </span>
+            </td>
+            <td class="cell-date">
+              <span class="swap">
+                <span class="state before-val">2026-06-02</span>
+                <span class="state after-val">2027-07-18</span>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function riserReplayDemo() {
+    var row = document.getElementById('demo-row');
+    if (!row) return;
+    row.classList.remove('is-after', 'is-highlighting');
+    // force reflow so the removal above is committed before we re-add
+    void row.offsetWidth;
+    requestAnimationFrame(function () {
+      row.classList.add('is-after', 'is-highlighting');
+    });
+    clearTimeout(row._riserTimer);
+    row._riserTimer = setTimeout(function () {
+      row.classList.remove('is-highlighting');
+    }, 1800);
+  }
+</script>
