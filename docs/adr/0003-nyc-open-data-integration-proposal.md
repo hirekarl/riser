@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — not accepted, not implemented. This ADR does not change the PRD or any code; it exists so the team can react to a concrete option.
+Accepted (partial — Option 1 only), 2026-07-21. `docs/prd/Riser-PRD.md` (PRD v2, merged via PR #21) adopted Option 1 — device/filing-data auto-populate by address — as a P0 requirement, but sourced it from **DOB NOW Safety Compliance** (`e5aq-a4j2`) rather than this ADR's proposed **DOB NOW Device Details** (`juyv-2jek`), since `e5aq-a4j2` already carries the CAT1/CAT5 filing dates the due-date engine needs in the same response, avoiding a second dataset lookup. See `docs/architecture/integration-contracts.md` §3 for the accepted request/response shapes and `docs/sprints/day-by-day-plan.md` for the Mon–Tue 7/27–28 build schedule.
+
+**Option 2 (compliance reconciliation) and Option 3 (complaint-based risk) are explicitly not adopted** — shelved, not silently dropped. PRD v2 only uses DOB data to auto-populate a building on add; it does not cross-check DOB's record against a manager's existing manual entries after the fact. Either remains a reasonable future proposal but needs its own ADR if revisited, since the reconciliation UX questions this ADR's Open Questions raised (divergence handling, override vs. flag-only) were never answered.
 
 ## Context
 
@@ -44,7 +46,7 @@ Costs and constraints below are drawn directly from `ea-property-intelligence`'s
 
 ## Open questions
 
-- Does this ship before or after the Day-14 demo? The PRD's demo-readiness goal currently assumes zero external dependencies.
-- If Option 1 is accepted, does device auto-populate **replace** the P0 "add an elevator manually" requirement (`docs/prd/Riser-PRD.md` section 3), or sit alongside it as an alternative entry path (manual entry stays available for devices DOB hasn't registered or that resolve incorrectly)?
-- If Option 2 is accepted, what does the UI do with a divergence — is it just a visual flag, or does it override the PM's entered status?
-- Who owns provisioning the `SOCRATA_APP_TOKEN` for this environment, and does it belong in `.env.example` alongside existing config?
+- ~~Does this ship before or after the Day-14 demo?~~ Resolved: before — scheduled Mon–Tue 2026-07-27–28, ahead of the Wed 2026-07-29 capstone presentation, per `docs/sprints/day-by-day-plan.md`.
+- ~~If Option 1 is accepted, does device auto-populate replace manual entry?~~ Resolved: no — PRD v2 keeps manual entry as "a first-class, always-available path," used for devices absent from the DOB feed or when a manager wants to override pulled data.
+- If Option 2 is accepted, what does the UI do with a divergence — is it just a visual flag, or does it override the PM's entered status? **Moot for now** — Option 2 wasn't adopted; revisit if it resurfaces.
+- Who owns provisioning a Socrata app token for this environment, and does it belong in `.env.example` alongside existing config? **Still open** — carried forward into `docs/prd/Riser-PRD.md`'s own Open Questions (owner: Karl Johnson); anonymous access is confirmed fine at demo scale in the meantime per `docs/architecture/integration-contracts.md`.
