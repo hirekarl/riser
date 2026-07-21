@@ -92,22 +92,31 @@ def _tool_use_names(entries: list[dict[str, Any]]) -> dict[str, str]:
     return names
 
 
-def extract_friction_text(entry: dict[str, Any], tool_names: dict[str, str]) -> str:
-    """Flatten an entry to text, but only the parts that are valid friction
-    evidence: real user-typed messages, or Bash tool results. Assistant
-    prose/thinking and non-execution tool results (Read, Grep, ...) are
-    excluded so they can't be mistaken for observed failures.
+def extract_friction_text(entry: dict[str, Any], tool_names: dict[str, str]) -> list[str]:
+    """Flatten an entry into separate friction-evidence parts, but only the
+    parts that are valid evidence: real user-typed messages, or Bash tool
+    results. Assistant prose/thinking, non-execution tool results (Read,
+    Grep, ...), and harness-injected `<system-reminder>` text are excluded so
+    they can't be mistaken for observed failures.
+
+    Parts are returned as a list, not joined into one string: two unrelated
+    blocks in the same message (e.g. a Bash result plus an injected
+    system-reminder) must never be concatenated, or an error word at the end
+    of one block and a topic word at the start of another can look
+    "co-located" purely as an artifact of joining, not because they're
+    actually related.
     """
     message = entry.get("message", entry)
     if not isinstance(message, dict) or message.get("role") != "user":
-        return ""
+        return []
 
     content = message.get("content")
     parts: list[str] = []
 
     if isinstance(content, str):
         # A plain user-typed message (e.g. pasting a real error) is valid signal.
-        parts.append(content)
+        if "<system-reminder>" not in content:
+            parts.append(content)
     elif isinstance(content, list):
         for block in content:
             if not isinstance(block, dict):
@@ -127,10 +136,15 @@ def extract_friction_text(entry: dict[str, Any], tool_names: dict[str, str]) -> 
                         if isinstance(sub, dict) and isinstance(sub.get("text"), str):
                             parts.append(sub["text"])
             elif block.get("type") == "text" and isinstance(block.get("text"), str):
-                # Plain text block in a user-role message: real user input.
-                parts.append(block["text"])
+                # Plain text block in a user-role message is only real user
+                # input if it isn't a harness-injected system-reminder (e.g.
+                # CLAUDE.md content, tool/agent listings) — those routinely
+                # name every topic in TOPIC_DIR and aren't something the user
+                # typed or the tool executed.
+                if "<system-reminder>" not in block["text"]:
+                    parts.append(block["text"])
 
-    return " ".join(parts)
+    return parts
 
 
 def find_colocated_match(text: str) -> Match[str] | None:
@@ -179,22 +193,20 @@ def main() -> int:
     tool_names = _tool_use_names(entries)
 
     for entry in reversed(entries):
-        text = extract_friction_text(entry, tool_names)
-        if not text:
-            continue
-        match = find_colocated_match(text)
-        if not match:
-            continue
-        topic = TOPIC_DIR[match.group(0).lower()]
-        reason = (
-            f"Before stopping: this turn appears to have hit friction "
-            f"involving '{topic}'. Add or update "
-            f".knowledge-base/{topic}/overview.md with the gotcha and how "
-            f"it was resolved (or confirm it's already documented), "
-            f"following the existing leaf-file template. Then stop."
-        )
-        print(json.dumps({"decision": "block", "reason": reason}))
-        return 0
+        for text in extract_friction_text(entry, tool_names):
+            match = find_colocated_match(text)
+            if not match:
+                continue
+            topic = TOPIC_DIR[match.group(0).lower()]
+            reason = (
+                f"Before stopping: this turn appears to have hit friction "
+                f"involving '{topic}'. Add or update "
+                f".knowledge-base/{topic}/overview.md with the gotcha and how "
+                f"it was resolved (or confirm it's already documented), "
+                f"following the existing leaf-file template. Then stop."
+            )
+            print(json.dumps({"decision": "block", "reason": reason}))
+            return 0
 
     return 0
 
