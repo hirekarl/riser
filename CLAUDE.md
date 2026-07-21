@@ -51,7 +51,7 @@ Coverage must stay **≥90%** on both `backend/` and `frontend/` — this is enf
 
 ## `.knowledge-base/` — quick reference for this toolchain
 
-`.knowledge-base/INDEX.md` maps to one `overview.md` leaf file per tool (Django, DRF, React, TypeScript, Vite, ESLint, uv, ruff, mypy-and-ty, pytest, Vitest, Playwright, pre-commit, commitizen, Render, GitHub Actions). Check there first when you hit a syntax question or a gotcha specific to this stack. A `Stop` hook automatically nudges you to add or update a leaf file when the transcript shows you hit friction with one of these tools before you finish a turn — when that happens, actually do it rather than dismissing the nudge.
+`.knowledge-base/INDEX.md` maps to one `overview.md` leaf file per tool (Django, DRF, React, TypeScript, Vite, ESLint, uv, ruff, mypy-and-ty, pytest, Vitest, Playwright, pre-commit, commitizen, Render, GitHub Actions). Check there first when you hit a syntax question or a gotcha specific to this stack, and update the relevant leaf file yourself when you hit real friction with one of these tools — there's no automated nudge for this anymore (the `Stop` hook that used to prompt for it was removed after producing repeated false positives; see git history for `scripts/check-knowledge-friction.py` if reviving the idea).
 
 ## Git and commit hygiene
 
