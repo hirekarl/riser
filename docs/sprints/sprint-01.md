@@ -1,8 +1,10 @@
 # Sprint 01: Ship the Dynamic Compliance Risk Triage Pipeline MVP
 
-**Dates:** 2026-07-19 – 2026-07-25 (1 week) **Sprint goal:** Get the core Django/DRF ledger API and React ledger UI working end to end — Building/Elevator CRUD, the deterministic due-date/status engine, and the sorted, color-coded ledger view — as the foundation Sprint 02 builds the remaining P1 polish on top of, ahead of the Day-14 demo (per PRD Goals/Non-Goals, `docs/prd/Riser-PRD.md` section 2c).
+**Dates:** 2026-07-19 – 2026-07-25 (1 week) **Sprint goal:** Get the core Django/DRF ledger API and React ledger UI working end to end — Building/Elevator CRUD, the deterministic due-date/status engine, and the sorted, color-coded ledger view — as the foundation Sprint 02 builds the remaining P1 polish on top of, ahead of the final capstone presentation on 2026-07-29 (per PRD Goals/Non-Goals, `docs/prd/Riser-PRD.md` section 2c).
 
-This is the first of **two one-week sprints** covering the full MVP window; see `docs/sprints/sprint-02.md` for the second week.
+This is the first of **two one-week sprints** covering the full MVP window; see `docs/sprints/sprint-02.md` for the second week, and `docs/sprints/day-by-day-plan.md` for the concrete per-person schedule.
+
+**Status as of 2026-07-21: this sprint's P0 core is done** — Building/Elevator CRUD, the due-date/status service, and the sorted ledger endpoint all exist and are tested at 100% coverage on `apps/compliance`. See `docs/sprints/day-by-day-plan.md` for what's left.
 
 ## PRD requirements in scope
 
