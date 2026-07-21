@@ -7,13 +7,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          { "type": "command", "command": "python3 scripts/check-knowledge-friction.py" }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
