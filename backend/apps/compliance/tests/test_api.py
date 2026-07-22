@@ -122,6 +122,52 @@ class TestLedgerAPI:
         response = api_client.post("/api/ledger/", {}, format="json")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
+    def test_ledger_filtered_by_building(self, api_client: APIClient, building: Building) -> None:
+        """GET /api/ledger/?building=<id> returns only that building's elevators, still ranked."""
+        other_building = Building.objects.create(name="Other", address="Other Ave")
+        mine = Elevator.objects.create(
+            building=building,
+            device_identifier="MINE-1",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+        )
+        Elevator.objects.create(
+            building=other_building,
+            device_identifier="THEIRS-1",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+        )
+
+        response = api_client.get(f"/api/ledger/?building={building.pk}")
+
+        assert response.status_code == status.HTTP_200_OK
+        device_ids = [row["device_identifier"] for row in response.data]
+        assert device_ids == [mine.device_identifier]
+
+    def test_ledger_unfiltered_returns_all_buildings(
+        self, api_client: APIClient, building: Building
+    ) -> None:
+        """Without a building param, the ledger spans every building."""
+        other_building = Building.objects.create(name="Other", address="Other Ave")
+        Elevator.objects.create(
+            building=building,
+            device_identifier="MINE-1",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+        )
+        Elevator.objects.create(
+            building=other_building,
+            device_identifier="THEIRS-1",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+        )
+
+        response = api_client.get("/api/ledger/")
+
+        assert response.status_code == status.HTTP_200_OK
+        device_ids = {row["device_identifier"] for row in response.data}
+        assert {"MINE-1", "THEIRS-1"} <= device_ids
+
     @time_machine.travel(datetime.date(2026, 6, 1))
     def test_ledger_includes_computed_fields(
         self, api_client: APIClient, building: Building
