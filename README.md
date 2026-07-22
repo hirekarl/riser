@@ -118,7 +118,6 @@ Ask the main Claude Code agent to delegate to one of these, or invoke them direc
 | Hook | Fires | What it does |
 | --- | --- | --- |
 | `SessionStart` | Start of every session | Runs `scripts/check-env.sh` (read-only) — reports missing installs, out-of-sync deps, missing `.env` files, uninstalled git hooks, `gh` auth status, and current branch. Claude summarizes findings and proposes fixes, but asks before running anything that mutates state. |
-| `Stop` | End of a turn | Runs `scripts/check-knowledge-friction.py` — if the turn hit friction with a project tool (Django, React, uv, Vite, Render, pytest, Vitest, Playwright, eslint, mypy/ty, ruff, commitizen, pre-commit), nudges Claude to add/update a `.knowledge-base/<topic>/overview.md` leaf before actually stopping. Fires at most once per stop (won't loop). |
 | `PostToolUse` | After every Edit/Write | Runs `scripts/format-on-save.sh` — auto-runs `ruff format`/`prettier --write` on the touched file. Advisory only; pre-commit still enforces correctness at commit time. |
 
 ### Skills (`.claude/skills/`)
