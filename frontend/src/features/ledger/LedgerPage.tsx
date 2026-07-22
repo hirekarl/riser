@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listLedger, updateElevator } from "../../api/client";
+import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { LedgerEntry } from "../../types/domain";
 import styles from "./LedgerPage.module.css";
@@ -65,13 +66,7 @@ export function LedgerPage({ reloadSignal }: LedgerPageProps) {
       )}
 
       {entries && entries.length === 0 ? (
-        <div className={styles.emptyState}>
-          <h2>No elevators yet</h2>
-          <p>
-            Add your first building, then add an elevator to it, to start tracking compliance
-            deadlines across your portfolio.
-          </p>
-        </div>
+        <EmptyState />
       ) : entries && entries.length > 0 ? (
         <table className={styles.table}>
           <caption>Portfolio compliance ledger, sorted by urgency</caption>
