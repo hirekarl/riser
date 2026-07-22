@@ -60,18 +60,32 @@ class LedgerListView(generics.ListAPIView[Elevator]):
 
     Read-only. Rows are sorted with the most urgent status first
     (Delinquent > Warning > Compliant), and within each status tier by
-    ascending computed due date.
+    ascending computed due date. The list can be scoped to a single
+    building via the ``?building=<id>`` query parameter, mirroring
+    :class:`ElevatorViewSet`.
 
     The ordering depends on ``due_date`` and ``status``, which are
     computed rather than stored, so it cannot be expressed as a
     ``QuerySet.order_by(...)`` clause. Sorting is therefore done in
-    Python within :meth:`list`, rather than via ``get_queryset``, so
-    that this view's queryset-typed methods keep their normal DRF
-    signatures.
+    Python within :meth:`list`. Filtering, by contrast, is a plain
+    queryset operation and lives in :meth:`get_queryset`.
     """
 
     queryset = Elevator.objects.select_related("building").all()
     serializer_class = LedgerEntrySerializer
+
+    def get_queryset(self) -> QuerySet[Elevator]:
+        """Return ledger elevators, optionally scoped to one building.
+
+        Returns:
+            All elevators, or only those belonging to the building whose
+            id is given in ``?building=<id>`` if that parameter is present.
+        """
+        queryset = Elevator.objects.select_related("building").all()
+        building_id = self.request.query_params.get("building")
+        if building_id is not None:
+            queryset = queryset.filter(building_id=building_id)
+        return queryset
 
     def _sorted_elevators(self) -> Sequence[Elevator]:
         """Return all elevators sorted by urgency then due date.
