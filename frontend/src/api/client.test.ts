@@ -62,6 +62,15 @@ describe("api client", () => {
     );
   });
 
+  it("listElevators GETs /elevators/?building=<id> when a buildingId is given", async () => {
+    const fetchMock = mockFetchOnce([]);
+    await listElevators(3);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/elevators\/\?building=3$/),
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("listLedger GETs /ledger/ and returns the entries in the order given", async () => {
     const entries: LedgerEntry[] = [
       {
