@@ -143,6 +143,38 @@ class TestLedgerAPI:
         assert row["due_date"] == "2026-06-11"
         assert row["status"] == "Warning"
 
+    def test_ledger_filter_by_building(
+        self, api_client: APIClient, building: Building, elevator: Elevator
+    ) -> None:
+        """GET /api/ledger/?building=<id> restricts rows to that building's elevators."""
+        other_building = Building.objects.create(name="Other", address="Other Ave")
+        Elevator.objects.create(
+            building=other_building,
+            device_identifier="EL-OTHER",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2026, 1, 1),
+        )
+        response = api_client.get(f"/api/ledger/?building={building.pk}")
+        assert response.status_code == status.HTTP_200_OK
+        device_ids = [row["device_identifier"] for row in response.data]
+        assert device_ids == [elevator.device_identifier]
+
+    def test_ledger_without_building_param_returns_all(
+        self, api_client: APIClient, building: Building, elevator: Elevator
+    ) -> None:
+        """GET /api/ledger/ with no ``building`` param still returns the full ledger."""
+        other_building = Building.objects.create(name="Other", address="Other Ave")
+        other_elevator = Elevator.objects.create(
+            building=other_building,
+            device_identifier="EL-OTHER",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2026, 1, 1),
+        )
+        response = api_client.get("/api/ledger/")
+        assert response.status_code == status.HTTP_200_OK
+        device_ids = {row["device_identifier"] for row in response.data}
+        assert device_ids == {elevator.device_identifier, other_elevator.device_identifier}
+
     @time_machine.travel(datetime.date(2026, 6, 1))
     def test_ledger_sort_order_delinquent_warning_compliant(
         self, api_client: APIClient, building: Building

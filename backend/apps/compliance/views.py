@@ -68,10 +68,25 @@ class LedgerListView(generics.ListAPIView[Elevator]):
     Python within :meth:`list`, rather than via ``get_queryset``, so
     that this view's queryset-typed methods keep their normal DRF
     signatures.
+
+    Supports filtering by building via the ``?building=<id>`` query
+    parameter, the same way ``ElevatorViewSet`` does.
     """
 
-    queryset = Elevator.objects.select_related("building").all()
     serializer_class = LedgerEntrySerializer
+
+    def get_queryset(self) -> QuerySet[Elevator]:
+        """Return elevators, optionally filtered by the ``building`` query parameter.
+
+        Returns:
+            All elevators, or only those belonging to the building whose
+            id is given in ``?building=<id>`` if that parameter is present.
+        """
+        queryset = Elevator.objects.select_related("building").all()
+        building_id = self.request.query_params.get("building")
+        if building_id is not None:
+            queryset = queryset.filter(building_id=building_id)
+        return queryset
 
     def _sorted_elevators(self) -> Sequence[Elevator]:
         """Return all elevators sorted by urgency then due date.
