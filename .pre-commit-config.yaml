@@ -101,7 +101,7 @@ repos:
   # scoped to backend/ or frontend/, so these run via pre-commit's own
   # self-managed node envs rather than `npm --prefix frontend`.
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.5.1
+    rev: v3.9.6
     hooks:
       - id: prettier
         name: prettier --write (markdown, one line per paragraph)
