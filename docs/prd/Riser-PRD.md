@@ -135,6 +135,8 @@ Commercial property managers who struggle to track fragmented, recurring elevato
 - ⚪ **[P2]** User can mark a defect corrected and record its ELV29 Affirmation of Correction filing (filed date, reference/notes).
 - ⚪ **[P2]** Devices with an open hazardous-flagged defect surface as a distinct, higher-severity indicator, separate from the routine Warning/Delinquent tiers.
 - 🔵 **[P3 / post-MVP]** User can generate a pre-filled agency-outreach email (building details, requested inspection window) that the manager reviews and sends themselves — Riser drafts, never auto-sends, per the Non-Goals above.
+- 🔵 **[P3 / post-MVP, clarified 2026-07-22 per Andres]** User can generate a pre-filled filing summary (device ID, inspection type, last inspection date) as a PDF, for the manager to hand or email to the building's own licensed elevator inspection agency. This is deliberately **not** a "Riser files with DOB" flow: the property manager was never the legal filer, and only the licensed agency that performed the test can submit CAT1/CAT5 forms (ELV3/ELV29) to DOB — no submission API exists for this regardless. Riser assembles data it already has; a human still hands off/sends it, consistent with the Non-Goals above. See `docs/design/mental-model-briefing.md` §6 for the fuller design rationale this adopts.
+- 🔵 **[P3 / post-MVP, clarified 2026-07-22 per Andres]** User can store the resulting proof-of-service record (the filed form, or a note confirming filing occurred) against the corresponding device — Riser becomes the recordkeeping system of truth for what's been filed, without ever being the filer itself.
 
 ## 4. Appendix
 

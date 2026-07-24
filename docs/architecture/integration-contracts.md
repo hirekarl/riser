@@ -151,40 +151,32 @@ map_dob_devices_to_drafts(records) ──► list[ElevatorDraft]   (shape matche
 POST /api/buildings/lookup/ response
 ```
 
-### Stage 1 — address → BIN (⚠️ reachability unconfirmed)
+### Stage 1 — address → BIN (✅ implemented, `backend/apps/compliance/dob.py`)
 
-The PRD assumed NYC Planning's **GeoSearch API** (`geosearch.planninglabs.nyc`) — documented as free, keyless, Pelias-based. A live check during this revision (2026-07-21) hit **HTTP 410 Gone** on its `/v1/search` endpoint, while the service's own landing page showed no deprecation notice — the true status is unresolved from outside research alone. NYC Planning's current, actively-documented replacement, the **Geoservice API** (`geoservice.planning.nyc.gov`), does the same address/BIN/BBL resolution but requires a registered API key (`Key` parameter) — registration lead time unknown.
+The PRD assumed NYC Planning's **GeoSearch API** — documented as free, keyless, Pelias-based. A live check during the 2026-07-21 revision hit **HTTP 410 Gone** on `/v1/search`. **Resolved 2026-07-22**: `/v2/search` is the live, keyless replacement and returns the BIN directly at `properties.addendum.pad.bin`. Full findings: `docs/architecture/geocoding-reachability-findings.md`.
 
-**This is a real risk to the 7/27 start of DOB integration work**, not a settled fact. Action: Cornell's Friday 7/24 research slot (see day-by-day plan) must confirm which service is actually callable before Monday. Fallback if neither is quickly usable: let the user type a BIN directly as a degraded manual path (loses the "address-first" UX but keeps the DOB auto-populate value), or cut the feature entirely per the day-by-day plan's cut order — the P0/P1 core does not depend on this.
+Implemented as `resolve_address(address: str, *, size: int = 5) -> list[AddressMatch]`, returning ranked candidates (each with `label`/`borough`/`bin`) rather than a single best guess, plus `is_ambiguous(matches: list[AddressMatch]) -> bool` — **disambiguate, never first-match**: a lookup spanning more than one distinct BIN (e.g. `"200 Water St"` matches across both Manhattan and Brooklyn) must present a picker rather than silently onboarding the first result.
 
-Interface (stable regardless of which service ends up behind it):
+### Stage 2 — BIN → DOB devices (✅ implemented, `backend/apps/compliance/dob.py`)
 
-```python
-def resolve_address_to_bin(address: str) -> ResolvedAddress | None:
-    """Return the resolved BIN/address/borough, or None if no confident match."""
-```
+`GET https://data.cityofnewyork.us/resource/e5aq-a4j2.json?bin=<bin>` — NYC Open Data Socrata SODA API, **no authentication required**, confirmed reachable. Implemented as `fetch_devices(bin_value: str, *, limit: int = 1000) -> list[DobDevice]`, normalizing `device_number`/`device_type`/`device_status`/`cat1_latest_report_filed`/`cat5_latest_report_filed`/`house_number`/`street_name`/`bin` off each row.
 
-### Stage 2 — BIN → DOB devices (confirmed working)
+Open item (non-blocking): whether to provision a Socrata app token for higher rate limits, or rely on anonymous access — fine at demo scale either way, confirmed during Cornell's research.
 
-`GET https://data.cityofnewyork.us/resource/e5aq-a4j2.json?bin=<bin>` — NYC Open Data Socrata SODA API, **no authentication required**, confirmed reachable during this revision. Relevant fields on each returned row: `device_number`, `device_status`, `cat1_latest_report_filed`, `cat5_latest_report_filed`, `periodic_latest_inspection`, plus `bin`/`borough`/`house_number`/`street_name` (address fields, useful for double-checking the geocoder's match).
+### Stage 3 — mapping to elevator drafts (pure function, no I/O) — device→Elevator decision resolved 2026-07-24
 
-```python
-def fetch_dob_devices_for_bin(bin: str) -> list[DobDeviceRecord]:
-    """GET the Socrata dataset filtered to one BIN; raises on non-2xx."""
-```
+`dob.py` deliberately stopped short of this mapping (flagged `TODO(team)`): a `DobDevice` can carry **both** a CAT1 and a CAT5 filing date, whereas `Elevator` has one `inspection_type` + one `last_inspection_date` per row.
 
-Open item (non-blocking): whether to provision a Socrata app token for higher rate limits, or rely on anonymous access — fine at demo scale either way, per the PRD's open questions.
-
-### Stage 3 — mapping to elevator drafts (pure function, no I/O)
+**Decision:** `map_dob_devices_to_drafts` emits **one `ElevatorDraft` per populated date field** — a device with both `cat1_latest_report_filed` and `cat5_latest_report_filed` set yields two draft rows (one `CAT1`, one `CAT5`), each carrying the same `dob_device_number` back to its source device. A device with only one date populated yields one row. This keeps the existing one-type-per-`Elevator`-row model intact rather than widening it.
 
 ```python
-def map_dob_devices_to_drafts(records: list[DobDeviceRecord]) -> list[ElevatorDraft]:
-    """Pick whichever of cat1_latest_report_filed / cat5_latest_report_filed is
-    populated as last_inspection_date, infer inspection_type from which field
-    that was, and carry device_number through as dob_device_number."""
+def map_dob_devices_to_drafts(devices: list[DobDevice]) -> list[ElevatorDraft]:
+    """One ElevatorDraft per populated cat1/cat5 date on each device;
+    inspection_type inferred from which field was populated, device_number
+    carried through as dob_device_number."""
 ```
 
-Where this lives: new modules alongside the existing `services.py` — e.g. `backend/apps/compliance/services/geocoding.py` and `backend/apps/compliance/services/dob_lookup.py` (or flat `geocoding.py`/`dob_lookup.py` next to `services.py` if the team prefers not to introduce a package — Cornell's call, he owns this code). The `/api/buildings/lookup/` view composes stages 1→2→3.
+Where this lives: alongside `resolve_address`/`fetch_devices` in `backend/apps/compliance/dob.py` (flat module, not a package — matches what Cornell already built). The `/api/buildings/lookup/` view composes stages 1→2→3; still Monday 7/27's work (the POC deliberately doesn't wire a DRF endpoint yet).
 
 **Testing:** mock the HTTP layer (`httpx`/`requests`) at each service function's boundary in the unit test suite — never hit the real network in CI. An optional manual smoke-test script (not part of CI, not test-covered) can hit the real APIs during development to confirm reachability, separate from the mocked unit tests that satisfy the 90% coverage gate.
 
@@ -251,6 +243,6 @@ Client: `fetchNarration(): Promise<NarrationResponse>` (let a non-200 response s
 
 ## 7. Open verification items
 
-- **Geocoding service reachability + auth** (§4, Stage 1) — must resolve by Monday 7/27, owned by Cornell, flagged in the PRD's Open Questions too.
+- ~~**Geocoding service reachability + auth** (§4, Stage 1)~~ — **resolved 2026-07-22** by Cornell: GeoSearch v2, keyless. See `docs/architecture/geocoding-reachability-findings.md`.
 - **NYC Open Data app token** — optional, anonymous access likely sufficient at demo scale; confirm no rate-limit issues surface during rehearsal.
 - **`ANTHROPIC_API_KEY` provisioning** — who actually holds/generates this key, needed by Wed 7/22 per the env-prep task.
