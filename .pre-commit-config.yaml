@@ -109,7 +109,7 @@ repos:
         args: ["--prose-wrap=never"]
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.17.2
+    rev: v0.23.1
     hooks:
       - id: markdownlint-cli2
         name: markdownlint-cli2 (markdown structure/style)
