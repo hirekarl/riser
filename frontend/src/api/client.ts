@@ -44,8 +44,9 @@ export function listElevators(buildingId?: number): Promise<Elevator[]> {
   return request<Elevator[]>(path, { method: "GET" });
 }
 
-export function listLedger(): Promise<LedgerEntry[]> {
-  return request<LedgerEntry[]>("ledger/", { method: "GET" });
+export function listLedger(buildingId?: number): Promise<LedgerEntry[]> {
+  const path = buildingId === undefined ? "ledger/" : `ledger/?building=${buildingId}`;
+  return request<LedgerEntry[]>(path, { method: "GET" });
 }
 
 export function createBuilding(payload: CreateBuildingPayload): Promise<Building> {

@@ -29,6 +29,24 @@
   color: #1f2430;
 }
 
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.filterRow label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.filterRow select {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #7a8091;
+  border-radius: 6px;
+}
+
 .dateInput {
   font: inherit;
   padding: 0.3rem 0.4rem;

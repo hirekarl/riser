@@ -44,7 +44,7 @@ function App() {
 
       <main>
         <h2 className="visually-hidden">Portfolio ledger</h2>
-        <LedgerPage reloadSignal={reloadSignal} />
+        <LedgerPage reloadSignal={reloadSignal} buildings={buildings} />
       </main>
     </div>
   );
