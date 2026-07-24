@@ -88,6 +88,15 @@ describe("api client", () => {
     expect(result).toEqual(entries);
   });
 
+  it("listLedger GETs /ledger/?building=<id> when a buildingId is given", async () => {
+    const fetchMock = mockFetchOnce([]);
+    await listLedger(3);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/ledger\/\?building=3$/),
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("createBuilding POSTs the payload as JSON to /buildings/", async () => {
     const payload: CreateBuildingPayload = { name: "Tower B", address: "2 Main St" };
     const created: Building = {

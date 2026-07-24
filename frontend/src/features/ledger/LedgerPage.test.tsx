@@ -3,7 +3,12 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { axe } from "vitest-axe";
 import { LedgerPage } from "./LedgerPage";
 import * as client from "../../api/client";
-import type { LedgerEntry } from "../../types/domain";
+import type { Building, LedgerEntry } from "../../types/domain";
+
+const buildings: Building[] = [
+  { id: 1, name: "Tower A", address: "1 Main St", created_at: "2026-01-01", updated_at: "2026-01-01" },
+  { id: 2, name: "Tower B", address: "2 Main St", created_at: "2026-01-01", updated_at: "2026-01-01" },
+];
 
 const mixedStatusEntries: LedgerEntry[] = [
   {
@@ -188,5 +193,58 @@ describe("LedgerPage", () => {
     fireEvent.change(dateInput, { target: { value: "" } });
 
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not show a building filter when no buildings are given", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
+    });
+    expect(screen.queryByLabelText(/filter by building/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a building filter with an 'All buildings' option plus one per building", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage buildings={buildings} />);
+
+    const select = await screen.findByLabelText(/filter by building/i);
+    const options = within(select).getAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual(["All buildings", "Tower A", "Tower B"]);
+  });
+
+  it("refetches the ledger scoped to the selected building", async () => {
+    const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage buildings={buildings} />);
+    const select = await screen.findByLabelText(/filter by building/i);
+
+    expect(listLedgerSpy).toHaveBeenLastCalledWith(undefined);
+
+    fireEvent.change(select, { target: { value: "2" } });
+
+    await waitFor(() => {
+      expect(listLedgerSpy).toHaveBeenLastCalledWith(2);
+    });
+  });
+
+  it("refetches the unfiltered ledger when switching back to 'All buildings'", async () => {
+    const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage buildings={buildings} />);
+    const select = await screen.findByLabelText(/filter by building/i);
+
+    fireEvent.change(select, { target: { value: "2" } });
+    await waitFor(() => {
+      expect(listLedgerSpy).toHaveBeenLastCalledWith(2);
+    });
+
+    fireEvent.change(select, { target: { value: "" } });
+    await waitFor(() => {
+      expect(listLedgerSpy).toHaveBeenLastCalledWith(undefined);
+    });
   });
 });

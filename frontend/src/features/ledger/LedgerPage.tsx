@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { listLedger, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
-import type { LedgerEntry } from "../../types/domain";
+import type { Building, LedgerEntry } from "../../types/domain";
 import styles from "./LedgerPage.module.css";
 
 export interface LedgerPageProps {
@@ -12,18 +12,25 @@ export interface LedgerPageProps {
    * component always trusts the server's sort order and never re-sorts locally.
    */
   reloadSignal?: number;
+  /**
+   * Buildings available to filter the ledger by. The filter control only
+   * renders when this is non-empty.
+   */
+  buildings?: Building[];
 }
 
-export function LedgerPage({ reloadSignal }: LedgerPageProps) {
+export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
+  const filterId = useId();
   const [entries, setEntries] = useState<LedgerEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [updateVersion, setUpdateVersion] = useState(0);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     let ignore = false;
 
-    listLedger()
+    listLedger(selectedBuildingId)
       .then((data) => {
         if (ignore) return;
         setEntries(data);
@@ -38,7 +45,7 @@ export function LedgerPage({ reloadSignal }: LedgerPageProps) {
       ignore = true;
     };
     // reloadSignal/updateVersion are intentional refetch triggers, not consumed directly.
-  }, [reloadSignal, updateVersion]);
+  }, [reloadSignal, updateVersion, selectedBuildingId]);
 
   async function handleDateChange(elevatorId: number, newDate: string) {
     if (!newDate) return;
@@ -62,6 +69,27 @@ export function LedgerPage({ reloadSignal }: LedgerPageProps) {
       {error && (
         <div className={styles.errorBanner} role="alert">
           {error}
+        </div>
+      )}
+
+      {buildings.length > 0 && (
+        <div className={styles.filterRow}>
+          <label htmlFor={filterId}>Filter by building</label>
+          <select
+            id={filterId}
+            value={selectedBuildingId ?? ""}
+            onChange={(event) => {
+              const { value } = event.target;
+              setSelectedBuildingId(value === "" ? undefined : Number(value));
+            }}
+          >
+            <option value="">All buildings</option>
+            {buildings.map((building) => (
+              <option key={building.id} value={building.id}>
+                {building.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
