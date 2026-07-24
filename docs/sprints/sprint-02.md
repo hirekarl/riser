@@ -8,13 +8,13 @@ This is the second of **two one-week sprints** covering the full MVP window; see
 
 Copied from `docs/prd/Riser-PRD.md` section 3.
 
-- [ ] P1 — Edit an existing elevator's date/type.
-- [ ] P1 — Polished empty state.
-- [ ] P1 — Show building name inline in the ledger.
-- [ ] P1 — Filter/group ledger by building.
-- [ ] P1 — Visual highlight on status change.
+- [x] P1 — Edit an existing elevator's date/type. (PRD requires date *or* type; the inline ledger date-editor satisfies this as written.)
+- [x] P1 — Polished empty state.
+- [x] P1 — Show building name inline in the ledger.
+- [x] P1 — Filter/group ledger by building.
+- [x] P1 — Visual highlight on status change.
 - [ ] P0/P1 (new, non-negotiable) — AI risk-narration briefing (issue #1, Option 3).
-- [ ] P0/P1 (new, best-effort) — DOB Open Data address-lookup auto-populate.
+- [ ] P0/P1 (new, best-effort) — DOB Open Data address-lookup auto-populate. (Stages 1-2 of the pipeline are built/tested ahead of schedule — `backend/apps/compliance/dob.py` — but the endpoint + frontend wiring are still Mon/Tue 7/27-28 work; see `docs/architecture/integration-contracts.md` §4.)
 
 (P2 items remain out of scope; pull from Sprint 01 into this sprint if anything didn't land in week one. See `docs/sprints/day-by-day-plan.md` for the priority/cut-order reasoning behind the two new items.)
 
@@ -26,34 +26,34 @@ Filled in 2026-07-21 per the concrete schedule in `docs/sprints/day-by-day-plan.
 
 - [x] Update sprint checklists (this edit).
 - [ ] Walk team through `docs/architecture/integration-contracts.md` (Tue 7/21).
-- [ ] Contract review: edit shape + filter param match DRF serializers (Wed 7/22); add `anthropic` SDK dependency + `ANTHROPIC_API_KEY` placeholder (Wed 7/22).
-- [ ] Demo script/talking points + dry-run #1 (Thu 7/23); run dry-run #2 + freeze scope (Fri 7/24).
+- [x] Contract review: edit shape + filter param match DRF serializers (Wed 7/22); add `anthropic` SDK dependency + `ANTHROPIC_API_KEY` placeholder (Wed 7/22).
+- [x] Demo script/talking points (Thu 7/23 task, done Fri 7/24 since Thu's session didn't happen — see `docs/team/status-log.md`). Dry-run #1 (Thu) did not happen; Fri 7/24 became a solo catch-up session rather than a full team dry-run #2 — see status log.
 - [ ] AI-narration TS type/client method (Sun 7/26); address-lookup TS type/client method + fresh-eyes contract review (Mon 7/27).
 - [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28).
 
 ### Andres Ballares
 
-- [ ] Wire elevator-edit UI to `PATCH` endpoint; confirm due-date/status/rank update live on save (Tue 7/21).
-- [ ] Filter/group-by-building in ledger UI + building name inline (Wed 7/22, against Cornell's query param).
-- [ ] Realistic-portfolio-size check (25+ elevators) on demo browser (Thu 7/23); final cross-browser/responsive check (Fri 7/24).
+- [x] Wire elevator-edit UI to `PATCH` endpoint; confirm due-date/status/rank update live on save (Tue 7/21).
+- [x] Filter/group-by-building in ledger UI + building name inline (Wed 7/22, against Cornell's query param). Did not land Wed as scheduled; picked up by Karl Fri 7/24 since Andres wasn't present — see `docs/team/status-log.md`.
+- [ ] Realistic-portfolio-size check (25+ elevators) on demo browser (Thu 7/23); final cross-browser/responsive check (Fri 7/24). Not done — Andres not present Thu or Fri.
 - [ ] AI-narration panel component, on-demand + loading state (Sun 7/26); close AI-panel edge cases + address-lookup form shell (Mon 7/27); wire address-lookup form + review/override flow (Tue 7/28).
 
 ### Cornell Robertson
 
 - [ ] Confirm/add tests for `PATCH` on `ElevatorViewSet` (Tue 7/21) — **confirmed already done 2026-07-21, no new work needed** (endpoint + test pre-existed; see `docs/sprints/sprint-01.md` carry-over note).
-- [ ] Building-scoped filtering (query param) on `LedgerListView` (Wed 7/22).
-- [ ] Backend edge-case sweep: leap-year due-date math, boundary Warning/Delinquent transitions (Thu 7/23).
-- [ ] Research which NYC Planning geocoding service is reachable (GeoSearch vs. Geoservice) + review DOB Open Data response shape — research only (Fri 7/24).
+- [x] Building-scoped filtering (query param) on `LedgerListView` (Wed 7/22).
+- [ ] Backend edge-case sweep: leap-year due-date math, boundary Warning/Delinquent transitions (Thu 7/23). Not done — Thu's session didn't happen. A real bug in this exact area (a `time_machine`/local-timezone interaction in the boundary tests) surfaced and was fixed by Karl Fri 7/24 — see `docs/team/status-log.md`.
+- [x] Research which NYC Planning geocoding service is reachable (GeoSearch vs. Geoservice) + review DOB Open Data response shape — research only (Fri 7/24). **Done two days early (Wed 7/22 evening) and exceeded scope**: built a full working, tested resolver POC rather than research notes — `backend/apps/compliance/dob.py`, `docs/architecture/geocoding-reachability-findings.md`.
 - [ ] Narration-briefing service, single-turn Claude API call, mocked-client tests (Sun 7/26).
 - [ ] Finish AI-agent tests/coverage; start DOB Open Data address→BIN client service (Mon 7/27).
 - [ ] Finish DOB service: no-match/error fallback to manual entry, tests (Tue 7/28).
 
 ### Schiffon Lola Wise
 
-- [ ] Polished empty-state screen for zero-devices first-run case (Tue 7/21).
-- [ ] Status-change highlight/animation on `LedgerPage`/`StatusBadge` (Wed 7/22, after Andres pushes); visual QA on new empty state.
-- [ ] Final visual pass: status colors meet distinct/high-contrast requirement (Thu 7/23).
-- [ ] Final accessibility pass: contrast, jsx-a11y, axe (Fri 7/24).
+- [x] Polished empty-state screen for zero-devices first-run case (Tue 7/21). Schiffon wasn't present that session; picked up by Karl via the `ui-ux-specialist-agent` — see `docs/team/status-log.md`'s 2026-07-21 entry.
+- [x] Status-change highlight/animation on `LedgerPage`/`StatusBadge` (Wed 7/22, after Andres pushes); visual QA on new empty state. Did not land Wed as scheduled; picked up by Karl Fri 7/24 after the filter UI landed, since Schiffon wasn't present — see status log.
+- [ ] Final visual pass: status colors meet distinct/high-contrast requirement (Thu 7/23). Not done — Schiffon not present Thu.
+- [ ] Final accessibility pass: contrast, jsx-a11y, axe (Fri 7/24). Not done — Schiffon not present Fri. (Note: the highlight animation Karl built this session does have automated axe coverage in its own tests, but that's not a substitute for Schiffon's full manual pass.)
 - [ ] AI-narration panel placement + empty/loading/error states (Sun 7/26, after Andres pushes).
 - [ ] AI-panel accessibility/visual QA; start "review and override" screen design (Mon 7/27, after Andres pushes).
 - [ ] Polish review/override screen (Tue 7/28, after Andres pushes).
