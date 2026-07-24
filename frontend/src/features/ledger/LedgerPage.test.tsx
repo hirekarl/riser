@@ -247,4 +247,114 @@ describe("LedgerPage", () => {
       expect(listLedgerSpy).toHaveBeenLastCalledWith(undefined);
     });
   });
+
+  it("does not highlight any row on the initial load", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
+    });
+    const dataRows = screen.getAllByRole("row").slice(1);
+    for (const row of dataRows) {
+      expect(row.className).not.toMatch(/highlighting/);
+    }
+  });
+
+  it("highlights only the row whose status changed after an edit", async () => {
+    const changing: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const unchanged: LedgerEntry = {
+      id: 2,
+      building_name: "Tower B",
+      device_identifier: "EL-2",
+      inspection_type: "CAT5",
+      last_inspection_date: "2024-01-01",
+      due_date: "2029-01-01",
+      status: "Compliant",
+    };
+    const changingAfter: LedgerEntry = {
+      ...changing,
+      last_inspection_date: "2026-07-01",
+      due_date: "2027-07-01",
+      status: "Compliant",
+    };
+
+    vi.spyOn(client, "listLedger")
+      .mockResolvedValueOnce([changing, unchanged])
+      .mockResolvedValueOnce([changingAfter, unchanged]);
+    vi.spyOn(client, "updateElevator").mockResolvedValue({
+      id: changing.id,
+      building: 1,
+      device_identifier: changing.device_identifier,
+      inspection_type: changing.inspection_type,
+      last_inspection_date: "2026-07-01",
+      created_at: "x",
+      updated_at: "x",
+    });
+
+    render(<LedgerPage />);
+    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+
+    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+
+    await screen.findByText("2027-07-01"); // due date unique to the post-edit fetch
+    const changedRow = screen.getByText("EL-1").closest("tr");
+    const unchangedRow = screen.getByText("EL-2").closest("tr");
+
+    expect(changedRow?.className).toMatch(/highlighting/);
+    expect(unchangedRow?.className).not.toMatch(/highlighting/);
+  });
+
+  it("clears the highlight after the animation duration elapses", async () => {
+    const before: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const after: LedgerEntry = {
+      ...before,
+      last_inspection_date: "2026-07-01",
+      due_date: "2027-07-01",
+      status: "Compliant",
+    };
+
+    vi.spyOn(client, "listLedger").mockResolvedValueOnce([before]).mockResolvedValueOnce([after]);
+    vi.spyOn(client, "updateElevator").mockResolvedValue({
+      id: before.id,
+      building: 1,
+      device_identifier: before.device_identifier,
+      inspection_type: before.inspection_type,
+      last_inspection_date: "2026-07-01",
+      created_at: "x",
+      updated_at: "x",
+    });
+
+    render(<LedgerPage />);
+    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+
+    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+
+    await screen.findByText("2027-07-01");
+    expect(screen.getByText("EL-1").closest("tr")?.className).toMatch(/highlighting/);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("EL-1").closest("tr")?.className).not.toMatch(/highlighting/);
+      },
+      { timeout: 3000 },
+    );
+  }, 5000);
 });
