@@ -56,7 +56,7 @@ Cornell, Andres, and Schiffon were not present for this session; Karl ran it sol
 
 ### Outstanding — needs Andres or Schiffon specifically, not reassignable
 
-Everything below requires a real human on real hardware/browsers; Karl (or Claude Code, working on Karl's behalf) cannot substitute for these the way code/docs tasks were picked up above. Carrying forward until one of them is back, ideally before Saturday's demo.
+Everything below requires a real human on real hardware/browsers; Karl (or Claude Code, working on Karl's behalf) cannot substitute for these the way code/docs tasks were picked up above. Carrying forward until one of them is back — no longer racing Saturday's demo specifically, since that's confirmed cancelled (see `docs/sprints/day-by-day-plan.md`'s Sat 7/25 entry), but still worth closing out well before the Wed 7/29 final capstone.
 
 | Task | Assigned to | Originally due | Status |
 | --- | --- | --- | --- |
@@ -65,4 +65,8 @@ Everything below requires a real human on real hardware/browsers; Karl (or Claud
 | Final visual pass: confirm status colors are distinct/high-contrast in practice | Schiffon | Thu 7/23 | **Outstanding.** `StatusBadge` colors are unchanged since Sprint 01 and were originally built by Schiffon for exactly this requirement, so risk here is low — but no one has re-confirmed it since, and it's a human-judgment check (real screen, real eyes), not something automatable. |
 | Final accessibility pass: contrast, jsx-a11y, axe, across everything shipped this week | Schiffon | Fri 7/24 | **Partially covered, not closed out.** Automated `axe` scans exist in this session's own component/e2e tests (LedgerPage's test suite, `e2e/ledger.spec.ts`) and came back clean — but that's incidental coverage from TDD on the features Karl picked up, not the deliberate, whole-app manual pass (screen reader spot-check, keyboard-only walkthrough, real contrast check on the actual empty-state/filter/highlight additions) this task calls for. |
 
-If neither is available before the demo, the pragmatic fallback is: do a quick manual smoke pass on these four items yourself (Karl) Saturday morning rather than skipping them silently — better than presenting untested UI, even if it's not the deliberate pass Andres/Schiffon would have done.
+If neither is available well before the 7/29 capstone, the pragmatic fallback is: do a quick manual smoke pass on these four items yourself (Karl) rather than skipping them silently — better than presenting untested UI, even if it's not the deliberate pass Andres/Schiffon would have done.
+
+### Housekeeping: Sat 2026-07-25 Week 1 demo cancelled
+
+Confirmed by Karl 2026-07-24: the Week 1 demo originally scheduled for Saturday is not happening. This removes a scope-freeze deadline that several docs were written against today (`docs/sprints/day-by-day-plan.md`, `docs/demo/week-1-demo-script.md`, and the "before Saturday's demo" framing above) — all updated same-day to reflect it. The only presentation deadline remaining is the final capstone on Wed 2026-07-29.

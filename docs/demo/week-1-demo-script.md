@@ -1,5 +1,7 @@
 # Week 1 demo script — Sat 2026-07-25
 
+> **Update 2026-07-24: this demo is cancelled — confirmed not happening.** Nothing below needs to be rehearsed or delivered tomorrow. Kept as-is rather than deleted: the hook, golden-path walkthrough, and close are good raw material to reuse (and adapt/extend) when writing the real script for the Wed 2026-07-29 final capstone presentation, which is now the only presentation deadline left. See `docs/sprints/day-by-day-plan.md`'s Sat 7/25 entry for the full context on the cancellation.
+
 Talking points for Saturday's Week 1 demo (`docs/sprints/day-by-day-plan.md`), written the day after its original Thu 7/23 slot since no artifact existed yet going into Friday's dry-run #2. Scope: P0 core + whatever P1 polish has landed by Saturday morning — see `docs/sprints/sprint-02.md` for the current per-item status. Framed around the PRD's Problem/Opportunity section (`docs/prd/Riser-PRD.md` §1/§1a), not a feature-by-feature tour.
 
 ## Timing
