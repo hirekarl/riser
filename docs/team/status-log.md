@@ -53,3 +53,16 @@ Cornell, Andres, and Schiffon were not present for this session; Karl ran it sol
 | Filter/group-by-building in ledger UI (Andres's stalled Wed task) | Andres → **Karl (reassigned)** | Karl | Done | PR #37, merged. Andres not present; picked up so the P1 item didn't keep slipping. Single-building select, not an always-grouped view, per the contract and Karl's own earlier review of PR #19. |
 | Status-change highlight animation (Schiffon's stalled Wed task) | Schiffon → **Karl (reassigned)** | Karl | Done | PR #38, merged. Schiffon not present; built after the filter UI landed, per the day-by-day plan's own sequencing rule for that file. Visual language adapted from Schiffon's merged design mockup, re-implemented against React's actual re-render model. |
 | Demo script/talking points (originally Thu 7/23) | Karl | Karl | Done, a day late | PR #39, merged. Written Fri since Thu's session didn't happen; framed around the PRD's Problem/Opportunity section per the original task. |
+
+### Outstanding — needs Andres or Schiffon specifically, not reassignable
+
+Everything below requires a real human on real hardware/browsers; Karl (or Claude Code, working on Karl's behalf) cannot substitute for these the way code/docs tasks were picked up above. Carrying forward until one of them is back, ideally before Saturday's demo.
+
+| Task | Assigned to | Originally due | Status |
+| --- | --- | --- | --- |
+| Realistic-portfolio-size check (25+ elevators) on the actual demo browser | Andres | Thu 7/23 | **Outstanding.** Not something a code change substitutes for — needs a real render/scroll/interaction check at that scale. |
+| Final cross-browser/responsive check on whatever machine will run the demo | Andres | Fri 7/24 | **Outstanding.** Needs Andres's (or whoever's) actual demo-day machine/browser, not CI. |
+| Final visual pass: confirm status colors are distinct/high-contrast in practice | Schiffon | Thu 7/23 | **Outstanding.** `StatusBadge` colors are unchanged since Sprint 01 and were originally built by Schiffon for exactly this requirement, so risk here is low — but no one has re-confirmed it since, and it's a human-judgment check (real screen, real eyes), not something automatable. |
+| Final accessibility pass: contrast, jsx-a11y, axe, across everything shipped this week | Schiffon | Fri 7/24 | **Partially covered, not closed out.** Automated `axe` scans exist in this session's own component/e2e tests (LedgerPage's test suite, `e2e/ledger.spec.ts`) and came back clean — but that's incidental coverage from TDD on the features Karl picked up, not the deliberate, whole-app manual pass (screen reader spot-check, keyboard-only walkthrough, real contrast check on the actual empty-state/filter/highlight additions) this task calls for. |
+
+If neither is available before the demo, the pragmatic fallback is: do a quick manual smoke pass on these four items yourself (Karl) Saturday morning rather than skipping them silently — better than presenting untested UI, even if it's not the deliberate pass Andres/Schiffon would have done.
