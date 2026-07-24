@@ -191,9 +191,9 @@ def fetch_devices(bin_value: str, *, limit: int = 1000) -> list[DobDevice]:
     ]
 
 
-# TODO(team): mapping a DobDevice onto Riser's Elevator model is a contract
-# decision, not a POC concern. A device carries *both* a CAT1 and a CAT5
-# filing date, whereas Elevator has one inspection_type + one
-# last_inspection_date — so one device may need to become up to two
-# Elevator rows (one per tracked category). Resolve in integration-contracts.md
-# before wiring this into a DRF endpoint.
+# Resolved 2026-07-24 (docs/architecture/integration-contracts.md §4 Stage 3):
+# map_dob_devices_to_drafts() emits one ElevatorDraft per populated cat1/cat5
+# date on a DobDevice (up to two rows per device), each carrying the source
+# device_number as dob_device_number. Not yet implemented here — this POC
+# deliberately stops at fetch_devices(); the mapping function and the
+# /api/buildings/lookup/ endpoint composing all three stages are Monday's work.
