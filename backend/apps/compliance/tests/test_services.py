@@ -52,37 +52,57 @@ class TestCalculateDueDate:
 
 
 class TestCalculateStatus:
-    """Tests for :func:`apps.compliance.services.calculate_status`."""
+    """Tests for :func:`apps.compliance.services.calculate_status`.
 
-    @time_machine.travel(datetime.date(2026, 1, 1))
+    Boundary-day cases pass ``today`` explicitly rather than freezing wall-clock
+    time with ``time_machine``: ``time_machine.travel`` anchors a bare
+    ``date`` at UTC midnight, and on a host whose local timezone is behind
+    UTC, ``datetime.date.today()`` then resolves to the *previous* local day
+    - silently shifting every boundary assertion by one day depending on the
+    machine's timezone. Passing ``today`` directly sidesteps that entirely,
+    per this function's own docstring guidance.
+    """
+
     def test_31_days_out_is_compliant(self) -> None:
         """A due date 31 days in the future is Compliant."""
-        due_date = datetime.date(2026, 1, 1) + datetime.timedelta(days=31)
-        assert calculate_status(due_date) == Status.COMPLIANT
+        today = datetime.date(2026, 1, 1)
+        due_date = today + datetime.timedelta(days=31)
+        assert calculate_status(due_date, today=today) == Status.COMPLIANT
 
-    @time_machine.travel(datetime.date(2026, 1, 1))
     def test_30_days_out_is_warning(self) -> None:
         """A due date exactly 30 days in the future is Warning."""
-        due_date = datetime.date(2026, 1, 1) + datetime.timedelta(days=30)
-        assert calculate_status(due_date) == Status.WARNING
+        today = datetime.date(2026, 1, 1)
+        due_date = today + datetime.timedelta(days=30)
+        assert calculate_status(due_date, today=today) == Status.WARNING
 
-    @time_machine.travel(datetime.date(2026, 1, 1))
     def test_due_today_is_warning(self) -> None:
         """A due date equal to today is still Warning, not Delinquent."""
-        due_date = datetime.date(2026, 1, 1)
-        assert calculate_status(due_date) == Status.WARNING
+        today = datetime.date(2026, 1, 1)
+        due_date = today
+        assert calculate_status(due_date, today=today) == Status.WARNING
 
-    @time_machine.travel(datetime.date(2026, 1, 1))
     def test_one_day_past_due_is_delinquent(self) -> None:
         """A due date one day in the past is Delinquent."""
-        due_date = datetime.date(2026, 1, 1) - datetime.timedelta(days=1)
-        assert calculate_status(due_date) == Status.DELINQUENT
+        today = datetime.date(2026, 1, 1)
+        due_date = today - datetime.timedelta(days=1)
+        assert calculate_status(due_date, today=today) == Status.DELINQUENT
 
-    @time_machine.travel(datetime.date(2026, 1, 1))
     def test_far_past_due_is_delinquent(self) -> None:
         """A due date far in the past is Delinquent."""
-        due_date = datetime.date(2026, 1, 1) - datetime.timedelta(days=400)
-        assert calculate_status(due_date) == Status.DELINQUENT
+        today = datetime.date(2026, 1, 1)
+        due_date = today - datetime.timedelta(days=400)
+        assert calculate_status(due_date, today=today) == Status.DELINQUENT
+
+    @time_machine.travel(datetime.date(2026, 1, 1))
+    def test_omitting_today_falls_back_to_wall_clock(self) -> None:
+        """Omitting ``today`` falls back to the real current date.
+
+        Frozen comfortably clear of the Warning/Delinquent boundary (60 days
+        out) so a +-1 day shift from the freeze/local-timezone interaction
+        described above can't flip the verdict.
+        """
+        due_date = datetime.date(2026, 1, 1) + datetime.timedelta(days=60)
+        assert calculate_status(due_date) == Status.COMPLIANT
 
     def test_explicit_today_argument_overrides_wall_clock(self) -> None:
         """Passing an explicit ``today`` argument is honored over real wall-clock time."""
