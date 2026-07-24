@@ -5,6 +5,7 @@
   --bg-subtle: #f6f7f9;
   --border: #d9dde3;
   --focus: #2c5cf6;
+  --focus-subtle: #e8edfe;
 
   color-scheme: light dark;
   color: var(--text);
@@ -26,6 +27,7 @@
     --bg-subtle: #1c1f26;
     --border: #333844;
     --focus: #8ab4ff;
+    --focus-subtle: #243352;
   }
 }
 

@@ -29,6 +29,54 @@
   color: #1f2430;
 }
 
+/* Status-change highlight: a brief accent sweep on a row whose status just
+   recalculated, so an edit's effect on rank/status reads as a visible event
+   rather than a silent table reflow. Adapted from the design proposal in
+   docs/design/sprint-02-ledger-polish.html (the sweep-fade look/timing),
+   re-implemented against React's actual re-render model rather than that
+   file's imperative DOM-class toggling. */
+.highlighting {
+  position: relative;
+}
+
+.highlighting td {
+  position: relative;
+  z-index: 1;
+}
+
+.highlighting::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--focus-subtle);
+  border-left: 3px solid var(--focus);
+  animation: sweep-fade 1.7s ease-out forwards;
+  z-index: 0;
+}
+
+@keyframes sweep-fade {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .highlighting::before {
+    animation: none;
+    opacity: 0;
+  }
+
+  .highlighting td {
+    background: var(--focus-subtle);
+  }
+}
+
 .filterRow {
   display: flex;
   align-items: center;

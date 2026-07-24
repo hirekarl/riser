@@ -1,9 +1,14 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { listLedger, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { Building, LedgerEntry } from "../../types/domain";
 import styles from "./LedgerPage.module.css";
+
+// Matches the sweep-fade animation duration in LedgerPage.module.css, plus a
+// small margin, so the highlight class clears after the animation (or, under
+// prefers-reduced-motion, the static background) has had time to be seen.
+const HIGHLIGHT_DURATION_MS = 1800;
 
 export interface LedgerPageProps {
   /**
@@ -26,6 +31,9 @@ export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [updateVersion, setUpdateVersion] = useState(0);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
+  const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
+  const previousStatusesRef = useRef<Map<number, string> | null>(null);
+  const highlightTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     let ignore = false;
@@ -33,6 +41,26 @@ export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
     listLedger(selectedBuildingId)
       .then((data) => {
         if (ignore) return;
+
+        const previousStatuses = previousStatusesRef.current;
+        if (previousStatuses) {
+          const changed = new Set<number>();
+          for (const entry of data) {
+            const previousStatus = previousStatuses.get(entry.id);
+            if (previousStatus !== undefined && previousStatus !== entry.status) {
+              changed.add(entry.id);
+            }
+          }
+          if (changed.size > 0) {
+            window.clearTimeout(highlightTimeoutRef.current);
+            setJustChangedIds(changed);
+            highlightTimeoutRef.current = window.setTimeout(() => {
+              setJustChangedIds(new Set());
+            }, HIGHLIGHT_DURATION_MS);
+          }
+        }
+        previousStatusesRef.current = new Map(data.map((entry) => [entry.id, entry.status]));
+
         setEntries(data);
         setError(null);
       })
@@ -46,6 +74,10 @@ export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
     };
     // reloadSignal/updateVersion are intentional refetch triggers, not consumed directly.
   }, [reloadSignal, updateVersion, selectedBuildingId]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(highlightTimeoutRef.current);
+  }, []);
 
   async function handleDateChange(elevatorId: number, newDate: string) {
     if (!newDate) return;
@@ -110,7 +142,7 @@ export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
           </thead>
           <tbody>
             {entries.map((entry) => (
-              <tr key={entry.id}>
+              <tr key={entry.id} className={justChangedIds.has(entry.id) ? styles.highlighting : undefined}>
                 <td>
                   <StatusBadge status={entry.status} />
                 </td>
