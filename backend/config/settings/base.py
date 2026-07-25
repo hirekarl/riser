@@ -78,4 +78,19 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": None,
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "EXCEPTION_HANDLER": "apps.compliance.exceptions.riser_exception_handler",
+}
+
+#: Minimal console logging, shared by local development (``runserver``) and
+#: production (Render, which captures stdout). Intentionally small: this
+#: backend has exactly two log call sites (a warning for rejected query
+#: params and an exception log in the custom DRF exception handler), not a
+#: full logging framework.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"verbose": {"format": "{asctime} {levelname} {name} {message}", "style": "{"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "verbose"}},
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {"apps.compliance": {"handlers": ["console"], "level": "INFO", "propagate": False}},
 }
