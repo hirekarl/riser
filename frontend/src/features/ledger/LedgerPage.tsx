@@ -28,9 +28,21 @@ export interface LedgerPageProps {
    * mode for that elevator.
    */
   onEditRequest?: (entry: LedgerEntry) => void;
+  /**
+   * The id of the elevator currently open in the (parent-owned) Edit form, if
+   * any. The row matching this id has its inline date input disabled and is
+   * marked with `styles.editingRow`, so the same field can't be edited via
+   * two surfaces at once (see the stale-overwrite race this prevents).
+   */
+  editingElevatorId?: number;
 }
 
-export function LedgerPage({ reloadSignal, buildings = [], onEditRequest }: LedgerPageProps) {
+export function LedgerPage({
+  reloadSignal,
+  buildings = [],
+  onEditRequest,
+  editingElevatorId,
+}: LedgerPageProps) {
   const filterId = useId();
   const [entries, setEntries] = useState<LedgerEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -149,44 +161,52 @@ export function LedgerPage({ reloadSignal, buildings = [], onEditRequest }: Ledg
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
-                <tr
-                  key={entry.id}
-                  className={justChangedIds.has(entry.id) ? styles.highlighting : undefined}
-                >
-                  <td>
-                    <StatusBadge status={entry.status} />
-                  </td>
-                  <td>{entry.building_name}</td>
-                  <td>{entry.device_identifier}</td>
-                  <td>{entry.inspection_type}</td>
-                  <td>
-                    <label>
-                      <span className="visually-hidden">
-                        Last inspection date for {entry.device_identifier}
-                      </span>
-                      <input
-                        type="date"
-                        className={styles.dateInput}
-                        defaultValue={entry.last_inspection_date}
-                        disabled={pendingId === entry.id}
-                        onChange={(event) => handleDateChange(entry.id, event.target.value)}
-                      />
-                    </label>
-                  </td>
-                  <td>{entry.due_date}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className={styles.editButton}
-                      aria-label={`Edit ${entry.device_identifier}`}
-                      onClick={() => onEditRequest?.(entry)}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {entries.map((entry) => {
+                const isEditingRow = editingElevatorId === entry.id;
+                const rowClassName =
+                  [
+                    justChangedIds.has(entry.id) ? styles.highlighting : null,
+                    isEditingRow ? styles.editingRow : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || undefined;
+
+                return (
+                  <tr key={entry.id} className={rowClassName}>
+                    <td>
+                      <StatusBadge status={entry.status} />
+                    </td>
+                    <td>{entry.building_name}</td>
+                    <td>{entry.device_identifier}</td>
+                    <td>{entry.inspection_type}</td>
+                    <td>
+                      <label>
+                        <span className="visually-hidden">
+                          Last inspection date for {entry.device_identifier}
+                        </span>
+                        <input
+                          type="date"
+                          className={styles.dateInput}
+                          defaultValue={entry.last_inspection_date}
+                          disabled={pendingId === entry.id || isEditingRow}
+                          onChange={(event) => handleDateChange(entry.id, event.target.value)}
+                        />
+                      </label>
+                    </td>
+                    <td>{entry.due_date}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className={styles.editButton}
+                        aria-label={`Edit ${entry.device_identifier}`}
+                        onClick={() => onEditRequest?.(entry)}
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -102,6 +102,14 @@
   border-radius: 6px;
 }
 
+/* Marks the row whose elevator is currently the target of the (parent-owned)
+   Edit form, alongside the inline date input being disabled for that row.
+   Intentionally unstyled here — a follow-up UI/UX pass adds the visual
+   treatment; this class only needs to exist so it composes correctly with
+   .highlighting when both apply to the same row. */
+.editingRow {
+}
+
 .dateInput {
   font: inherit;
   padding: 0.3rem 0.4rem;

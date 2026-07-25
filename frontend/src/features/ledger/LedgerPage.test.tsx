@@ -345,6 +345,29 @@ describe("LedgerPage", () => {
     expect(unchangedRow?.className).not.toMatch(/highlighting/);
   });
 
+  it("disables the inline date input and marks the row for whichever entry is the current edit target", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    const { rerender } = render(<LedgerPage editingElevatorId={1} />);
+
+    const editedRowInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    expect(editedRowInput).toBeDisabled();
+    expect(editedRowInput.closest("tr")?.className).toMatch(/editingRow/);
+
+    const otherRowInput = screen.getByLabelText(/last inspection date for el-2/i);
+    expect(otherRowInput).not.toBeDisabled();
+    expect(otherRowInput.closest("tr")?.className).not.toMatch(/editingRow/);
+
+    rerender(<LedgerPage editingElevatorId={undefined} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/last inspection date for el-1/i)).not.toBeDisabled();
+    });
+    expect(
+      screen.getByLabelText(/last inspection date for el-1/i).closest("tr")?.className,
+    ).not.toMatch(/editingRow/);
+  });
+
   it("clears the highlight after the animation duration elapses", async () => {
     const before: LedgerEntry = {
       id: 1,
