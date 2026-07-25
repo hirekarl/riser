@@ -22,6 +22,8 @@ Copied from `docs/prd/Riser-PRD.md` section 3.
 
 Filled in 2026-07-21 per the concrete schedule in `docs/sprints/day-by-day-plan.md` (role split from issue #2: Cornell → backend/services, Andres → frontend logic/data-fetching, Schiffon → visual/interaction/a11y, Karl → API contract seam + integration).
 
+Checkbox convention: `[x]` means merged to `main`; code that's complete but still in an open PR or under review stays `[ ]`, with a note on its status.
+
 ### Karl Johnson
 
 - [x] Update sprint checklists (this edit).
@@ -33,14 +35,14 @@ Filled in 2026-07-21 per the concrete schedule in `docs/sprints/day-by-day-plan.
 
 ### Andres Ballares
 
-- [x] Wire elevator-edit UI to `PATCH` endpoint; confirm due-date/status/rank update live on save (Tue 7/21).
+- [ ] Wire elevator-edit UI to `PATCH` endpoint; confirm due-date/status/rank update live on save (Tue 7/21). Did not land Tue as scheduled; code complete 2026-07-25 (4 days late) — PR #69 in review, changes requested (stale-data overwrite between the inline date input and the new edit form; Cancel button unstyled). Andres addressing now.
 - [x] Filter/group-by-building in ledger UI + building name inline (Wed 7/22, against Cornell's query param). Did not land Wed as scheduled; picked up by Karl Fri 7/24 since Andres wasn't present — see `docs/team/status-log.md`.
-- [ ] Realistic-portfolio-size check (25+ elevators) on demo browser (Thu 7/23); final cross-browser/responsive check (Fri 7/24). Not done — Andres not present Thu or Fri. **Sat 7/25: Karl ran an automated fallback pass** (seeded 27-elevator/7-building portfolio, verified render/sort/filter via Playwright/Chromium only — no layout breakage, no console errors) — still open for Andres's real check (esp. non-Chromium browsers) when back; see `docs/team/status-log.md`.
+- [x] Realistic-portfolio-size check (25+ elevators) on demo browser (Thu 7/23); final cross-browser/responsive check (Fri 7/24). Did not happen Thu-Fri (Andres not present). **Sat 7/25: Karl ran an automated fallback pass** (Chromium only). **Later same day: Andres ran real cross-browser pass** (WebKit/Firefox + narrow-viewport 390×844 phone-width). Found and fixed a real bug: ledger table overflowed horizontally on WebKit/Firefox at phone width. Fixed test-first with `overflow-x: auto` wrapper container — PR #66, merged; see `docs/team/status-log.md` 2026-07-25 entry for details.
 - [ ] AI-narration panel component, on-demand + loading state (Sun 7/26); close AI-panel edge cases + address-lookup form shell (Mon 7/27); wire address-lookup form + review/override flow (Tue 7/28).
 
 ### Cornell Robertson
 
-- [ ] Confirm/add tests for `PATCH` on `ElevatorViewSet` (Tue 7/21) — **confirmed already done 2026-07-21, no new work needed** (endpoint + test pre-existed; see `docs/sprints/sprint-01.md` carry-over note).
+- [x] Confirm/add tests for `PATCH` on `ElevatorViewSet` (Tue 7/21) — **confirmed already done 2026-07-21, no new work needed** (endpoint + test pre-existed and are already on `main`; see `docs/sprints/sprint-01.md` carry-over note).
 - [x] Building-scoped filtering (query param) on `LedgerListView` (Wed 7/22).
 - [ ] Backend edge-case sweep: leap-year due-date math, boundary Warning/Delinquent transitions (Thu 7/23). Not done — Thu's session didn't happen. A real bug in this exact area (a `time_machine`/local-timezone interaction in the boundary tests) surfaced and was fixed by Karl Fri 7/24 — see `docs/team/status-log.md`.
 - [x] Research which NYC Planning geocoding service is reachable (GeoSearch vs. Geoservice) + review DOB Open Data response shape — research only (Fri 7/24). **Done two days early (Wed 7/22 evening) and exceeded scope**: built a full working, tested resolver POC rather than research notes — `backend/apps/compliance/dob.py`, `docs/architecture/geocoding-reachability-findings.md`.
