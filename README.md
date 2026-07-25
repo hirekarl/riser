@@ -12,9 +12,9 @@ Commercial property managers are risking thousands of dollars in municipal fines
 
 Riser solves this by consolidating every elevator's compliance status into a single, prioritized ledger. The system automatically calculates each device's next statutory due date (based on inspection type and date) and assigns it a **Compliant**, **Warning** (due within 30 days), or **Delinquent** (past due) status so managers can see what needs attention first without manual date-tracking across buildings.
 
-Where possible, Riser pulls real filing data directly from NYC's public DOB NOW Open Data feed, so managers can add a building by street address and have its entire elevator roster populate automatically with current CAT1/CAT5 filing dates — no re-entry required. Manual entry remains fully supported for buildings or fields the dataset doesn't cover.
+Buildings and elevators are entered manually today.
 
-**In active development:** Riser is also gaining an **AI risk-narration briefing** (on-demand, Claude API-powered summary of urgent portfolio risk) and a **DOB address-lookup** feature with review/override (to streamline bringing buildings into the system). Neither feature is yet live, but both are committed to the product roadmap and will be wired into the UI during final demo rehearsals. The `ANTHROPIC_API_KEY` environment variable (see `backend/.env.example`) exists to support the narration feature when it lands.
+**In active development:** Riser is also gaining an **AI risk-narration briefing** (on-demand, Claude API-powered summary of urgent portfolio risk) and a **DOB address-lookup** feature that would pull real filing data from NYC's public DOB NOW Open Data feed, so managers could add a building by street address and have its elevator roster and current CAT1/CAT5 filing dates populate automatically — no re-entry required, with manual entry remaining the fallback. Neither feature is yet live, but both are committed to the product roadmap and will be wired into the UI during final demo rehearsals. The `ANTHROPIC_API_KEY` environment variable (see `backend/.env.example`) exists to support the narration feature when it lands.
 
 ## Team
 
