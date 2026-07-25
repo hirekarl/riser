@@ -1,6 +1,7 @@
 """Tests for the compliance app's DRF API: buildings, elevators, and the ledger."""
 
 import datetime
+import logging
 
 import pytest
 import time_machine
@@ -113,6 +114,12 @@ class TestElevatorAPI:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not Elevator.objects.filter(pk=elevator.pk).exists()
 
+    def test_elevator_list_invalid_building_id_returns_400(self, api_client: APIClient) -> None:
+        """GET /api/elevators/?building=abc returns a clean 400, not a raw 500."""
+        response = api_client.get("/api/elevators/?building=abc")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "building" in response.data
+
 
 class TestLedgerAPI:
     """Tests for the P0 ``/api/ledger/`` risk-triage endpoint."""
@@ -121,6 +128,39 @@ class TestLedgerAPI:
         """POST /api/ledger/ is not allowed; the ledger is a derived, read-only view."""
         response = api_client.post("/api/ledger/", {}, format="json")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_ledger_list_invalid_building_id_returns_400(self, api_client: APIClient) -> None:
+        """GET /api/ledger/?building=abc returns a clean 400, not a raw 500."""
+        response = api_client.get("/api/ledger/?building=abc")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "building" in response.data
+
+    def test_ledger_with_invalid_inspection_type_returns_clean_500(
+        self, api_client: APIClient, elevator: Elevator, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Legacy bad data that bypasses serializer validation yields a clean 500, not a crash.
+
+        Simulates a direct DB edit (e.g. a manual data fix) that sets
+        ``inspection_type`` to a value outside the ``CAT1``/``CAT5`` choices.
+        Since Django's ``choices`` option isn't a database constraint, this
+        is possible in production, and :func:`calculate_due_date` raises a
+        bare ``ValueError`` for it. The custom exception handler should
+        convert that into a structured JSON 500 response rather than a raw
+        Django debug page or unhandled traceback.
+        """
+        Elevator.objects.filter(pk=elevator.pk).update(inspection_type="BOGUS")
+
+        with caplog.at_level(logging.ERROR):
+            response = api_client.get("/api/ledger/")
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert response.data == {
+            "error": {
+                "code": "internal_error",
+                "message": "Something went wrong. Please try again.",
+            }
+        }
+        assert "Unhandled exception" in caplog.text
 
     def test_ledger_filtered_by_building(self, api_client: APIClient, building: Building) -> None:
         """GET /api/ledger/?building=<id> returns only that building's elevators, still ranked."""
