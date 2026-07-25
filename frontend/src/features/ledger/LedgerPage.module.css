@@ -4,6 +4,13 @@
   gap: 1rem;
 }
 
+/* Bounds the table's horizontal scrolling to this container instead of the
+   whole page, so narrow (phone-width) viewports don't cause page-level
+   horizontal overflow when the table's natural width exceeds the viewport. */
+.tableScroll {
+  overflow-x: auto;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

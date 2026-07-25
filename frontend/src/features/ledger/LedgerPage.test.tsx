@@ -6,8 +6,20 @@ import * as client from "../../api/client";
 import type { Building, LedgerEntry } from "../../types/domain";
 
 const buildings: Building[] = [
-  { id: 1, name: "Tower A", address: "1 Main St", created_at: "2026-01-01", updated_at: "2026-01-01" },
-  { id: 2, name: "Tower B", address: "2 Main St", created_at: "2026-01-01", updated_at: "2026-01-01" },
+  {
+    id: 1,
+    name: "Tower A",
+    address: "1 Main St",
+    created_at: "2026-01-01",
+    updated_at: "2026-01-01",
+  },
+  {
+    id: 2,
+    name: "Tower B",
+    address: "2 Main St",
+    created_at: "2026-01-01",
+    updated_at: "2026-01-01",
+  },
 ];
 
 const mixedStatusEntries: LedgerEntry[] = [
