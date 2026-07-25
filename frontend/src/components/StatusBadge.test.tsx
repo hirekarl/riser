@@ -1,9 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
 import { StatusBadge } from "./StatusBadge";
+import * as logger from "../lib/logger";
+import type { ComplianceStatus } from "../types/domain";
 
 describe("StatusBadge", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders compliant status with the compliant text and styling class", () => {
     render(<StatusBadge status="Compliant" />);
     const badge = screen.getByText(/compliant/i);
@@ -35,5 +41,19 @@ describe("StatusBadge", () => {
     const { container } = render(<StatusBadge status="Warning" />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("falls back to an 'unknown' badge instead of throwing when given an unrecognized status", () => {
+    const logWarnSpy = vi.spyOn(logger, "logWarn").mockImplementation(() => {});
+    const badStatus = "Bogus" as ComplianceStatus;
+
+    expect(() => render(<StatusBadge status={badStatus} />)).not.toThrow();
+
+    const badge = screen.getByText("Bogus");
+    expect(badge).toBeInTheDocument();
+    expect(badge.className).toMatch(/unknown/);
+    expect(logWarnSpy).toHaveBeenCalledWith("Unrecognized compliance status", {
+      status: badStatus,
+    });
   });
 });
