@@ -81,7 +81,7 @@ repos:
         stages: [commit-msg]
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.4.1
+    rev: v4.16.5
     hooks:
       - id: commitizen
         stages: [commit-msg]
