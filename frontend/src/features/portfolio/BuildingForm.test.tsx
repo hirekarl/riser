@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BuildingForm } from "./BuildingForm";
 import * as client from "../../api/client";
+import * as logger from "../../lib/logger";
 import type { Building } from "../../types/domain";
 
 describe("BuildingForm", () => {
@@ -33,7 +34,9 @@ describe("BuildingForm", () => {
   });
 
   it("shows an error message when the API call fails", async () => {
-    vi.spyOn(client, "createBuilding").mockRejectedValue(new Error("boom"));
+    const error = new Error("boom");
+    vi.spyOn(client, "createBuilding").mockRejectedValue(error);
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
     const user = userEvent.setup();
 
     render(<BuildingForm onCreated={vi.fn()} />);
@@ -43,5 +46,6 @@ describe("BuildingForm", () => {
     await user.click(screen.getByRole("button", { name: /add building/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not add building/i);
+    expect(logErrorSpy).toHaveBeenCalledWith("Failed to create building", error);
   });
 });

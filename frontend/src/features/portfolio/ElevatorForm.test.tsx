@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { ElevatorForm } from "./ElevatorForm";
 import * as client from "../../api/client";
+import * as logger from "../../lib/logger";
 import type { Building, Elevator } from "../../types/domain";
 
 const buildings: Building[] = [
@@ -55,7 +56,9 @@ describe("ElevatorForm", () => {
   });
 
   it("shows an error message when the API call fails", async () => {
-    vi.spyOn(client, "createElevator").mockRejectedValue(new Error("boom"));
+    const error = new Error("boom");
+    vi.spyOn(client, "createElevator").mockRejectedValue(error);
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
     const user = userEvent.setup();
 
     render(<ElevatorForm buildings={buildings} onCreated={vi.fn()} />);
@@ -65,6 +68,7 @@ describe("ElevatorForm", () => {
     await user.click(screen.getByRole("button", { name: /add elevator/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not add elevator/i);
+    expect(logErrorSpy).toHaveBeenCalledWith("Failed to create elevator", error);
   });
 
   describe("edit mode", () => {
@@ -155,7 +159,9 @@ describe("ElevatorForm", () => {
     });
 
     it("shows an error message when the update API call fails", async () => {
-      vi.spyOn(client, "updateElevator").mockRejectedValue(new Error("boom"));
+      const error = new Error("boom");
+      vi.spyOn(client, "updateElevator").mockRejectedValue(error);
+      const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
       const user = userEvent.setup();
 
       render(
@@ -169,6 +175,7 @@ describe("ElevatorForm", () => {
       await user.click(screen.getByRole("button", { name: /save changes/i }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent(/could not save changes/i);
+      expect(logErrorSpy).toHaveBeenCalledWith("Failed to update elevator", error);
     });
 
     it("does not require buildings to be present while editing", () => {
