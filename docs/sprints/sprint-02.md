@@ -8,7 +8,7 @@ This is the second of **two one-week sprints** covering the full MVP window; see
 
 Copied from `docs/prd/Riser-PRD.md` section 3.
 
-- [x] P1 — Edit an existing elevator's date/type. (PRD requires date *or* type; the inline ledger date-editor satisfies this as written.)
+- [x] P1 — Edit an existing elevator's date/type. (PRD requires date _or_ type; the inline ledger date-editor satisfies this as written.)
 - [x] P1 — Polished empty state.
 - [x] P1 — Show building name inline in the ledger.
 - [x] P1 — Filter/group ledger by building.
@@ -35,7 +35,7 @@ Filled in 2026-07-21 per the concrete schedule in `docs/sprints/day-by-day-plan.
 
 - [x] Wire elevator-edit UI to `PATCH` endpoint; confirm due-date/status/rank update live on save (Tue 7/21).
 - [x] Filter/group-by-building in ledger UI + building name inline (Wed 7/22, against Cornell's query param). Did not land Wed as scheduled; picked up by Karl Fri 7/24 since Andres wasn't present — see `docs/team/status-log.md`.
-- [ ] Realistic-portfolio-size check (25+ elevators) on demo browser (Thu 7/23); final cross-browser/responsive check (Fri 7/24). Not done — Andres not present Thu or Fri.
+- [ ] Realistic-portfolio-size check (25+ elevators) on demo browser (Thu 7/23); final cross-browser/responsive check (Fri 7/24). Not done — Andres not present Thu or Fri. **Sat 7/25: Karl ran an automated fallback pass** (seeded 27-elevator/7-building portfolio, verified render/sort/filter via Playwright/Chromium only — no layout breakage, no console errors) — still open for Andres's real check (esp. non-Chromium browsers) when back; see `docs/team/status-log.md`.
 - [ ] AI-narration panel component, on-demand + loading state (Sun 7/26); close AI-panel edge cases + address-lookup form shell (Mon 7/27); wire address-lookup form + review/override flow (Tue 7/28).
 
 ### Cornell Robertson
@@ -52,8 +52,8 @@ Filled in 2026-07-21 per the concrete schedule in `docs/sprints/day-by-day-plan.
 
 - [x] Polished empty-state screen for zero-devices first-run case (Tue 7/21). Schiffon wasn't present that session; picked up by Karl via the `ui-ux-specialist-agent` — see `docs/team/status-log.md`'s 2026-07-21 entry.
 - [x] Status-change highlight/animation on `LedgerPage`/`StatusBadge` (Wed 7/22, after Andres pushes); visual QA on new empty state. Did not land Wed as scheduled; picked up by Karl Fri 7/24 after the filter UI landed, since Schiffon wasn't present — see status log.
-- [ ] Final visual pass: status colors meet distinct/high-contrast requirement (Thu 7/23). Not done — Schiffon not present Thu.
-- [ ] Final accessibility pass: contrast, jsx-a11y, axe (Fri 7/24). Not done — Schiffon not present Fri. (Note: the highlight animation Karl built this session does have automated axe coverage in its own tests, but that's not a substitute for Schiffon's full manual pass.)
+- [ ] Final visual pass: status colors meet distinct/high-contrast requirement (Thu 7/23). Not done — Schiffon not present Thu. **Sat 7/25: Karl's fallback pass** confirmed Delinquent/Warning/Compliant colors are visually distinct and each pairs its color with a distinct icon (not color alone) — still open for Schiffon's real judgment-call pass; see status log.
+- [ ] Final accessibility pass: contrast, jsx-a11y, axe (Fri 7/24). Not done — Schiffon not present Fri. (Note: the highlight animation Karl built this session does have automated axe coverage in its own tests, but that's not a substitute for Schiffon's full manual pass.) **Sat 7/25: Karl's fallback pass** ran `@axe-core/playwright` against the live seeded app (populated ledger, empty state, mid-animation highlight) — 0 violations in all three — still open for the deliberate manual pass (screen reader, keyboard-only walkthrough); see status log.
 - [ ] AI-narration panel placement + empty/loading/error states (Sun 7/26, after Andres pushes).
 - [ ] AI-panel accessibility/visual QA; start "review and override" screen design (Mon 7/27, after Andres pushes).
 - [ ] Polish review/override screen (Tue 7/28, after Andres pushes).
