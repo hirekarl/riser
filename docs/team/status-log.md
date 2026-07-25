@@ -60,8 +60,8 @@ Everything below requires a real human on real hardware/browsers; Karl (or Claud
 
 | Task | Assigned to | Originally due | Status |
 | --- | --- | --- | --- |
-| Realistic-portfolio-size check (25+ elevators) on the actual demo browser | Andres | Thu 7/23 | **Outstanding.** Not something a code change substitutes for — needs a real render/scroll/interaction check at that scale. |
-| Final cross-browser/responsive check on whatever machine will run the demo | Andres | Fri 7/24 | **Outstanding.** Needs Andres's (or whoever's) actual demo-day machine/browser, not CI. |
+| Realistic-portfolio-size check (25+ elevators) on the actual demo browser | Andres | Thu 7/23 | **Closed 2026-07-25.** Andres ran the real check (not a fallback) — see the "2026-07-25 (Sat), later" entry below. |
+| Final cross-browser/responsive check on whatever machine will run the demo | Andres | Fri 7/24 | **Closed 2026-07-25.** Andres ran the real check (not a fallback) — see the "2026-07-25 (Sat), later" entry below. |
 | Final visual pass: confirm status colors are distinct/high-contrast in practice | Schiffon | Thu 7/23 | **Outstanding.** `StatusBadge` colors are unchanged since Sprint 01 and were originally built by Schiffon for exactly this requirement, so risk here is low — but no one has re-confirmed it since, and it's a human-judgment check (real screen, real eyes), not something automatable. |
 | Final accessibility pass: contrast, jsx-a11y, axe, across everything shipped this week | Schiffon | Fri 7/24 | **Partially covered, not closed out.** Automated `axe` scans exist in this session's own component/e2e tests (LedgerPage's test suite, `e2e/ledger.spec.ts`) and came back clean — but that's incidental coverage from TDD on the features Karl picked up, not the deliberate, whole-app manual pass (screen reader spot-check, keyboard-only walkthrough, real contrast check on the actual empty-state/filter/highlight additions) this task calls for. |
 
@@ -87,3 +87,12 @@ Cornell, Andres, and Schiffon were not present. Per `day-by-day-plan.md`'s Sat 7
 | Sync ADR 0003's Open Questions section (Socrata app-token line) | Karl (doc-sync gap, not on the day-by-day plan) | Karl | Done | Same underlying resolution as above, this doc just hadn't been touched when `549755b` closed it out elsewhere. |
 
 **Not touched today — still needs explicit team confirmation, not a doc-sync gap:** `docs/adr/0002-no-auth-for-mvp.md` remains `Proposed — unconfirmed`. `CLAUDE.md` calls this out as something to confirm before a demo; with no fixed demo deadline forcing the conversation anymore, it risks staying unconfirmed straight through the 7/29 capstone unless someone explicitly raises it with the team.
+
+## 2026-07-25 (Sat), later — Andres's real QA pass (supersedes today's earlier fallback)
+
+Andres present this session. Per this log's own Fri 7/24 "Outstanding" table, ran the two manual QA items on his own machine/browsers that Karl's same-day automated fallback pass (above) explicitly could not substitute for.
+
+| Task | Assigned to | Done by | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Realistic-portfolio-size check (25+ elevators) | Andres | Andres | Done | Seeded via `seed_demo_data` (7 buildings / 27 elevators). Drove the live ledger in real Chrome (via the Claude Code Chrome extension, not headless): all 27 rows render, correctly sorted Delinquent→Warning→Compliant, filter dropdown correctly scopes to each of the 7 buildings, no layout breakage, no console errors, scrolling felt instant. No bugs found. |
+| Final cross-browser/responsive check | Andres | Andres | Done | Covered real WebKit (Safari engine) and Firefox — the two browsers Karl's Chromium-only Playwright pass didn't touch — plus a narrow-viewport (390×844, phone-width) resize pass, via Playwright driving locally-installed browser binaries against the live dev server on this machine. **Found and fixed a real bug**: at phone width, the ledger page overflowed horizontally in both WebKit and Firefox (the table had no scroll container and the CSS has no responsive breakpoints anywhere). Fixed test-first via `ui-ux-specialist-agent` on `fix/ledger-table-narrow-viewport-overflow`: wrapped the table in an `overflow-x: auto` container plus an `overflow-x: hidden` backstop on `body` (WebKit-specific residual scroll, caught via a behavioral `window.scrollX` check, not just `scrollWidth`/`clientWidth`). New Playwright e2e test added (failed before the fix, passes after). Full lint/typecheck/coverage/e2e all green; fix independently re-verified against the live dev server in real WebKit, Firefox, and Chromium. PR #66, not yet merged. |
