@@ -168,10 +168,13 @@ test("full add building -> add elevator -> status color -> edit date -> status u
   await expect(row.getByText(/delinquent/i)).toBeVisible();
 
   // Edit the last-inspection date to today; status/color/rank must update
-  // immediately, with no page reload, per the PRD's "demo moment" requirement.
+  // immediately once confirmed (no page reload), per the PRD's "demo moment"
+  // requirement. Editing the inline date field requires an explicit Save —
+  // it no longer auto-commits on change.
   await row
     .getByLabel(/last inspection date for el-1/i)
     .fill(new Date().toISOString().slice(0, 10));
+  await row.getByRole("button", { name: /save inspection date for el-1/i }).click();
 
   await expect(row.getByText(/compliant/i)).toBeVisible();
   await expect(row.getByText(/delinquent/i)).not.toBeVisible();
