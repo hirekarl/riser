@@ -36,3 +36,11 @@
   color: #9c1c12;
   border-color: #9c1c12;
 }
+
+/* Fallback for an unrecognized status (e.g. API drift). Minimal/neutral by
+   design — final color/contrast treatment is ui-ux-specialist-agent's call. */
+.unknown {
+  background-color: #eceef1;
+  color: #4b5261;
+  border-color: #4b5261;
+}

@@ -3,11 +3,46 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import * as client from "./api/client";
+import * as logger from "./lib/logger";
 import type { Building, Elevator, LedgerEntry } from "./types/domain";
 
 describe("App", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("shows a retryable error banner when the initial buildings fetch fails, and clears it on a successful retry", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
+    const building: Building = {
+      id: 1,
+      name: "Tower A",
+      address: "1 Main St",
+      created_at: "x",
+      updated_at: "x",
+    };
+    const listBuildingsSpy = vi
+      .spyOn(client, "listBuildings")
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce([building]);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not load buildings/i);
+    expect(logErrorSpy).toHaveBeenCalledWith("Failed to load buildings", expect.any(Error));
+
+    await user.click(screen.getByRole("button", { name: /retry/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+    expect(listBuildingsSpy).toHaveBeenCalledTimes(2);
+
+    // The elevator form's building dropdown should now be populated from the
+    // successful retry, rather than staying permanently empty.
+    const elevatorForm = await screen.findByRole("form", { name: /add an elevator/i });
+    expect(within(elevatorForm).getByRole("option", { name: "Tower A" })).toBeInTheDocument();
   });
 
   it("wires the building form, elevator form, and ledger together end to end", async () => {

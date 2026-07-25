@@ -1,28 +1,38 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { listBuildings } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
+import { logError } from "./lib/logger";
 import type { Building, LedgerEntry } from "./types/domain";
 import styles from "./App.module.css";
 
 function App() {
   const [buildings, setBuildings] = useState<Building[]>([]);
+  const [buildingsError, setBuildingsError] = useState<string | null>(null);
   const [reloadSignal, setReloadSignal] = useState(0);
   const [editingElevator, setEditingElevator] = useState<EditableElevator | null>(null);
 
-  useEffect(() => {
-    listBuildings()
-      .then(setBuildings)
-      .catch(() => {
-        // The ledger view surfaces its own load error; the building list is
-        // only needed to populate the elevator form's dropdown.
+  const loadBuildings = useCallback(() => {
+    return listBuildings()
+      .then((data) => {
+        setBuildings(data);
+        setBuildingsError(null);
+      })
+      .catch((error: unknown) => {
+        logError("Failed to load buildings", error);
+        setBuildingsError("Could not load buildings. Please try again.");
       });
-    // Fetch once on mount only. Building creation updates `buildings` locally
-    // (below) using the API response directly, so this never needs to re-run.
   }, []);
+
+  useEffect(() => {
+    loadBuildings();
+    // Fetch once on mount only (plus explicit retries via `loadBuildings`).
+    // Building creation updates `buildings` locally (below) using the API
+    // response directly, so this never needs to re-run on its own.
+  }, [loadBuildings]);
 
   function handleBuildingCreated(building: Building) {
     setBuildings((current) => [...current, building]);
@@ -57,6 +67,15 @@ function App() {
         <h1>Riser</h1>
         <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
       </header>
+
+      {buildingsError && (
+        <div className={styles.errorBanner} role="alert">
+          {buildingsError}
+          <button type="button" onClick={() => loadBuildings()}>
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className={styles.formsRow}>
         <BuildingForm onCreated={handleBuildingCreated} />
