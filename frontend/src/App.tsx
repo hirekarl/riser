@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listBuildings } from "./api/client";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
@@ -70,12 +71,14 @@ function App() {
 
       <main>
         <h2 className="visually-hidden">Portfolio ledger</h2>
-        <LedgerPage
-          reloadSignal={reloadSignal}
-          buildings={buildings}
-          onEditRequest={handleEditRequest}
-          editingElevatorId={editingElevator?.id}
-        />
+        <ErrorBoundary>
+          <LedgerPage
+            reloadSignal={reloadSignal}
+            buildings={buildings}
+            onEditRequest={handleEditRequest}
+            editingElevatorId={editingElevator?.id}
+          />
+        </ErrorBoundary>
       </main>
     </div>
   );
