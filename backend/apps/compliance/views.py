@@ -1,10 +1,12 @@
 """DRF views for the compliance app."""
 
+import logging
 from collections.abc import Sequence
 from typing import Any
 
 from django.db.models import QuerySet
 from rest_framework import generics, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +18,8 @@ from apps.compliance.serializers import (
 )
 from apps.compliance.services import Status, calculate_due_date, calculate_status
 
+logger = logging.getLogger(__name__)
+
 #: Sort priority for each status, most urgent first. Used as the primary
 #: sort key for the ledger endpoint.
 _STATUS_RANK = {
@@ -23,6 +27,31 @@ _STATUS_RANK = {
     Status.WARNING: 1,
     Status.COMPLIANT: 2,
 }
+
+
+def _parse_building_id_param(request: Request) -> int | None:
+    """Parse the ``?building=`` query parameter into an integer id.
+
+    Args:
+        request: The incoming DRF request.
+
+    Returns:
+        The parsed integer building id, or ``None`` if ``?building=`` was
+        not supplied at all.
+
+    Raises:
+        ValidationError: If ``?building=`` was supplied but isn't a valid
+            integer. DRF's default exception handler turns this into a
+            clean 400 response with a ``{"building": [...]}`` error body.
+    """
+    raw = request.query_params.get("building")
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning("Rejected non-integer building query param: %r", raw)
+        raise ValidationError({"building": f"{raw!r} is not a valid integer id."}) from None
 
 
 class BuildingViewSet(viewsets.ModelViewSet[Building]):
@@ -49,7 +78,7 @@ class ElevatorViewSet(viewsets.ModelViewSet[Elevator]):
             id is given in ``?building=<id>`` if that parameter is present.
         """
         queryset = Elevator.objects.select_related("building").all()
-        building_id = self.request.query_params.get("building")
+        building_id = _parse_building_id_param(self.request)
         if building_id is not None:
             queryset = queryset.filter(building_id=building_id)
         return queryset
@@ -82,7 +111,7 @@ class LedgerListView(generics.ListAPIView[Elevator]):
             id is given in ``?building=<id>`` if that parameter is present.
         """
         queryset = Elevator.objects.select_related("building").all()
-        building_id = self.request.query_params.get("building")
+        building_id = _parse_building_id_param(self.request)
         if building_id is not None:
             queryset = queryset.filter(building_id=building_id)
         return queryset
