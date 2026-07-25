@@ -126,6 +126,31 @@
   border-radius: 4px;
 }
 
+/* Minimal, functional-only styling for the inline date input's Save/Cancel
+   confirm affordance — final visual treatment is ui-ux-specialist-agent's
+   follow-up. */
+.dateActions {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
+}
+
+.saveDateButton,
+.cancelDateButton {
+  font: inherit;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid #7a8091;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.saveDateButton:disabled,
+.cancelDateButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .editButton {
   font: inherit;
   padding: 0.3rem 0.7rem;

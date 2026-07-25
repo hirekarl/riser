@@ -99,13 +99,39 @@ export function LedgerPage({
     return () => window.clearTimeout(highlightTimeoutRef.current);
   }, []);
 
-  async function handleDateChange(elevatorId: number, newDate: string) {
+  // Per-row pending edits for the inline date input: typing/selecting a new
+  // date only updates this local state (keyed by elevator id) until the user
+  // explicitly clicks Save. This avoids the previous auto-save-on-`onChange`
+  // behavior, which risked an accidental unconfirmed edit.
+  const [pendingDates, setPendingDates] = useState<Record<number, string>>({});
+
+  function handleDateInputChange(elevatorId: number, newDate: string) {
+    if (!newDate) return;
+    setPendingDates((current) => ({ ...current, [elevatorId]: newDate }));
+  }
+
+  function handleDateCancel(elevatorId: number) {
+    setPendingDates((current) => {
+      const next = { ...current };
+      delete next[elevatorId];
+      return next;
+    });
+  }
+
+  async function handleDateSave(elevatorId: number) {
+    const newDate = pendingDates[elevatorId];
     if (!newDate) return;
     setPendingId(elevatorId);
     try {
       await updateElevator(elevatorId, { last_inspection_date: newDate });
+      setPendingDates((current) => {
+        const next = { ...current };
+        delete next[elevatorId];
+        return next;
+      });
       setUpdateVersion((n) => n + 1);
-    } catch {
+    } catch (err) {
+      logError("Failed to update elevator inspection date", err, { elevatorId });
       setError("Could not update the inspection date. Please try again.");
     } finally {
       setPendingId(null);
@@ -172,6 +198,10 @@ export function LedgerPage({
                   ]
                     .filter(Boolean)
                     .join(" ") || undefined;
+                const pendingDate = pendingDates[entry.id];
+                const hasPendingEdit =
+                  pendingDate !== undefined && pendingDate !== entry.last_inspection_date;
+                const isSaving = pendingId === entry.id;
 
                 return (
                   <tr key={entry.id} className={rowClassName}>
@@ -189,11 +219,31 @@ export function LedgerPage({
                         <input
                           type="date"
                           className={styles.dateInput}
-                          defaultValue={entry.last_inspection_date}
-                          disabled={pendingId === entry.id || isEditingRow}
-                          onChange={(event) => handleDateChange(entry.id, event.target.value)}
+                          value={pendingDate ?? entry.last_inspection_date}
+                          disabled={isSaving || isEditingRow}
+                          onChange={(event) => handleDateInputChange(entry.id, event.target.value)}
                         />
                       </label>
+                      {hasPendingEdit && (
+                        <span className={styles.dateActions}>
+                          <button
+                            type="button"
+                            className={styles.saveDateButton}
+                            disabled={isSaving}
+                            onClick={() => handleDateSave(entry.id)}
+                          >
+                            {isSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.cancelDateButton}
+                            disabled={isSaving}
+                            onClick={() => handleDateCancel(entry.id)}
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      )}
                     </td>
                     <td>{entry.due_date}</td>
                     <td>
