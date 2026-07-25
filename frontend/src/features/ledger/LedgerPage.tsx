@@ -150,6 +150,37 @@ export function LedgerPage({
         </div>
       )}
 
+      {/*
+        Display copy only — the actual thresholds live in
+        backend/apps/compliance/services.py (WARNING_WINDOW_DAYS, and the
+        Delinquent/Warning/Compliant rules in calculate_status). There is no
+        API-exposed value for this threshold, so if that constant ever
+        changes, this text must be updated by hand to match.
+      */}
+      <details className={styles.legend}>
+        <summary className={styles.legendSummary}>What do these statuses mean?</summary>
+        <dl className={styles.legendList}>
+          <div className={styles.legendItem}>
+            <dt>
+              <StatusBadge status="Compliant" />
+            </dt>
+            <dd>The next inspection is due more than 30 days from today.</dd>
+          </div>
+          <div className={styles.legendItem}>
+            <dt>
+              <StatusBadge status="Warning" />
+            </dt>
+            <dd>The next inspection is due today or within the next 30 days.</dd>
+          </div>
+          <div className={styles.legendItem}>
+            <dt>
+              <StatusBadge status="Delinquent" />
+            </dt>
+            <dd>The next inspection&apos;s due date has already passed.</dd>
+          </div>
+        </dl>
+      </details>
+
       {buildings.length > 0 && (
         <div className={styles.filterRow}>
           <label htmlFor={filterId}>Filter by building</label>
@@ -229,6 +260,7 @@ export function LedgerPage({
                           <button
                             type="button"
                             className={styles.saveDateButton}
+                            aria-label={`Save inspection date for ${entry.device_identifier}`}
                             disabled={isSaving}
                             onClick={() => handleDateSave(entry.id)}
                           >
@@ -237,6 +269,7 @@ export function LedgerPage({
                           <button
                             type="button"
                             className={styles.cancelDateButton}
+                            aria-label={`Cancel editing inspection date for ${entry.device_identifier}`}
                             disabled={isSaving}
                             onClick={() => handleDateCancel(entry.id)}
                           >
