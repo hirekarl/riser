@@ -207,6 +207,25 @@ describe("LedgerPage", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  it("renders an accessible Edit button per row and calls onEditRequest with that row's entry", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+    const onEditRequest = vi.fn();
+
+    render(<LedgerPage onEditRequest={onEditRequest} />);
+
+    const el1Cell = await screen.findByText("EL-1");
+    const row = el1Cell.closest("tr");
+    expect(row).not.toBeNull();
+
+    const editButton = within(row as HTMLElement).getByRole("button", { name: /edit el-1/i });
+    fireEvent.click(editButton);
+
+    expect(onEditRequest).toHaveBeenCalledTimes(1);
+    expect(onEditRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 1, device_identifier: "EL-1" }),
+    );
+  });
+
   it("does not show a building filter when no buildings are given", async () => {
     vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
 

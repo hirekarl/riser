@@ -22,9 +22,15 @@ export interface LedgerPageProps {
    * renders when this is non-empty.
    */
   buildings?: Building[];
+  /**
+   * Called with the full ledger entry for a row when its Edit button is
+   * clicked, so a parent (e.g. `App`) can switch `ElevatorForm` into edit
+   * mode for that elevator.
+   */
+  onEditRequest?: (entry: LedgerEntry) => void;
 }
 
-export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
+export function LedgerPage({ reloadSignal, buildings = [], onEditRequest }: LedgerPageProps) {
   const filterId = useId();
   const [entries, setEntries] = useState<LedgerEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +145,7 @@ export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
                 <th scope="col">Inspection type</th>
                 <th scope="col">Last inspection date</th>
                 <th scope="col">Due date</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -168,6 +175,16 @@ export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
                     </label>
                   </td>
                   <td>{entry.due_date}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className={styles.editButton}
+                      aria-label={`Edit ${entry.device_identifier}`}
+                      onClick={() => onEditRequest?.(entry)}
+                    >
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

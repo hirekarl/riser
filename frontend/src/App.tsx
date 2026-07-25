@@ -3,12 +3,14 @@ import { listBuildings } from "./api/client";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
-import type { Building } from "./types/domain";
+import type { EditableElevator } from "./features/portfolio/ElevatorForm";
+import type { Building, LedgerEntry } from "./types/domain";
 import styles from "./App.module.css";
 
 function App() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [reloadSignal, setReloadSignal] = useState(0);
+  const [editingElevator, setEditingElevator] = useState<EditableElevator | null>(null);
 
   useEffect(() => {
     listBuildings()
@@ -30,6 +32,24 @@ function App() {
     setReloadSignal((n) => n + 1);
   }
 
+  function handleEditRequest(entry: LedgerEntry) {
+    setEditingElevator({
+      id: entry.id,
+      device_identifier: entry.device_identifier,
+      inspection_type: entry.inspection_type,
+      last_inspection_date: entry.last_inspection_date,
+    });
+  }
+
+  function handleElevatorUpdated() {
+    setReloadSignal((n) => n + 1);
+    setEditingElevator(null);
+  }
+
+  function handleEditCancel() {
+    setEditingElevator(null);
+  }
+
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -39,12 +59,22 @@ function App() {
 
       <div className={styles.formsRow}>
         <BuildingForm onCreated={handleBuildingCreated} />
-        <ElevatorForm buildings={buildings} onCreated={handleElevatorCreated} />
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={handleElevatorCreated}
+          editingElevator={editingElevator}
+          onUpdated={handleElevatorUpdated}
+          onEditCancel={handleEditCancel}
+        />
       </div>
 
       <main>
         <h2 className="visually-hidden">Portfolio ledger</h2>
-        <LedgerPage reloadSignal={reloadSignal} buildings={buildings} />
+        <LedgerPage
+          reloadSignal={reloadSignal}
+          buildings={buildings}
+          onEditRequest={handleEditRequest}
+        />
       </main>
     </div>
   );
