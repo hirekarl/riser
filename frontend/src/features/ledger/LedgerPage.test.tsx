@@ -128,7 +128,35 @@ describe("LedgerPage", () => {
     expect(logErrorSpy).toHaveBeenCalledWith("Failed to load ledger", error);
   });
 
-  it("recalculates status/due-date/rank immediately when a last-inspection date is edited", async () => {
+  it("does not call updateElevator until Save is clicked", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
+    const updateSpy = vi.spyOn(client, "updateElevator");
+
+    render(<LedgerPage />);
+    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+
+    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+
+    // Typing/selecting a new date must not itself trigger a save.
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    const row = dateInput.closest("tr") as HTMLElement;
+    const saveButton = within(row).getByRole("button", { name: /^save$/i });
+    fireEvent.click(saveButton);
+
+    expect(updateSpy).toHaveBeenCalledWith(1, { last_inspection_date: "2026-07-01" });
+  });
+
+  it("recalculates status/due-date/rank immediately after Save is clicked", async () => {
     const before: LedgerEntry = {
       id: 1,
       building_name: "Tower A",
@@ -162,6 +190,8 @@ describe("LedgerPage", () => {
 
     const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    const row = dateInput.closest("tr") as HTMLElement;
+    fireEvent.click(within(row).getByRole("button", { name: /^save$/i }));
 
     expect(updateSpy).toHaveBeenCalledWith(1, { last_inspection_date: "2026-07-01" });
     expect(await screen.findByText(/compliant/i)).toBeInTheDocument();
@@ -169,7 +199,7 @@ describe("LedgerPage", () => {
     expect(screen.getByText("2027-07-01")).toBeInTheDocument();
   });
 
-  it("shows an error banner when updating an elevator's date fails", async () => {
+  it("reverts to the original value and makes no network call when Cancel is clicked", async () => {
     const entry: LedgerEntry = {
       id: 1,
       building_name: "Tower A",
@@ -180,14 +210,60 @@ describe("LedgerPage", () => {
       status: "Delinquent",
     };
     vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
-    vi.spyOn(client, "updateElevator").mockRejectedValue(new Error("boom"));
+    const updateSpy = vi.spyOn(client, "updateElevator");
 
     render(<LedgerPage />);
     const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    expect(dateInput).toHaveValue("2026-07-01");
+
+    const row = dateInput.closest("tr") as HTMLElement;
+    fireEvent.click(within(row).getByRole("button", { name: /^cancel$/i }));
+
+    expect(dateInput).toHaveValue("2020-01-01");
+    expect(updateSpy).not.toHaveBeenCalled();
+    // Save/Cancel disappear once the pending edit is discarded.
+    expect(within(row).queryByRole("button", { name: /^save$/i })).not.toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: /^cancel$/i })).not.toBeInTheDocument();
+  });
+
+  it("shows a pending/disabled state while saving, then an error banner when updating an elevator's date fails", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
+    const error = new Error("boom");
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
+    let rejectUpdate!: (err: Error) => void;
+    vi.spyOn(client, "updateElevator").mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectUpdate = reject;
+      }),
+    );
+
+    render(<LedgerPage />);
+    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+
+    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    const row = dateInput.closest("tr") as HTMLElement;
+    fireEvent.click(within(row).getByRole("button", { name: /^save$/i }));
+
+    // While the save is in flight, the row shows a pending/disabled state.
+    expect(dateInput).toBeDisabled();
+
+    rejectUpdate(error);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not update/i);
+    expect(logErrorSpy).toHaveBeenCalledWith("Failed to update elevator inspection date", error, {
+      elevatorId: 1,
+    });
   });
 
   it("ignores an empty date-input change", async () => {
@@ -208,6 +284,8 @@ describe("LedgerPage", () => {
 
     fireEvent.change(dateInput, { target: { value: "" } });
 
+    const row = dateInput.closest("tr") as HTMLElement;
+    expect(within(row).queryByRole("button", { name: /^save$/i })).not.toBeInTheDocument();
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
@@ -340,6 +418,8 @@ describe("LedgerPage", () => {
     const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    const editedRow = dateInput.closest("tr") as HTMLElement;
+    fireEvent.click(within(editedRow).getByRole("button", { name: /^save$/i }));
 
     await screen.findByText("2027-07-01"); // due date unique to the post-edit fetch
     const changedRow = screen.getByText("EL-1").closest("tr");
@@ -404,6 +484,8 @@ describe("LedgerPage", () => {
     const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    const editedRow = dateInput.closest("tr") as HTMLElement;
+    fireEvent.click(within(editedRow).getByRole("button", { name: /^save$/i }));
 
     await screen.findByText("2027-07-01");
     expect(screen.getByText("EL-1").closest("tr")?.className).toMatch(/highlighting/);
