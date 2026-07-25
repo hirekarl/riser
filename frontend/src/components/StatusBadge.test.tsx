@@ -56,4 +56,29 @@ describe("StatusBadge", () => {
       status: badStatus,
     });
   });
+
+  it("gives the 'unknown' fallback a distinct icon (not reused from any real status) and a class distinct from the three real statuses", () => {
+    vi.spyOn(logger, "logWarn").mockImplementation(() => {});
+    const badStatus = "Bogus" as ComplianceStatus;
+
+    const { container } = render(<StatusBadge status={badStatus} />);
+
+    const icon = container.querySelector('[aria-hidden="true"]');
+    expect(icon).toHaveTextContent("?");
+    expect(["✓", "⚠", "✕"]).not.toContain(icon?.textContent);
+
+    const badge = screen.getByText("Bogus");
+    expect(badge.className).toMatch(/unknown/);
+    expect(badge.className).not.toMatch(/compliant|warning|delinquent/);
+  });
+
+  it("has no axe accessibility violations when rendering the 'unknown' fallback badge", async () => {
+    vi.spyOn(logger, "logWarn").mockImplementation(() => {});
+    const badStatus = "Bogus" as ComplianceStatus;
+
+    const { container } = render(<StatusBadge status={badStatus} />);
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
 });

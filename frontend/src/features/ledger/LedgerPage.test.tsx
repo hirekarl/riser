@@ -109,6 +109,32 @@ describe("LedgerPage", () => {
     expect(results).toHaveNoViolations();
   });
 
+  it("includes a collapsed status-meaning legend that explains all three statuses once expanded", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    const { container } = render(<LedgerPage />);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
+    });
+
+    const details = container.querySelector("details");
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute("open");
+
+    const summary = within(details as HTMLElement).getByText(/what do these statuses mean/i);
+    fireEvent.click(summary);
+
+    expect(details).toHaveAttribute("open");
+    const legendText = (details as HTMLElement).textContent ?? "";
+    expect(legendText).toMatch(/compliant/i);
+    expect(legendText).toMatch(/more than 30 days/i);
+    expect(legendText).toMatch(/warning/i);
+    expect(legendText).toMatch(/within.*30 days/i);
+    expect(legendText).toMatch(/delinquent/i);
+    expect(legendText).toMatch(/already passed/i);
+  });
+
   it("shows a loading indicator before the ledger resolves", () => {
     vi.spyOn(client, "listLedger").mockReturnValue(new Promise(() => {}));
 
@@ -150,7 +176,9 @@ describe("LedgerPage", () => {
     expect(updateSpy).not.toHaveBeenCalled();
 
     const row = dateInput.closest("tr") as HTMLElement;
-    const saveButton = within(row).getByRole("button", { name: /^save$/i });
+    const saveButton = within(row).getByRole("button", {
+      name: /^save inspection date for el-1$/i,
+    });
     fireEvent.click(saveButton);
 
     expect(updateSpy).toHaveBeenCalledWith(1, { last_inspection_date: "2026-07-01" });
@@ -186,17 +214,21 @@ describe("LedgerPage", () => {
 
     render(<LedgerPage />);
 
-    expect(await screen.findByText(/delinquent/i)).toBeInTheDocument();
+    // Scoped to the table (rather than screen-wide): the status-meaning
+    // legend above the table also renders "Delinquent"/"Compliant" as
+    // example labels, so an unscoped query would be ambiguous.
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText(/delinquent/i)).toBeInTheDocument();
 
     const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
     const row = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(within(row).getByRole("button", { name: /^save$/i }));
+    fireEvent.click(within(row).getByRole("button", { name: /^save inspection date for el-1$/i }));
 
     expect(updateSpy).toHaveBeenCalledWith(1, { last_inspection_date: "2026-07-01" });
-    expect(await screen.findByText(/compliant/i)).toBeInTheDocument();
-    expect(screen.queryByText(/delinquent/i)).not.toBeInTheDocument();
-    expect(screen.getByText("2027-07-01")).toBeInTheDocument();
+    expect(await within(table).findByText(/compliant/i)).toBeInTheDocument();
+    expect(within(table).queryByText(/delinquent/i)).not.toBeInTheDocument();
+    expect(within(table).getByText("2027-07-01")).toBeInTheDocument();
   });
 
   it("reverts to the original value and makes no network call when Cancel is clicked", async () => {
@@ -219,13 +251,21 @@ describe("LedgerPage", () => {
     expect(dateInput).toHaveValue("2026-07-01");
 
     const row = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(within(row).getByRole("button", { name: /^cancel$/i }));
+    fireEvent.click(
+      within(row).getByRole("button", { name: /^cancel editing inspection date for el-1$/i }),
+    );
 
     expect(dateInput).toHaveValue("2020-01-01");
     expect(updateSpy).not.toHaveBeenCalled();
     // Save/Cancel disappear once the pending edit is discarded.
-    expect(within(row).queryByRole("button", { name: /^save$/i })).not.toBeInTheDocument();
-    expect(within(row).queryByRole("button", { name: /^cancel$/i })).not.toBeInTheDocument();
+    expect(
+      within(row).queryByRole("button", { name: /^save inspection date for el-1$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(row).queryByRole("button", {
+        name: /^cancel editing inspection date for el-1$/i,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows a pending/disabled state while saving, then an error banner when updating an elevator's date fails", async () => {
@@ -253,7 +293,7 @@ describe("LedgerPage", () => {
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
     const row = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(within(row).getByRole("button", { name: /^save$/i }));
+    fireEvent.click(within(row).getByRole("button", { name: /^save inspection date for el-1$/i }));
 
     // While the save is in flight, the row shows a pending/disabled state.
     expect(dateInput).toBeDisabled();
@@ -285,8 +325,44 @@ describe("LedgerPage", () => {
     fireEvent.change(dateInput, { target: { value: "" } });
 
     const row = dateInput.closest("tr") as HTMLElement;
-    expect(within(row).queryByRole("button", { name: /^save$/i })).not.toBeInTheDocument();
+    expect(
+      within(row).queryByRole("button", { name: /^save inspection date for el-1$/i }),
+    ).not.toBeInTheDocument();
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives the inline Save/Cancel controls distinguishable aria-labels and no axe violations", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
+
+    render(<LedgerPage />);
+    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+
+    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    const row = dateInput.closest("tr") as HTMLElement;
+
+    const saveButton = within(row).getByRole("button", {
+      name: "Save inspection date for EL-1",
+    });
+    const cancelButton = within(row).getByRole("button", {
+      name: "Cancel editing inspection date for EL-1",
+    });
+    // The two buttons must be distinguishable to assistive tech via their
+    // accessible names, not merely by visual position/color.
+    expect(saveButton.getAttribute("aria-label")).not.toEqual(
+      cancelButton.getAttribute("aria-label"),
+    );
+
+    const results = await axe(row);
+    expect(results).toHaveNoViolations();
   });
 
   it("renders an accessible Edit button per row and calls onEditRequest with that row's entry", async () => {
@@ -419,7 +495,9 @@ describe("LedgerPage", () => {
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
     const editedRow = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(within(editedRow).getByRole("button", { name: /^save$/i }));
+    fireEvent.click(
+      within(editedRow).getByRole("button", { name: /^save inspection date for el-1$/i }),
+    );
 
     await screen.findByText("2027-07-01"); // due date unique to the post-edit fetch
     const changedRow = screen.getByText("EL-1").closest("tr");
@@ -485,7 +563,9 @@ describe("LedgerPage", () => {
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
     const editedRow = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(within(editedRow).getByRole("button", { name: /^save$/i }));
+    fireEvent.click(
+      within(editedRow).getByRole("button", { name: /^save inspection date for el-1$/i }),
+    );
 
     await screen.findByText("2027-07-01");
     expect(screen.getByText("EL-1").closest("tr")?.className).toMatch(/highlighting/);
