@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { createBuilding } from "../../api/client";
+import { logError } from "../../lib/logger";
 import type { Building } from "../../types/domain";
 import styles from "./forms.module.css";
 
@@ -25,7 +26,8 @@ export function BuildingForm({ onCreated }: BuildingFormProps) {
       onCreated(building);
       setName("");
       setAddress("");
-    } catch {
+    } catch (err) {
+      logError("Failed to create building", err);
       setError("Could not add building. Please try again.");
     } finally {
       setSubmitting(false);

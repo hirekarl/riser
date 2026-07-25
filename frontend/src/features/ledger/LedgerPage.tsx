@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { listLedger, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
+import { logError } from "../../lib/logger";
 import type { Building, LedgerEntry } from "../../types/domain";
 import styles from "./LedgerPage.module.css";
 
@@ -82,8 +83,9 @@ export function LedgerPage({
         setEntries(data);
         setError(null);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (ignore) return;
+        logError("Failed to load ledger", err);
         setError("Could not load the ledger. Please try again.");
       });
 

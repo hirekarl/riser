@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
 import { createElevator, updateElevator } from "../../api/client";
+import { logError } from "../../lib/logger";
 import type { Building, Elevator, InspectionType } from "../../types/domain";
 import styles from "./forms.module.css";
 
@@ -93,7 +94,8 @@ export function ElevatorForm({
           last_inspection_date: lastInspectionDate,
         });
         onUpdated?.(elevator);
-      } catch {
+      } catch (err) {
+        logError("Failed to update elevator", err);
         setError("Could not save changes. Please try again.");
       } finally {
         setSubmitting(false);
@@ -114,7 +116,8 @@ export function ElevatorForm({
       onCreated(elevator);
       setDeviceIdentifier("");
       setLastInspectionDate("");
-    } catch {
+    } catch (err) {
+      logError("Failed to create elevator", err);
       setError("Could not add elevator. Please try again.");
     } finally {
       setSubmitting(false);

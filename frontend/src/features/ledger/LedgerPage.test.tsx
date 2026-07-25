@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { axe } from "vitest-axe";
 import { LedgerPage } from "./LedgerPage";
 import * as client from "../../api/client";
+import * as logger from "../../lib/logger";
 import type { Building, LedgerEntry } from "../../types/domain";
 
 const buildings: Building[] = [
@@ -117,11 +118,14 @@ describe("LedgerPage", () => {
   });
 
   it("shows an error banner when the ledger fails to load", async () => {
-    vi.spyOn(client, "listLedger").mockRejectedValue(new Error("network down"));
+    const error = new Error("network down");
+    vi.spyOn(client, "listLedger").mockRejectedValue(error);
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
 
     render(<LedgerPage />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not load the ledger/i);
+    expect(logErrorSpy).toHaveBeenCalledWith("Failed to load ledger", error);
   });
 
   it("recalculates status/due-date/rank immediately when a last-inspection date is edited", async () => {
