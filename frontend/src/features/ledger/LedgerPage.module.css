@@ -109,6 +109,15 @@
   border-radius: 4px;
 }
 
+.editButton {
+  font: inherit;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #7a8091;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
 .errorBanner {
   background-color: #fdecea;
   color: #9c1c12;

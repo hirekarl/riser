@@ -184,6 +184,61 @@ test("full add building -> add elevator -> status color -> edit date -> status u
   expect(seriousOrCritical).toEqual([]);
 });
 
+test("edit an elevator via the ledger row's Edit button, updating its device identifier and status live", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/");
+
+  // Add a building.
+  await page.getByLabel(/building name/i).fill("Tower A");
+  await page.getByLabel(/address/i).fill("1 Main St");
+  await page.getByRole("button", { name: /add building/i }).click();
+
+  const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
+  await expect(elevatorForm.getByLabel(/^building$/i)).toBeEnabled();
+
+  // Add an elevator with an old last-inspection date so it starts Delinquent.
+  await elevatorForm.getByLabel(/device identifier/i).fill("EL-1");
+  await elevatorForm.getByLabel(/inspection type/i).selectOption("CAT1");
+  await elevatorForm.getByLabel(/last inspection date/i).fill("2020-01-01");
+  await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
+
+  const row = page.getByRole("row").filter({ hasText: "EL-1" });
+  await expect(row).toBeVisible();
+  await expect(row.getByText(/delinquent/i)).toBeVisible();
+
+  // Open the full edit form for this row.
+  await row.getByRole("button", { name: /edit el-1/i }).click();
+
+  const editForm = page.getByRole("form", { name: /edit an elevator/i });
+  await expect(editForm).toBeVisible();
+  await expect(editForm.getByLabel(/device identifier/i)).toHaveValue("EL-1");
+
+  // Change the device identifier and bring the last-inspection date current,
+  // so status/due-date/rank should recompute on save.
+  await editForm.getByLabel(/device identifier/i).fill("EL-1-RENAMED");
+  await editForm.getByLabel(/last inspection date/i).fill(new Date().toISOString().slice(0, 10));
+  await editForm.getByRole("button", { name: /save changes/i }).click();
+
+  // The form reverts to create mode after a successful save.
+  await expect(page.getByRole("form", { name: /add an elevator/i })).toBeVisible();
+
+  // The ledger reflects the renamed device and its new, live-updated status.
+  const updatedRow = page.getByRole("row").filter({ hasText: "EL-1-RENAMED" });
+  await expect(updatedRow).toBeVisible();
+  await expect(updatedRow.getByText(/compliant/i)).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: /^EL-1$/ })).toHaveCount(0);
+  await expect(page.getByText(/delinquent/i)).not.toBeVisible();
+
+  // Accessibility: zero critical/serious violations after the edit flow.
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+  const seriousOrCritical = accessibilityScanResults.violations.filter((violation: Result) =>
+    ["serious", "critical"].includes(violation.impact ?? ""),
+  );
+  expect(seriousOrCritical).toEqual([]);
+});
+
 test("ledger table does not cause horizontal page overflow on a narrow (phone-width) viewport", async ({
   page,
 }) => {

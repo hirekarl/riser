@@ -65,4 +65,116 @@ describe("ElevatorForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not add elevator/i);
   });
+
+  describe("edit mode", () => {
+    const editingElevator = {
+      id: 7,
+      device_identifier: "EL-7",
+      inspection_type: "CAT1" as const,
+      last_inspection_date: "2024-01-01",
+    };
+
+    it("pre-fills fields from editingElevator and shows a 'Save changes' submit button", () => {
+      render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevator}
+        />,
+      );
+
+      expect(screen.getByLabelText(/device identifier/i)).toHaveValue("EL-7");
+      expect(screen.getByLabelText(/inspection type/i)).toHaveValue("CAT1");
+      expect(screen.getByLabelText(/last inspection date/i)).toHaveValue("2024-01-01");
+      expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^add elevator$/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("form", { name: /edit an elevator/i })).toBeInTheDocument();
+    });
+
+    it("submits changes via updateElevator (not createElevator) with the elevator's id", async () => {
+      const updated: Elevator = {
+        id: 7,
+        building: 1,
+        device_identifier: "EL-7B",
+        inspection_type: "CAT5",
+        last_inspection_date: "2025-01-01",
+        created_at: "x",
+        updated_at: "x",
+      };
+      const updateSpy = vi.spyOn(client, "updateElevator").mockResolvedValue(updated);
+      const createSpy = vi.spyOn(client, "createElevator");
+      const onUpdated = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevator}
+          onUpdated={onUpdated}
+        />,
+      );
+
+      await user.clear(screen.getByLabelText(/device identifier/i));
+      await user.type(screen.getByLabelText(/device identifier/i), "EL-7B");
+      await user.selectOptions(screen.getByLabelText(/inspection type/i), "CAT5");
+      await user.clear(screen.getByLabelText(/last inspection date/i));
+      await user.type(screen.getByLabelText(/last inspection date/i), "2025-01-01");
+      await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+      expect(updateSpy).toHaveBeenCalledWith(7, {
+        device_identifier: "EL-7B",
+        inspection_type: "CAT5",
+        last_inspection_date: "2025-01-01",
+      });
+      expect(createSpy).not.toHaveBeenCalled();
+      await vi.waitFor(() => expect(onUpdated).toHaveBeenCalledWith(updated));
+    });
+
+    it("cancels out of edit mode without calling createElevator or updateElevator", async () => {
+      const createSpy = vi.spyOn(client, "createElevator");
+      const updateSpy = vi.spyOn(client, "updateElevator");
+      const onEditCancel = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevator}
+          onEditCancel={onEditCancel}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+      expect(onEditCancel).toHaveBeenCalledTimes(1);
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it("shows an error message when the update API call fails", async () => {
+      vi.spyOn(client, "updateElevator").mockRejectedValue(new Error("boom"));
+      const user = userEvent.setup();
+
+      render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevator}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(/could not save changes/i);
+    });
+
+    it("does not require buildings to be present while editing", () => {
+      render(<ElevatorForm buildings={[]} onCreated={vi.fn()} editingElevator={editingElevator} />);
+
+      expect(screen.queryByText(/add a building first/i)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled();
+    });
+  });
 });
