@@ -36,19 +36,49 @@
   gap: 0.5rem;
 }
 
-.form button {
+.primaryButton,
+.secondaryButton {
   align-self: flex-start;
   font: inherit;
-  font-weight: 700;
   padding: 0.5rem 1.25rem;
   border-radius: 6px;
-  border: 1px solid #1f2430;
-  background-color: #1f2430;
-  color: #fff;
   cursor: pointer;
 }
 
-.form button:disabled {
+/* The single committing action in a form (e.g. "Add elevator"/"Save
+   changes"): filled, bold, highest visual weight. */
+.primaryButton {
+  font-weight: 700;
+  border: 1px solid #1f2430;
+  background-color: #1f2430;
+  color: #fff;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background-color: #333a4a;
+  border-color: #333a4a;
+}
+
+/* A non-committing/discard action (e.g. "Cancel"): outlined rather than
+   filled and regular rather than bold weight, so it reads as lower visual
+   priority than .primaryButton without looking disabled or unclickable.
+   Text/border colors are chosen to clear WCAG AA (>= 4.5:1 for the text
+   against the white form background, >= 3:1 for the border as a UI
+   component boundary) so the lighter weight never comes at the cost of
+   legibility or discoverability. */
+.secondaryButton {
+  font-weight: 600;
+  border: 1px solid #4b5261;
+  background-color: transparent;
+  color: #1f2430;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background-color: #f0f1f3;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }

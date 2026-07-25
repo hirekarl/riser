@@ -60,7 +60,7 @@ export function BuildingForm({ onCreated }: BuildingFormProps) {
           onChange={(event) => setAddress(event.target.value)}
         />
       </div>
-      <button type="submit" disabled={submitting}>
+      <button type="submit" className={styles.primaryButton} disabled={submitting}>
         {submitting ? "Adding…" : "Add building"}
       </button>
     </form>

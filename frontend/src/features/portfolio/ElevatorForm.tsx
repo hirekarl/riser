@@ -198,7 +198,11 @@ export function ElevatorForm({
         />
       </div>
       <div className={styles.actions}>
-        <button type="submit" disabled={submitting || fieldsDisabled}>
+        <button
+          type="submit"
+          className={styles.primaryButton}
+          disabled={submitting || fieldsDisabled}
+        >
           {submitting
             ? isEditing
               ? "Saving…"
@@ -208,7 +212,12 @@ export function ElevatorForm({
               : "Add elevator"}
         </button>
         {isEditing && (
-          <button type="button" onClick={handleCancel} disabled={submitting}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={handleCancel}
+            disabled={submitting}
+          >
             Cancel
           </button>
         )}
