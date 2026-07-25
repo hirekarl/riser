@@ -7,6 +7,12 @@
 # NOTE (manual step at setup time): connecting this repo to Render in the
 # first place (New + > Blueprint > select this repo) is still a one-time
 # manual step in the Render dashboard.
+#
+# NOTE: "riser-backend" was already claimed elsewhere on Render, so the
+# live service was assigned riser-backend-y19g.onrender.com instead of the
+# unsuffixed name. ALLOWED_HOSTS/VITE_API_BASE_URL below reflect the actual
+# assigned hostname — if this service is ever deleted and recreated, verify
+# the assigned hostname again before relying on it.
 
 services:
   - type: web
@@ -30,7 +36,7 @@ services:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.production
       - key: ALLOWED_HOSTS
-        value: riser-backend.onrender.com
+        value: riser-backend-y19g.onrender.com
       - key: DATABASE_URL
         fromDatabase:
           name: riser-db
@@ -59,7 +65,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://riser-backend.onrender.com/api
+        value: https://riser-backend-y19g.onrender.com/api
     routes:
       - type: rewrite
         source: /*
