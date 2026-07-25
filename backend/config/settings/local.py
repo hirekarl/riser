@@ -20,11 +20,9 @@ DATABASES = {
     }
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    # Vite falls back to the next free port when 5173 is taken by another
-    # project's dev server; allow it too so local CORS doesn't break.
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    # Vite falls back to the next free port (5174, 5175, ...) when 5173 is
+    # taken by another project's dev server; match the whole fallback range
+    # instead of hardcoding each port as we hit it.
+    r"^http://(localhost|127\.0\.0\.1):517\d$",
 ]
