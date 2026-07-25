@@ -1,0 +1,9 @@
+/* Minimal, functional-only styling — final visual treatment is
+   ui-ux-specialist-agent's follow-up. */
+.fallback {
+  background-color: #fdecea;
+  color: #9c1c12;
+  border: 1px solid #9c1c12;
+  border-radius: 6px;
+  padding: 1rem;
+}
