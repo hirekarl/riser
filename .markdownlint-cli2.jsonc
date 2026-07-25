@@ -11,7 +11,13 @@
     // The source PRD and sprint docs use bold lead-ins as informal section
     // markers rather than real headings; not worth restructuring the PRD's
     // authored content to satisfy this rule.
-    "MD036": false
+    "MD036": false,
+    // New in this version's markdownlint bump (#52, 2026-07-25). Conflicts
+    // with Prettier's markdown table formatting, which pads cells to align
+    // columns (including empty cells) — the two hooks fight over every
+    // table with a short/empty cell otherwise. Prettier already owns table
+    // formatting in this repo; this rule is redundant on top of it.
+    "MD060": false
   },
   "globs": ["**/*.md"],
   "ignores": ["**/node_modules/**", "**/.venv/**", "**/dist/**"]

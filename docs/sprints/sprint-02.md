@@ -25,11 +25,11 @@ Filled in 2026-07-21 per the concrete schedule in `docs/sprints/day-by-day-plan.
 ### Karl Johnson
 
 - [x] Update sprint checklists (this edit).
-- [ ] Walk team through `docs/architecture/integration-contracts.md` (Tue 7/21).
+- [ ] Walk team through `docs/architecture/integration-contracts.md` (Tue 7/21). Never happened live — team was never together at once. Lower-risk than it looks: every contract-dependent feature built since (ledger filter, highlight, DOB POC, PR #43's narration/address-lookup types+client) has matched the doc without incident, confirmed again by Sat 7/25's fresh-eyes review below. Still worth an actual walkthrough if the team syncs before 7/29, but not currently blocking anything.
 - [x] Contract review: edit shape + filter param match DRF serializers (Wed 7/22); add `anthropic` SDK dependency + `ANTHROPIC_API_KEY` placeholder (Wed 7/22).
 - [x] Demo script/talking points (Thu 7/23 task, done Fri 7/24 since Thu's session didn't happen — see `docs/team/status-log.md`). Dry-run #1 (Thu) did not happen; Fri 7/24 became a solo catch-up session rather than a full team dry-run #2 — see status log.
-- [ ] AI-narration TS type/client method (Sun 7/26); address-lookup TS type/client method + fresh-eyes contract review (Mon 7/27).
-- [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28).
+- [x] AI-narration TS type/client method; address-lookup TS type/client method (both pulled forward from Sun 7/26/Mon 7/27, done Fri 7/24 — PR #43, merged Sat 7/25). Fresh-eyes contract review done Sat 7/25: shipped `NarrationResponse`/`NarrationErrorResponse`/`AddressLookupRequest`/`AddressLookupResponse`/`DobDeviceMatch` types and `fetchNarration()`/`lookupBuildingByAddress()` client methods match `integration-contracts.md` §3/§5 exactly — no discrepancies.
+- [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28). **Blocked** — needs Cornell's narration service (`backend/apps/compliance/services/narration.py`) and the `/api/buildings/lookup/` endpoint to exist first; neither has started.
 
 ### Andres Ballares
 
