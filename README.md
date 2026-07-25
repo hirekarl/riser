@@ -4,6 +4,18 @@
 
 A web app that gives commercial property managers a single, prioritized view of every elevator's NYC DOB compliance status across their portfolio — automatically calculating due dates and surfacing Delinquent/Warning/Compliant risk so nothing slips past a filing deadline. Full product requirements: `docs/prd/Riser-PRD.md`.
 
+## Problem
+
+Commercial property managers are risking thousands of dollars in municipal fines because they lack a single, structured system to track fragmented, recurring elevator compliance deadlines across multiple buildings. NYC's DOB enforces Category 1 (annual) and Category 5 (five-year) inspection cycles on 84,000+ registered elevator and escalator devices citywide — missed filings carry fines of $3,000–$5,000+ per device, plus ongoing monthly penalties. Today, managers juggle spreadsheets, paper inspection certificates, and manual cross-referencing of NYC's government data portal to track these deadlines, making preventable compliance lapses common and expensive.
+
+## Solution
+
+Riser solves this by consolidating every elevator's compliance status into a single, prioritized ledger. The system automatically calculates each device's next statutory due date (based on inspection type and date) and assigns it a **Compliant**, **Warning** (due within 30 days), or **Delinquent** (past due) status so managers can see what needs attention first without manual date-tracking across buildings.
+
+Where possible, Riser pulls real filing data directly from NYC's public DOB NOW Open Data feed, so managers can add a building by street address and have its entire elevator roster populate automatically with current CAT1/CAT5 filing dates — no re-entry required. Manual entry remains fully supported for buildings or fields the dataset doesn't cover.
+
+**In active development:** Riser is also gaining an **AI risk-narration briefing** (on-demand, Claude API-powered summary of urgent portfolio risk) and a **DOB address-lookup** feature with review/override (to streamline bringing buildings into the system). Neither feature is yet live, but both are committed to the product roadmap and will be wired into the UI during final demo rehearsals. The `ANTHROPIC_API_KEY` environment variable (see `backend/.env.example`) exists to support the narration feature when it lands.
+
 ## Team
 
 - [Karl Johnson](https://github.com/hirekarl)
@@ -41,7 +53,7 @@ cp .env.example .env  # fill in secrets for local dev
 # Frontend
 cd ../frontend
 npm ci
-cp .env.example .env
+cp .env.example .env.local  # Vite uses .env.local for local overrides; VITE_API_BASE_URL points to the backend API
 
 # Git hooks (from repo root)
 cd ..
