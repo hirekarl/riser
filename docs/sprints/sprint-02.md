@@ -14,7 +14,7 @@ Copied from `docs/prd/Riser-PRD.md` section 3.
 - [x] P1 — Filter/group ledger by building.
 - [x] P1 — Visual highlight on status change.
 - [ ] P0/P1 (new, non-negotiable) — AI risk-narration briefing (issue #1, Option 3).
-- [ ] P0/P1 (new, best-effort) — DOB Open Data address-lookup auto-populate. (Stages 1-2 of the pipeline are built/tested ahead of schedule — `backend/apps/compliance/dob.py` — but the endpoint + frontend wiring are still Mon/Tue 7/27-28 work; see `docs/architecture/integration-contracts.md` §4.)
+- [ ] P0 (new, **committed 2026-07-25** — elevated from "best-effort," see `docs/sprints/day-by-day-plan.md` 2026-07-25 revision note) — DOB Open Data address-lookup auto-populate. (Stages 1-2 of the pipeline are built/tested ahead of schedule — `backend/apps/compliance/dob.py` — but Stage 3, the endpoint, and frontend wiring are still Mon/Tue 7/27-28 work; see `docs/architecture/integration-contracts.md` §4.)
 
 (P2 items remain out of scope; pull from Sprint 01 into this sprint if anything didn't land in week one. See `docs/sprints/day-by-day-plan.md` for the priority/cut-order reasoning behind the two new items.)
 
