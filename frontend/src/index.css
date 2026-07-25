@@ -37,6 +37,14 @@
 
 body {
   margin: 0;
+  /* Belt-and-suspenders guard against page-level horizontal scroll: some
+     engines (observed in WebKit) let a nested overflow-x:auto container's
+     content affect the document's scrollable area even though every element
+     in the ancestor chain reports itself as fully contained. The ledger
+     table's own horizontal scrolling is handled by
+     .tableScroll { overflow-x: auto } in LedgerPage.module.css; this just
+     stops that from ever bubbling up into a page-level scrollbar. */
+  overflow-x: hidden;
 }
 
 #root {

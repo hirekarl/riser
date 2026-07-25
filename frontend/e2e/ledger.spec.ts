@@ -183,3 +183,56 @@ test("full add building -> add elevator -> status color -> edit date -> status u
   );
   expect(seriousOrCritical).toEqual([]);
 });
+
+test("ledger table does not cause horizontal page overflow on a narrow (phone-width) viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page);
+  await page.goto("/");
+
+  // Add a building.
+  await page.getByLabel(/building name/i).fill("Tower A");
+  await page.getByLabel(/address/i).fill("1 Main St");
+  await page.getByRole("button", { name: /add building/i }).click();
+
+  const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
+  await expect(elevatorForm.getByLabel(/^building$/i)).toBeEnabled();
+
+  // Add an elevator so the ledger table (with its six columns) actually renders.
+  await elevatorForm.getByLabel(/device identifier/i).fill("EL-1");
+  await elevatorForm.getByLabel(/inspection type/i).selectOption("CAT1");
+  await elevatorForm.getByLabel(/last inspection date/i).fill("2020-01-01");
+  await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
+
+  const row = page.getByRole("row").filter({ hasText: "EL-1" });
+  await expect(row).toBeVisible();
+
+  // The page itself must not require horizontal scrolling at phone width, even
+  // though the ledger table is wide — the table should scroll within its own
+  // bounded container instead of blowing out the whole page's width.
+  //
+  // Note: this deliberately checks document.body's scroll metrics, not
+  // document.documentElement's. On Chromium and WebKit, a flex-item
+  // descendant with `overflow-x: auto` and wide content can make
+  // documentElement.scrollWidth report a value larger than clientWidth even
+  // when nothing is actually scrollable (confirmed directly: real user
+  // horizontal scroll input via a WebKit-native drag left window.scrollX at
+  // 0 both before and after this assertion; document.body's metrics tracked
+  // that real, observable behavior correctly in all three engines, while
+  // documentElement's did not). body.scrollWidth is the metric that actually
+  // corresponds to "does the page require horizontal scrolling."
+  const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
+  const clientWidth = await page.evaluate(() => document.body.clientWidth);
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+
+  // Belt-and-suspenders: assert the page truly cannot be scrolled
+  // horizontally, which is the actual, real-world symptom this test guards
+  // against (this is what caught a residual WebKit-only regression that the
+  // static scrollWidth/clientWidth check above did not: WebKit could still
+  // be dragged 52px to the right even once documentElement's reported
+  // scrollWidth no longer changed).
+  await page.mouse.wheel(500, 0);
+  const scrollXAfterAttempt = await page.evaluate(() => window.scrollX);
+  expect(scrollXAfterAttempt).toBe(0);
+});

@@ -128,46 +128,51 @@ export function LedgerPage({ reloadSignal, buildings = [] }: LedgerPageProps) {
       {entries && entries.length === 0 ? (
         <EmptyState />
       ) : entries && entries.length > 0 ? (
-        <table className={styles.table}>
-          <caption>Portfolio compliance ledger, sorted by urgency</caption>
-          <thead>
-            <tr>
-              <th scope="col">Status</th>
-              <th scope="col">Building</th>
-              <th scope="col">Device</th>
-              <th scope="col">Inspection type</th>
-              <th scope="col">Last inspection date</th>
-              <th scope="col">Due date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id} className={justChangedIds.has(entry.id) ? styles.highlighting : undefined}>
-                <td>
-                  <StatusBadge status={entry.status} />
-                </td>
-                <td>{entry.building_name}</td>
-                <td>{entry.device_identifier}</td>
-                <td>{entry.inspection_type}</td>
-                <td>
-                  <label>
-                    <span className="visually-hidden">
-                      Last inspection date for {entry.device_identifier}
-                    </span>
-                    <input
-                      type="date"
-                      className={styles.dateInput}
-                      defaultValue={entry.last_inspection_date}
-                      disabled={pendingId === entry.id}
-                      onChange={(event) => handleDateChange(entry.id, event.target.value)}
-                    />
-                  </label>
-                </td>
-                <td>{entry.due_date}</td>
+        <div className={styles.tableScroll}>
+          <table className={styles.table}>
+            <caption>Portfolio compliance ledger, sorted by urgency</caption>
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">Building</th>
+                <th scope="col">Device</th>
+                <th scope="col">Inspection type</th>
+                <th scope="col">Last inspection date</th>
+                <th scope="col">Due date</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr
+                  key={entry.id}
+                  className={justChangedIds.has(entry.id) ? styles.highlighting : undefined}
+                >
+                  <td>
+                    <StatusBadge status={entry.status} />
+                  </td>
+                  <td>{entry.building_name}</td>
+                  <td>{entry.device_identifier}</td>
+                  <td>{entry.inspection_type}</td>
+                  <td>
+                    <label>
+                      <span className="visually-hidden">
+                        Last inspection date for {entry.device_identifier}
+                      </span>
+                      <input
+                        type="date"
+                        className={styles.dateInput}
+                        defaultValue={entry.last_inspection_date}
+                        disabled={pendingId === entry.id}
+                        onChange={(event) => handleDateChange(entry.id, event.target.value)}
+                      />
+                    </label>
+                  </td>
+                  <td>{entry.due_date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
     </div>
   );

@@ -208,7 +208,11 @@ describe("api client", () => {
   });
 
   it("lookupBuildingByAddress resolves (not throws) on a no-match reason, per the 200-with-reason contract", async () => {
-    const response: AddressLookupResponse = { match: null, devices: [], reason: "address_not_found" };
+    const response: AddressLookupResponse = {
+      match: null,
+      devices: [],
+      reason: "address_not_found",
+    };
     mockFetchOnce(response);
 
     await expect(lookupBuildingByAddress("nonexistent address")).resolves.toEqual(response);
