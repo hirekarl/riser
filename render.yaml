@@ -1,15 +1,12 @@
 # Render Blueprint for Riser.
 # Two services only, split so a change under one directory never triggers a
 # deploy of the other, and a docs-only change (root markdown / docs/**)
-# triggers neither.
+# triggers neither. Both services use autoDeployTrigger: checksPass so a
+# deploy only fires once the linked branch's GitHub CI checks are green.
 #
-# NOTE (verify at setup time): connecting this repo to Render and enabling
-# "only deploy if checks pass" against GitHub CI is a manual step in the
-# Render dashboard (Settings > Build & Deploy) — no Render API/MCP access
-# was available to configure this programmatically. Also verify the exact
-# current schema for `runtime`/`env` and `staticPublishPath` against
-# Render's live docs before applying this blueprint; the platform's
-# render.yaml schema has shifted across product iterations.
+# NOTE (manual step at setup time): connecting this repo to Render in the
+# first place (New + > Blueprint > select this repo) is still a one-time
+# manual step in the Render dashboard.
 
 services:
   - type: web
@@ -17,6 +14,7 @@ services:
     runtime: python
     rootDir: backend
     plan: starter
+    autoDeployTrigger: checksPass
     buildFilter:
       paths:
         - backend/**
@@ -31,6 +29,8 @@ services:
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.production
+      - key: ALLOWED_HOSTS
+        value: riser-backend.onrender.com
       - key: DATABASE_URL
         fromDatabase:
           name: riser-db
@@ -44,6 +44,7 @@ services:
     name: riser-frontend
     runtime: static
     rootDir: frontend
+    autoDeployTrigger: checksPass
     buildFilter:
       paths:
         - frontend/**
@@ -63,4 +64,4 @@ databases:
   - name: riser-db
     databaseName: riser
     user: riser
-    plan: starter
+    plan: basic-256mb
