@@ -104,10 +104,19 @@
 
 /* Marks the row whose elevator is currently the target of the (parent-owned)
    Edit form, alongside the inline date input being disabled for that row.
-   Intentionally unstyled here — a follow-up UI/UX pass adds the visual
-   treatment; this class only needs to exist so it composes correctly with
-   .highlighting when both apply to the same row. */
-.editingRow {
+   Persistent (not animated, unlike .highlighting's transient sweep) — it
+   stays for as long as the row's Edit form is open, using the same
+   --focus/--focus-subtle tokens as .highlighting for a consistent "this is
+   the active/selected thing" visual language across the app.
+   Deliberately painted directly on the <td> background/box-shadow rather
+   than via a ::before overlay: .highlighting's ::before sits at z-index: 0,
+   below its <td>'s z-index: 1 stacking context, so when both classes land
+   on the same row .editingRow's opaque td background naturally sits on top
+   and wins outright — no flicker, and because both reuse the same color
+   tokens there's no visible seam either way. */
+.editingRow td {
+  background-color: var(--focus-subtle);
+  box-shadow: inset 3px 0 0 0 var(--focus);
 }
 
 .dateInput {

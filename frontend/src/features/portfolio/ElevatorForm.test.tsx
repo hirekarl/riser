@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe } from "vitest-axe";
 import { ElevatorForm } from "./ElevatorForm";
 import * as client from "../../api/client";
 import type { Building, Elevator } from "../../types/domain";
@@ -175,6 +176,40 @@ describe("ElevatorForm", () => {
 
       expect(screen.queryByText(/add a building first/i)).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled();
+    });
+
+    it("gives Cancel a visually distinct (non-primary) style from the Save changes button", () => {
+      render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevator}
+        />,
+      );
+
+      const saveButton = screen.getByRole("button", { name: /save changes/i });
+      const cancelButton = screen.getByRole("button", { name: /cancel/i });
+
+      // The primary (committing) action and the secondary (discard) action
+      // must resolve to different CSS-module classes, not share the same
+      // unscoped `.form button` styling.
+      expect(saveButton.className).toMatch(/primaryButton/);
+      expect(cancelButton.className).toMatch(/secondaryButton/);
+      expect(cancelButton.className).not.toMatch(/primaryButton/);
+      expect(cancelButton.className).not.toBe(saveButton.className);
+    });
+
+    it("has no axe accessibility violations in edit mode, with both Save changes and Cancel visible", async () => {
+      const { container } = render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevator}
+        />,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
     });
   });
 });

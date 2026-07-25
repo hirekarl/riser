@@ -215,6 +215,32 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
   await expect(editForm).toBeVisible();
   await expect(editForm.getByLabel(/device identifier/i)).toHaveValue("EL-1");
 
+  // The primary "Save changes" action and the secondary "Cancel" action
+  // must be visually distinguishable (not just by label), so a user
+  // scanning the form can tell the committing action from the discard one.
+  const saveButton = editForm.getByRole("button", { name: /save changes/i });
+  const cancelButton = editForm.getByRole("button", { name: /^cancel$/i });
+  const [saveStyles, cancelStyles] = await Promise.all([
+    saveButton.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { background: s.backgroundColor, fontWeight: s.fontWeight };
+    }),
+    cancelButton.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { background: s.backgroundColor, fontWeight: s.fontWeight };
+    }),
+  ]);
+  expect(saveStyles.background).not.toBe(cancelStyles.background);
+  expect(saveStyles.fontWeight).not.toBe(cancelStyles.fontWeight);
+
+  // Accessibility: zero critical/serious violations while both actions
+  // (and their color/contrast treatment) are visible together.
+  const editFormScanResults = await new AxeBuilder({ page }).analyze();
+  const editFormSeriousOrCritical = editFormScanResults.violations.filter((violation: Result) =>
+    ["serious", "critical"].includes(violation.impact ?? ""),
+  );
+  expect(editFormSeriousOrCritical).toEqual([]);
+
   // Change the device identifier and bring the last-inspection date current,
   // so status/due-date/rank should recompute on save.
   await editForm.getByLabel(/device identifier/i).fill("EL-1-RENAMED");
@@ -232,6 +258,67 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
   await expect(page.getByText(/delinquent/i)).not.toBeVisible();
 
   // Accessibility: zero critical/serious violations after the edit flow.
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+  const seriousOrCritical = accessibilityScanResults.violations.filter((violation: Result) =>
+    ["serious", "critical"].includes(violation.impact ?? ""),
+  );
+  expect(seriousOrCritical).toEqual([]);
+});
+
+test("visually marks the row currently open in the Edit form, distinct from other rows", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/");
+
+  await page.getByLabel(/building name/i).fill("Tower A");
+  await page.getByLabel(/address/i).fill("1 Main St");
+  await page.getByRole("button", { name: /add building/i }).click();
+
+  const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
+  await expect(elevatorForm.getByLabel(/^building$/i)).toBeEnabled();
+
+  // Two elevators so there's an edited row and an unedited row to compare.
+  await elevatorForm.getByLabel(/device identifier/i).fill("EL-1");
+  await elevatorForm.getByLabel(/inspection type/i).selectOption("CAT1");
+  await elevatorForm.getByLabel(/last inspection date/i).fill("2020-01-01");
+  await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
+
+  await expect(elevatorForm.getByLabel(/^building$/i)).toBeEnabled();
+  await elevatorForm.getByLabel(/device identifier/i).fill("EL-2");
+  await elevatorForm.getByLabel(/inspection type/i).selectOption("CAT1");
+  await elevatorForm.getByLabel(/last inspection date/i).fill("2020-01-01");
+  await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
+
+  const editedRow = page.getByRole("row").filter({ hasText: "EL-1" });
+  const otherRow = page.getByRole("row").filter({ hasText: "EL-2" });
+  await expect(editedRow).toBeVisible();
+  await expect(otherRow).toBeVisible();
+
+  const backgroundBefore = await editedRow
+    .locator("td")
+    .first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+
+  await editedRow.getByRole("button", { name: /edit el-1/i }).click();
+  await expect(page.getByRole("form", { name: /edit an elevator/i })).toBeVisible();
+
+  const backgroundDuringEdit = await editedRow
+    .locator("td")
+    .first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+  const otherRowBackground = await otherRow
+    .locator("td")
+    .first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+
+  // The row under edit must gain a visually distinct background once its
+  // Edit form opens, while a row not being edited stays unaffected.
+  expect(backgroundDuringEdit).not.toBe(backgroundBefore);
+  expect(backgroundDuringEdit).not.toBe(otherRowBackground);
+
+  // Accessibility: zero critical/serious violations with the edited-row
+  // treatment and the edit form both visible at once.
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
   const seriousOrCritical = accessibilityScanResults.violations.filter((violation: Result) =>
     ["serious", "critical"].includes(violation.impact ?? ""),
