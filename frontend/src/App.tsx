@@ -74,6 +74,7 @@ function App() {
           reloadSignal={reloadSignal}
           buildings={buildings}
           onEditRequest={handleEditRequest}
+          editingElevatorId={editingElevator?.id}
         />
       </main>
     </div>

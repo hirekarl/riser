@@ -125,6 +125,55 @@ describe("App", () => {
     expect(await screen.findByRole("form", { name: /add an elevator/i })).toBeInTheDocument();
   });
 
+  it("disables the inline date input for a row while its Edit form is open, preventing the stale-overwrite race", async () => {
+    const before: LedgerEntry = {
+      id: 1,
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      building_name: "Tower A",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const afterInlineEdit: LedgerEntry = {
+      ...before,
+      last_inspection_date: "2026-06-01",
+      due_date: "2027-06-01",
+      status: "Compliant",
+    };
+
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger")
+      .mockResolvedValueOnce([before])
+      .mockResolvedValueOnce([afterInlineEdit]);
+    const updateSpy = vi.spyOn(client, "updateElevator").mockResolvedValue({
+      id: 1,
+      building: 1,
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2026-06-01",
+      created_at: "x",
+      updated_at: "x",
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const editButton = await screen.findByRole("button", { name: /edit el-1/i });
+    await user.click(editButton);
+
+    await screen.findByRole("form", { name: /edit an elevator/i });
+
+    // The inline date input for the row under edit must now be disabled, so
+    // there is no way to fire the conflicting PATCH described in the repro.
+    const inlineDateInput = screen.getByLabelText(/last inspection date for el-1/i);
+    expect(inlineDateInput).toBeDisabled();
+
+    // Confirm this isn't just globally disabled: attempting to change it has
+    // no effect on the API.
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   it("cancels out of edit mode without saving and returns the form to create mode", async () => {
     const entry: LedgerEntry = {
       id: 1,
@@ -151,5 +200,57 @@ describe("App", () => {
 
     expect(updateSpy).not.toHaveBeenCalled();
     expect(await screen.findByRole("form", { name: /add an elevator/i })).toBeInTheDocument();
+  });
+
+  it("locks in the intended (discard-on-switch) behavior: switching the Edit target to another row re-primes the form from that row and drops the first row's unsaved edits", async () => {
+    const entryA: LedgerEntry = {
+      id: 1,
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      building_name: "Tower A",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const entryB: LedgerEntry = {
+      id: 2,
+      device_identifier: "EL-2",
+      inspection_type: "CAT5",
+      last_inspection_date: "2024-01-01",
+      building_name: "Tower B",
+      due_date: "2029-01-01",
+      status: "Compliant",
+    };
+
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([entryA, entryB]);
+    const updateSpy = vi.spyOn(client, "updateElevator");
+    const createSpy = vi.spyOn(client, "createElevator");
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: /edit el-1/i }));
+    const editForm = await screen.findByRole("form", { name: /edit an elevator/i });
+    expect(within(editForm).getByLabelText(/device identifier/i)).toHaveValue("EL-1");
+
+    // Make an unsaved edit to row A's device identifier, without saving.
+    await user.clear(within(editForm).getByLabelText(/device identifier/i));
+    await user.type(within(editForm).getByLabelText(/device identifier/i), "EL-1-UNSAVED");
+
+    // Switch the edit target to row B without saving or cancelling first.
+    await user.click(screen.getByRole("button", { name: /edit el-2/i }));
+
+    // The form now reflects row B, not A's discarded, unsaved edit.
+    await waitFor(() => {
+      expect(within(editForm).getByLabelText(/device identifier/i)).toHaveValue("EL-2");
+    });
+    expect(within(editForm).getByLabelText(/inspection type/i)).toHaveValue("CAT5");
+    expect(within(editForm).getByLabelText(/last inspection date/i)).toHaveValue("2024-01-01");
+    expect(screen.queryByDisplayValue("EL-1-UNSAVED")).not.toBeInTheDocument();
+
+    // No API call was made for row A's discarded edits.
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
   });
 });
