@@ -19,7 +19,7 @@ Fast-reference lookup for Claude Code agents working in this repo. Each row link
 | pre-commit | [pre-commit/overview.md](pre-commit/overview.md) | .pre-commit-config.yaml, language: system vs isolated envs, multi-stage hooks |
 | commitizen | [commitizen/overview.md](commitizen/overview.md) | Conventional Commits via cz commit, cz bump, version_files sync across backend/frontend |
 | Render | [render/overview.md](render/overview.md) | render.yaml Blueprint spec, buildFilter monorepo scoping, databases/envVars |
-| GitHub Actions | [github-actions/overview.md](github-actions/overview.md) | Workflow syntax, required-status-check + path-filter merge-blocking gotcha |
+| GitHub Actions | [github-actions/overview.md](github-actions/overview.md) | Workflow syntax, required-status-check + path-filter merge-blocking gotcha, `gh pr merge --rebase`/repo merge-policy gotchas |
 
 Git LFS was deliberately skipped as a topic — this repo has no large binary assets that need it.
 
