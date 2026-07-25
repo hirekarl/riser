@@ -80,6 +80,8 @@ The extra day tonight's session bought us. Use it to actually fix what dry-run #
 
 **Confirmed 2026-07-24: the Week 1 demo originally planned for today is not happening.** No presentation, no forced scope freeze. Treat today as open buffer time ahead of Sunday's AI-agent work — worth using for whatever of Thu/Fri's still-outstanding manual items (`docs/team/status-log.md` — Andres's/Schiffon's checks) can get picked up, rather than losing the day to a rehearsal that no longer has an audience. The retro originally planned for "end of day" is optional; the Sun–Tue plan below stands regardless.
 
+**Add-on, later same day: ad hoc Pursuit curriculum "Polish Session" (1:30pm–3:45pm), not on this plan.** Separate from the buffer-time work above — a scheduled Pursuit module requiring crash-safety/error-handling (plus logging), a UI-navigability pass, and README problem/solution documentation, done today specifically to satisfy that curriculum checkpoint rather than because the day-by-day plan called for it. See `docs/team/status-log.md`'s same-day entry for what shipped and PR #74.
+
 ### Sun 2026-07-26 — AI agent: backend, contract, and full UI (committed, not just "backend + contract")
 
 Narration is the simpler of the two remaining features (one endpoint, one panel) and is the one already marked non-negotiable, so it's front-loaded to land **completely** today, freeing Mon/Tue entirely for DOB lookup.
