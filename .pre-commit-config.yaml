@@ -87,7 +87,7 @@ repos:
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-merge-conflict
@@ -109,7 +109,7 @@ repos:
         args: ["--prose-wrap=never"]
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.17.2
+    rev: v0.23.1
     hooks:
       - id: markdownlint-cli2
         name: markdownlint-cli2 (markdown structure/style)

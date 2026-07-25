@@ -2,16 +2,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createBuilding,
   createElevator,
+  fetchNarration,
   listBuildings,
   listElevators,
   listLedger,
+  lookupBuildingByAddress,
   updateElevator,
 } from "./client";
 import type {
+  AddressLookupResponse,
   Building,
   CreateBuildingPayload,
   CreateElevatorPayload,
   LedgerEntry,
+  NarrationResponse,
 } from "../types/domain";
 
 function mockFetchOnce(body: unknown, init?: { ok?: boolean; status?: number }) {
@@ -152,6 +156,62 @@ describe("api client", () => {
         body: JSON.stringify({ last_inspection_date: "2026-05-01" }),
       }),
     );
+  });
+
+  it("fetchNarration GETs /ledger/narration/ and returns parsed JSON", async () => {
+    const narration: NarrationResponse = {
+      narration: "3 elevators are Delinquent, 2 enter Warning this week.",
+      generated_at: "2026-07-26T14:32:00Z",
+    };
+    const fetchMock = mockFetchOnce(narration);
+
+    const result = await fetchNarration();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/ledger\/narration\/?$/),
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(result).toEqual(narration);
+  });
+
+  it("fetchNarration throws when the narration service is unavailable", async () => {
+    mockFetchOnce({ error: "narration_unavailable" }, { ok: false, status: 503 });
+    await expect(fetchNarration()).rejects.toThrow(/503/);
+  });
+
+  it("lookupBuildingByAddress POSTs the address as JSON to /buildings/lookup/", async () => {
+    const response: AddressLookupResponse = {
+      match: { bin: "1001686", resolved_address: "350 5 AVENUE", borough: "MANHATTAN" },
+      devices: [
+        {
+          device_number: "1P766",
+          device_status: "Active",
+          cat1_latest_report_filed: "2026-03-01",
+          cat5_latest_report_filed: null,
+          periodic_latest_inspection: "2026-03-01",
+        },
+      ],
+      reason: null,
+    };
+    const fetchMock = mockFetchOnce(response);
+
+    const result = await lookupBuildingByAddress("350 Fifth Avenue, Manhattan");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/buildings\/lookup\/?$/),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ address: "350 Fifth Avenue, Manhattan" }),
+      }),
+    );
+    expect(result).toEqual(response);
+  });
+
+  it("lookupBuildingByAddress resolves (not throws) on a no-match reason, per the 200-with-reason contract", async () => {
+    const response: AddressLookupResponse = { match: null, devices: [], reason: "address_not_found" };
+    mockFetchOnce(response);
+
+    await expect(lookupBuildingByAddress("nonexistent address")).resolves.toEqual(response);
   });
 
   it("throws a descriptive error when the response is not ok", async () => {
