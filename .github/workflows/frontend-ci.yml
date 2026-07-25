@@ -60,7 +60,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: needs.changes.outputs.frontend == 'true'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: frontend/coverage/lcov.info
