@@ -39,6 +39,11 @@ services:
         generateValue: true
       - key: CORS_ALLOWED_ORIGINS
         value: https://riser-frontend.onrender.com
+      # Sprint 02 AI risk-narration feature (docs/sprints/sprint-02.md).
+      # Not yet consumed by the code; set the real value in the Render
+      # dashboard's Environment tab once narration.py lands.
+      - key: ANTHROPIC_API_KEY
+        sync: false
 
   - type: web
     name: riser-frontend
