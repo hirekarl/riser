@@ -1,9 +1,12 @@
 import type {
+  AddressLookupRequest,
+  AddressLookupResponse,
   Building,
   CreateBuildingPayload,
   CreateElevatorPayload,
   Elevator,
   LedgerEntry,
+  NarrationResponse,
   UpdateElevatorPayload,
 } from "../types/domain";
 
@@ -66,6 +69,28 @@ export function createElevator(payload: CreateElevatorPayload): Promise<Elevator
 export function updateElevator(id: number, payload: UpdateElevatorPayload): Promise<Elevator> {
   return request<Elevator>(`elevators/${id}/`, {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+// Backend endpoint not yet implemented (scheduled Sun 2026-07-26 per
+// docs/sprints/day-by-day-plan.md) — added ahead per the pre-agreed contract
+// in docs/architecture/integration-contracts.md §5. A non-200 response
+// (e.g. the 503 "narration_unavailable" case) surfaces as a thrown error,
+// same as every other request<T>() call here, for the panel component to catch.
+export function fetchNarration(): Promise<NarrationResponse> {
+  return request<NarrationResponse>("ledger/narration/", { method: "GET" });
+}
+
+// Backend endpoint not yet implemented (scheduled Mon 2026-07-27) — added
+// ahead per docs/architecture/integration-contracts.md §3. Per that contract,
+// "no match"/"no devices" cases are expected outcomes returned as HTTP 200
+// with a `reason` field, not thrown errors — only a genuinely unexpected
+// failure (e.g. malformed request) should reject this promise.
+export function lookupBuildingByAddress(address: string): Promise<AddressLookupResponse> {
+  const payload: AddressLookupRequest = { address };
+  return request<AddressLookupResponse>("buildings/lookup/", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }
