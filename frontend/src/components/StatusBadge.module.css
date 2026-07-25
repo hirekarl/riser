@@ -37,8 +37,12 @@
   border-color: #9c1c12;
 }
 
-/* Fallback for an unrecognized status (e.g. API drift). Minimal/neutral by
-   design — final color/contrast treatment is ui-ux-specialist-agent's call. */
+/* Fallback for an unrecognized status (e.g. API drift or an unexpected
+   runtime value slipping past the type system). Deliberately neutral gray so
+   it never gets mistaken for one of the three real statuses above, while
+   still pairing color with the "?" icon and the raw status text per the
+   same WCAG 1.4.1 pattern. Contrast confirmed at ~6.75:1 (text #4b5261 on
+   background #eceef1), comfortably clearing WCAG AA's 4.5:1 minimum. */
 .unknown {
   background-color: #eceef1;
   color: #4b5261;

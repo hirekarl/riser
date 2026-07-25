@@ -84,6 +84,49 @@
   }
 }
 
+/* Status-meaning legend: a native <details>/<summary> disclosure so
+   first-time users can learn what triggers each status without any extra
+   state/JS, and without cluttering the table itself for returning users. */
+.legend {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-subtle);
+}
+
+.legendSummary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Focus/hover affordance so the disclosure widget reads as interactive,
+   consistent with other clickable controls in this file. */
+.legendSummary:hover {
+  color: var(--focus);
+}
+
+.legendList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.legendItem dt {
+  flex-shrink: 0;
+}
+
+.legendItem dd {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 .filterRow {
   display: flex;
   align-items: center;
@@ -126,9 +169,13 @@
   border-radius: 4px;
 }
 
-/* Minimal, functional-only styling for the inline date input's Save/Cancel
-   confirm affordance — final visual treatment is ui-ux-specialist-agent's
-   follow-up. */
+/* Styling for the inline date input's Save/Cancel confirm affordance,
+   deliberately matching ElevatorForm's .primaryButton/.secondaryButton
+   visual language (see frontend/src/features/portfolio/forms.module.css)
+   so the same commit/discard action pair reads consistently everywhere in
+   the app: Save is the filled, bold, "commits" action; Cancel is the
+   outlined, lower-priority "discards" action. Colors are duplicated rather
+   than imported cross-module to keep each CSS module self-contained. */
 .dateActions {
   display: inline-flex;
   gap: 0.4rem;
@@ -138,11 +185,35 @@
 .saveDateButton,
 .cancelDateButton {
   font: inherit;
-  padding: 0.3rem 0.6rem;
-  border: 1px solid #7a8091;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
   border-radius: 6px;
-  background: #fff;
   cursor: pointer;
+}
+
+.saveDateButton {
+  font-weight: 700;
+  border: 1px solid #1f2430;
+  background-color: #1f2430;
+  color: #fff;
+}
+
+.saveDateButton:hover:not(:disabled) {
+  background-color: #333a4a;
+  border-color: #333a4a;
+}
+
+/* Text/border colors chosen to clear WCAG AA (>= 4.5:1 for text, >= 3:1 for
+   the border as a UI component boundary), same as ElevatorForm's
+   .secondaryButton. */
+.cancelDateButton {
+  border: 1px solid #4b5261;
+  background-color: transparent;
+  color: #1f2430;
+}
+
+.cancelDateButton:hover:not(:disabled) {
+  background-color: #f0f1f3;
 }
 
 .saveDateButton:disabled,
