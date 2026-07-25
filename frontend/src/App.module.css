@@ -14,3 +14,15 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
 }
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background-color: #fdecea;
+  color: #9c1c12;
+  border: 1px solid #9c1c12;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}

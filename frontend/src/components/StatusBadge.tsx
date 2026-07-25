@@ -1,3 +1,4 @@
+import { logWarn } from "../lib/logger";
 import type { ComplianceStatus } from "../types/domain";
 import styles from "./StatusBadge.module.css";
 
@@ -9,6 +10,11 @@ const STATUS_META: Record<ComplianceStatus, { className: string; icon: string }>
   Delinquent: { className: "delinquent", icon: "✕" }, // cross mark
 };
 
+// Fallback used when `status` isn't one of the recognized keys above (e.g.
+// API drift, or a null/unexpected value slipping through the type system at
+// runtime). Keeps rendering resilient instead of throwing mid-render.
+const UNKNOWN_STATUS_META = { className: "unknown", icon: "?" };
+
 export interface StatusBadgeProps {
   status: ComplianceStatus;
 }
@@ -18,7 +24,11 @@ export interface StatusBadgeProps {
  * carries a distinct icon and text label, satisfying WCAG 1.4.1 (Use of Color).
  */
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const meta = STATUS_META[status];
+  const isRecognized = status in STATUS_META;
+  if (!isRecognized) {
+    logWarn("Unrecognized compliance status", { status });
+  }
+  const meta = isRecognized ? STATUS_META[status] : UNKNOWN_STATUS_META;
   return (
     <span className={`${styles.badge} ${styles[meta.className]}`}>
       <span className={styles.icon} aria-hidden="true">
