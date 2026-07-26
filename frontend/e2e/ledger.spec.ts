@@ -137,6 +137,67 @@ async function mockApi(page: Page) {
   });
 }
 
+test("generates an AI narration briefing on demand, showing a loading state then the narration text", async ({
+  page,
+}) => {
+  await mockApi(page);
+
+  let resolveNarration: (() => void) | undefined;
+  const narrationRequestSeen = new Promise<void>((resolve) => {
+    resolveNarration = resolve;
+  });
+
+  await page.route("**/api/ledger/narration/**", async (route) => {
+    resolveNarration?.();
+    // An artificial delay so the loading state is reliably observable by the
+    // assertions below, comfortably longer than the round-trip/assertion
+    // overhead that follows the click.
+    await new Promise((r) => setTimeout(r, 1000));
+    await route.fulfill({
+      json: {
+        narration: "Two elevators are delinquent and need attention this week.",
+        generated_at: "2026-07-25T00:00:00Z",
+      },
+    });
+  });
+
+  await page.goto("/");
+
+  // Scoped to the narration panel itself, since the ledger has its own
+  // (unrelated) role="status" loading placeholder before it finishes loading.
+  // The button is located by role only (not by accessible name) because its
+  // label text itself changes to "Generating briefing…" while loading — a
+  // name-filtered locator would otherwise auto-wait for the original
+  // "Generate briefing" name to reappear, which only happens once the
+  // request has already resolved, masking the disabled state entirely.
+  const narrationPanel = page.getByRole("region", { name: /ai portfolio briefing/i });
+  const generateButton = narrationPanel.getByRole("button");
+  await expect(generateButton).toBeVisible();
+  await expect(generateButton).toHaveAccessibleName(/generate briefing/i);
+
+  await generateButton.click();
+
+  // Loading state appears while the request is pending.
+  await expect(narrationPanel.getByRole("status")).toBeVisible();
+  await expect(generateButton).toBeDisabled();
+
+  await narrationRequestSeen;
+
+  // Narration text renders once the request resolves.
+  await expect(
+    page.getByText(/two elevators are delinquent and need attention this week/i),
+  ).toBeVisible();
+  await expect(generateButton).toBeEnabled();
+  await expect(generateButton).toHaveAccessibleName(/generate briefing/i);
+
+  // Accessibility: zero critical/serious violations with the narration rendered.
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+  const seriousOrCritical = accessibilityScanResults.violations.filter((violation: Result) =>
+    ["serious", "critical"].includes(violation.impact ?? ""),
+  );
+  expect(seriousOrCritical).toEqual([]);
+});
+
 test("full add building -> add elevator -> status color -> edit date -> status updates flow", async ({
   page,
 }) => {

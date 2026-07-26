@@ -1,0 +1,16 @@
+/* Minimal functional styling only — a deliberate visual/placement design
+   pass is a follow-up task (ui-ux-specialist-agent), per
+   docs/sprints/day-by-day-plan.md. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.narration {
+  white-space: pre-wrap;
+}
+
+.errorMessage {
+  color: #9c1c12;
+}

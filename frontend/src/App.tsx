@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { listBuildings } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LedgerPage } from "./features/ledger/LedgerPage";
+import { NarrationPanel } from "./features/narration/NarrationPanel";
 import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
@@ -89,6 +90,10 @@ function App() {
       </div>
 
       <main>
+        {/* Placement is provisional — a dedicated visual/placement design
+            pass for this panel is a follow-up task, per
+            docs/sprints/day-by-day-plan.md. */}
+        <NarrationPanel />
         <h2 className="visually-hidden">Portfolio ledger</h2>
         <ErrorBoundary>
           <LedgerPage
