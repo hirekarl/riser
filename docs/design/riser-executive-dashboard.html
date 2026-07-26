@@ -62,7 +62,7 @@
   --chip-inactive: #6B7280;
   --ai-pulse: #4F8F76;
   /* ---- neutrals (warm-biased) ---- */
-  --bg: #F0F1F3;
+  --bg: #FFFFFF;
   --surface: #FFFFFF;
   --surface-sunken: #FBF8F3;
   --ink: #1C1A17;
@@ -85,7 +85,13 @@
   --font-mono: "Riser Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark){
+/* Disabled for this presentation build: always show the light/white design
+   regardless of the viewer's OS dark-mode setting, so it matches the
+   reference screenshot exactly no matter who's viewing it. The dark theme
+   itself is untouched below and still reachable via data-theme="dark" if
+   ever needed again — only the automatic OS-triggered switch is turned off,
+   via an always-false compound condition. */
+@media (prefers-color-scheme: dark) and (prefers-color-scheme: light){
   :root{
     color-scheme: dark;
     --rust: #D9A05C;
@@ -144,7 +150,7 @@
   --navy: #1C3A63; --navy-soft: #EDF0F4; --navy-soft-border: #C9D2DE; --navy-ink: #1C3A63;
   --navy-grad-start: #16324F; --navy-grad-end: #0D2038;
   --field-focus-ring: #7FB2E0; --chip-inactive: #6B7280; --ai-pulse: #4F8F76;
-  --bg: #F0F1F3; --surface: #FFFFFF; --surface-sunken: #FBF8F3;
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-sunken: #FBF8F3;
   --ink: #1C1A17; --ink-quiet: #4B4438; --taupe: #8B7C68;
   --hairline: #E7DFD1; --hairline-strong: #D8CCB6;
   --shadow-card: 0 1px 2px rgba(41,28,15,0.05), 0 10px 28px -14px rgba(41,28,15,0.18);
@@ -256,8 +262,10 @@ table{ border-collapse: collapse; }
 .ai-status.is-loading .ai-status-pulse .dot{ background: var(--rust); }
 .ai-status.is-loading .ai-status-pulse .ring{ border-color: var(--rust); animation-duration: 0.9s; }
 .ai-status-text{ display: flex; flex-direction: column; line-height: 1.25; }
+.ai-status-inline{ flex-direction: row; gap: 6px; align-items: baseline; }
 .ai-status-label{ font-size: 12px; font-weight: 700; color: var(--ink); }
-.ai-status-time{ font-size: 11.5px; color: var(--taupe); font-variant-numeric: tabular-nums; }
+.ai-status-static-label{ font-size: 13px; font-weight: 700; color: var(--ink); }
+.ai-status-time{ font-size: 13px; color: var(--ai-pulse); font-weight: 600; font-variant-numeric: tabular-nums; }
 .ai-refresh-btn{
   display: inline-flex;
   align-items: center;
@@ -831,22 +839,15 @@ input[type="date"].select-navy{ font-family: var(--font-mono); font-weight: 500;
       <span class="brand-sub">Elevator Portfolio Management</span>
     </div>
 
-    <div class="ai-status" id="aiStatus">
+    <div class="ai-status" id="aiStatus" title="Design note: shown as a live label to match the reference exactly. The real feature is on-demand (a Refresh action), not a continuous background sync — worth re-labeling honestly once this is wired into real frontend code.">
       <span class="ai-status-pulse" aria-hidden="true">
         <span class="ring"></span>
         <span class="dot"></span>
       </span>
-      <span class="ai-status-text">
-        <span class="ai-status-label">Briefing last updated</span>
-        <span class="ai-status-time" id="aiStatusTime">Today, 9:42 AM</span>
+      <span class="ai-status-text ai-status-inline">
+        <span class="ai-status-static-label">AI Sync Status:</span>
+        <span class="ai-status-time" id="aiStatusTime">Connected, Up to date</span>
       </span>
-      <button class="ai-refresh-btn" id="aiRefreshBtn" type="button">
-        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M13.5 8a5.5 5.5 0 1 1-1.64-3.93" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-          <path d="M13.5 2.5v3.4h-3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Refresh
-      </button>
     </div>
   </header>
   <section class="briefing" aria-label="AI executive briefing">
@@ -1323,23 +1324,6 @@ input[type="date"].select-navy{ font-family: var(--font-mono); font-weight: 500;
     document.querySelectorAll("#lookupProtoRow .proto-btn").forEach(function(b){ b.classList.toggle("is-active", b === btn); });
     lookupStates.forEach(function(s){ s.classList.toggle("is-active", s.getAttribute("data-state") === state); });
     lookupFoot.style.display = (state === "found") ? "flex" : "none";
-  });
-
-  /* ---------- AI briefing refresh ---------- */
-  var aiStatus = document.getElementById("aiStatus");
-  var aiRefreshBtn = document.getElementById("aiRefreshBtn");
-  var aiStatusTime = document.getElementById("aiStatusTime");
-  aiRefreshBtn.addEventListener("click", function(){
-    if(aiRefreshBtn.classList.contains("is-loading")) return;
-    aiStatus.classList.add("is-loading");
-    aiRefreshBtn.classList.add("is-loading");
-    aiRefreshBtn.disabled = true;
-    window.setTimeout(function(){
-      aiStatus.classList.remove("is-loading");
-      aiRefreshBtn.classList.remove("is-loading");
-      aiRefreshBtn.disabled = false;
-      aiStatusTime.textContent = "Just now";
-    }, 900);
   });
 
   /* ---------- ledger: grouped-view build ---------- */
