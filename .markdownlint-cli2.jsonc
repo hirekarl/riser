@@ -17,7 +17,11 @@
     // columns (including empty cells) — the two hooks fight over every
     // table with a short/empty cell otherwise. Prettier already owns table
     // formatting in this repo; this rule is redundant on top of it.
-    "MD060": false
+    "MD060": false,
+    // CHANGELOG.md (commitizen-generated) repeats "### Feat"/"### Fix"/etc.
+    // under every "## vX.Y.Z" version section by design — scope the
+    // duplicate-heading check to siblings so that's not flagged.
+    "MD024": { "siblings_only": true }
   },
   "globs": ["**/*.md"],
   "ignores": ["**/node_modules/**", "**/.venv/**", "**/dist/**"]
