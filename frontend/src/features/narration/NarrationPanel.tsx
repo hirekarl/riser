@@ -5,7 +5,7 @@ import styles from "./NarrationPanel.module.css";
 type PanelState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; narration: string }
+  | { status: "success"; narration: string; generatedAt: string }
   | { status: "error" };
 
 /**
@@ -27,7 +27,7 @@ export function NarrationPanel() {
     setState({ status: "loading" });
     try {
       const response = await fetchNarration();
-      setState({ status: "success", narration: response.narration });
+      setState({ status: "success", narration: response.narration, generatedAt: response.generated_at });
     } catch {
       setState({ status: "error" });
     }
@@ -58,16 +58,31 @@ export function NarrationPanel() {
         onClick={handleGenerate}
         disabled={isLoading}
       >
-        {isLoading ? "Generating briefing…" : "Generate briefing"}
+        Generate briefing
       </button>
 
+      {/* The single loading announcement lives here, not on the button label,
+          so screen readers don't hear "generating" twice (issue #80). */}
       {isLoading && (
         <p role="status" className={styles.loading}>
           Generating briefing…
         </p>
       )}
 
-      {state.status === "success" && <p className={styles.narration}>{state.narration}</p>}
+      {state.status === "success" && (
+        <>
+          <p className={styles.narration}>{state.narration}</p>
+          <p className={styles.timestamp}>
+            Generated{" "}
+            <time dateTime={state.generatedAt}>
+              {new Date(state.generatedAt).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </time>
+          </p>
+        </>
+      )}
 
       {state.status === "error" && (
         <p className={styles.errorMessage} role="alert">
