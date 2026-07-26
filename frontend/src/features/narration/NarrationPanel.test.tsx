@@ -63,6 +63,46 @@ describe("NarrationPanel", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("surfaces generated_at as a readable timestamp on success", async () => {
+    vi.spyOn(client, "fetchNarration").mockResolvedValue({
+      narration: "All clear.",
+      generated_at: "2026-07-25T14:32:00Z",
+    });
+    const user = userEvent.setup();
+
+    render(<NarrationPanel />);
+    await user.click(screen.getByRole("button", { name: /generate briefing/i }));
+    await screen.findByText(/all clear/i);
+
+    const timeEl = document.querySelector("time");
+    expect(timeEl).not.toBeNull();
+    expect(timeEl).toHaveAttribute("dateTime", "2026-07-25T14:32:00Z");
+    expect(timeEl?.textContent).not.toBe("");
+  });
+
+  it("has exactly one loading announcement, not a duplicate on the button and a status region", async () => {
+    let resolveNarration: (value: NarrationResponse) => void = () => {};
+    const pending = new Promise<NarrationResponse>((resolve) => {
+      resolveNarration = resolve;
+    });
+    vi.spyOn(client, "fetchNarration").mockReturnValue(pending);
+    const user = userEvent.setup();
+
+    render(<NarrationPanel />);
+    await user.click(screen.getByRole("button", { name: /generate briefing/i }));
+
+    // The button's own accessible name should stay constant; only the
+    // role="status" region should announce the loading text, so screen
+    // readers don't hear it twice.
+    expect(screen.getByRole("button", { name: /generate briefing/i })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(/generating briefing/i);
+
+    resolveNarration({ narration: "All good.", generated_at: "2026-07-25T00:00:00Z" });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /generate briefing/i })).toBeEnabled(),
+    );
+  });
+
   it("shows an inline error message on failure without crashing", async () => {
     vi.spyOn(client, "fetchNarration").mockRejectedValue(new Error("boom"));
     const user = userEvent.setup();
