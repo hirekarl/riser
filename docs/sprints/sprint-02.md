@@ -31,14 +31,20 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 - [x] Contract review: edit shape + filter param match DRF serializers (Wed 7/22); add `anthropic` SDK dependency + `ANTHROPIC_API_KEY` placeholder (Wed 7/22).
 - [x] Demo script/talking points (Thu 7/23 task, done Fri 7/24 since Thu's session didn't happen — see `docs/team/status-log.md`). Dry-run #1 (Thu) did not happen; Fri 7/24 became a solo catch-up session rather than a full team dry-run #2 — see status log.
 - [x] AI-narration TS type/client method; address-lookup TS type/client method (both pulled forward from Sun 7/26/Mon 7/27, done Fri 7/24 — PR #43, merged Sat 7/25). Fresh-eyes contract review done Sat 7/25: shipped `NarrationResponse`/`NarrationErrorResponse`/`AddressLookupRequest`/`AddressLookupResponse`/`DobDeviceMatch` types and `fetchNarration()`/`lookupBuildingByAddress()` client methods match `integration-contracts.md` §3/§5 exactly — no discrepancies.
-- [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28). **Blocked** — needs Cornell's narration service (`backend/apps/compliance/services/narration.py`) and the `/api/buildings/lookup/` endpoint to exist first; neither has started.
+- [x] Pre-write failing/`xfail` tests for the AI-narration endpoint, test-first ahead of Cornell's implementation (Sun 7/26) — PR #77, merged. `apps.compliance.narration` and the view/URL still don't exist as of Sun 7/26 early afternoon; Cornell's implementation is in progress this session.
+- [x] Confirm ADR-0002 (no-auth for MVP) with the team; close issue #76 (Sun 7/26) — PR #82, merged. Andres and Cornell confirmed no-auth stays for the capstone demo; read/write vs. read-only enforcement moved to the post-MVP backlog as a nice-to-have.
+- [x] Review/merge Andres's README screenshots PR (Sun 7/26) — PR #81, merged.
+- [ ] Schedule + write the real capstone demo script and start the deck (Sun 7/26, gap identified — no deck existed anywhere and the existing script was written for the cancelled Week 1 demo). Scheduling fix (Mon 7/27 evening slot) opened as PR #83; the actual script/deck work itself is still outstanding.
+- [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28). **Blocked** — needs Cornell's narration service (`backend/apps/compliance/narration.py`) and the `/api/buildings/lookup/` endpoint to exist first; test scaffolding for the narration endpoint exists (PR #77) but the implementation itself hasn't started as of Sun 7/26 early afternoon.
 
 ### Andres Ballares
 
 - [x] Wire elevator-edit UI to `PATCH` endpoint; confirm due-date/status/rank update live on save (Tue 7/21). Did not land Tue as scheduled; merged 2026-07-25 (4 days late) — PR #69. Review found a stale-data overwrite race between the inline date input and the new edit form, plus an unstyled Cancel button; both fixed (inline input now disables for the row under edit; Cancel restyled as a distinct secondary action) and re-reviewed before merge.
 - [x] Filter/group-by-building in ledger UI + building name inline (Wed 7/22, against Cornell's query param). Did not land Wed as scheduled; picked up by Karl Fri 7/24 since Andres wasn't present — see `docs/team/status-log.md`.
 - [x] Realistic-portfolio-size check (25+ elevators) on demo browser (Thu 7/23); final cross-browser/responsive check (Fri 7/24). Did not happen Thu-Fri (Andres not present). **Sat 7/25: Karl ran an automated fallback pass** (Chromium only). **Later same day: Andres ran real cross-browser pass** (WebKit/Firefox + narrow-viewport 390×844 phone-width). Found and fixed a real bug: ledger table overflowed horizontally on WebKit/Firefox at phone width. Fixed test-first with `overflow-x: auto` wrapper container — PR #66, merged; see `docs/team/status-log.md` 2026-07-25 entry for details.
-- [ ] AI-narration panel component, on-demand + loading state (Sun 7/26); close AI-panel edge cases + address-lookup form shell (Mon 7/27); wire address-lookup form + review/override flow (Tue 7/28).
+- [x] AI-narration panel component, on-demand + loading state (Sun 7/26) — PR #78, merged. Functional shell only (idle/loading/success/error states, calls `fetchNarration()`); visual placement/polish is Schiffon's follow-up per the day-by-day plan. Not yet demoable end-to-end since the backend endpoint doesn't exist yet.
+- [x] README screenshots (ledger, elevator-edit, empty state) — ad hoc, not on the original day-by-day plan (Sun 7/26) — PR #81, merged.
+- [ ] Close AI-panel edge cases + address-lookup form shell (Mon 7/27); wire address-lookup form + review/override flow (Tue 7/28).
 
 ### Cornell Robertson
 
@@ -46,7 +52,7 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 - [x] Building-scoped filtering (query param) on `LedgerListView` (Wed 7/22).
 - [ ] Backend edge-case sweep: leap-year due-date math, boundary Warning/Delinquent transitions (Thu 7/23). Not done — Thu's session didn't happen. A real bug in this exact area (a `time_machine`/local-timezone interaction in the boundary tests) surfaced and was fixed by Karl Fri 7/24 — see `docs/team/status-log.md`.
 - [x] Research which NYC Planning geocoding service is reachable (GeoSearch vs. Geoservice) + review DOB Open Data response shape — research only (Fri 7/24). **Done two days early (Wed 7/22 evening) and exceeded scope**: built a full working, tested resolver POC rather than research notes — `backend/apps/compliance/dob.py`, `docs/architecture/geocoding-reachability-findings.md`.
-- [ ] Narration-briefing service, single-turn Claude API call, mocked-client tests (Sun 7/26).
+- [ ] Narration-briefing service, single-turn Claude API call, mocked-client tests (Sun 7/26). Test scaffolding pre-written by Karl (PR #77, `xfail`-marked) so this lands test-first; implementation not started as of Sun 7/26 early afternoon — in progress this session.
 - [ ] Finish AI-agent tests/coverage; start DOB Open Data address→BIN client service (Mon 7/27).
 - [ ] Finish DOB service: no-match/error fallback to manual entry, tests (Tue 7/28).
 
@@ -56,7 +62,7 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 - [x] Status-change highlight/animation on `LedgerPage`/`StatusBadge` (Wed 7/22, after Andres pushes); visual QA on new empty state. Did not land Wed as scheduled; picked up by Karl Fri 7/24 after the filter UI landed, since Schiffon wasn't present — see status log.
 - [ ] Final visual pass: status colors meet distinct/high-contrast requirement (Thu 7/23). Not done — Schiffon not present Thu. **Sat 7/25: Karl's fallback pass** confirmed Delinquent/Warning/Compliant colors are visually distinct and each pairs its color with a distinct icon (not color alone) — still open for Schiffon's real judgment-call pass; see status log.
 - [ ] Final accessibility pass: contrast, jsx-a11y, axe (Fri 7/24). Not done — Schiffon not present Fri. (Note: the highlight animation Karl built this session does have automated axe coverage in its own tests, but that's not a substitute for Schiffon's full manual pass.) **Sat 7/25: Karl's fallback pass** ran `@axe-core/playwright` against the live seeded app (populated ledger, empty state, mid-animation highlight) — 0 violations in all three — still open for the deliberate manual pass (screen reader, keyboard-only walkthrough); see status log.
-- [ ] AI-narration panel placement + empty/loading/error states (Sun 7/26, after Andres pushes).
+- [ ] AI-narration panel placement + empty/loading/error states (Sun 7/26, after Andres pushes). Andres's panel merged (PR #78) — unblocked. Not done — Schiffon not present Sun 7/26 as of this update.
 - [ ] AI-panel accessibility/visual QA; start "review and override" screen design (Mon 7/27, after Andres pushes).
 - [ ] Polish review/override screen (Tue 7/28, after Andres pushes).
 
