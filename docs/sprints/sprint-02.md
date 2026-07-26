@@ -35,7 +35,7 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 - [x] Confirm ADR-0002 (no-auth for MVP) with the team; close issue #76 (Sun 7/26) — PR #82, merged. Andres and Cornell confirmed no-auth stays for the capstone demo; read/write vs. read-only enforcement moved to the post-MVP backlog as a nice-to-have.
 - [x] Review/merge Andres's README screenshots PR (Sun 7/26) — PR #81, merged.
 - [ ] Schedule + write the real capstone demo script and start the deck (Sun 7/26, gap identified — no deck existed anywhere and the existing script was written for the cancelled Week 1 demo). Scheduling fix (Mon 7/27 evening slot) opened as PR #83; the actual script/deck work itself is still outstanding.
-- [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28). **Blocked** — needs Cornell's narration service (`backend/apps/compliance/narration.py`) and the `/api/buildings/lookup/` endpoint to exist first; test scaffolding for the narration endpoint exists (PR #77) but the implementation itself hasn't started as of Sun 7/26 early afternoon.
+- [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28). **Partially unblocked** — Cornell's narration service implementation is now open as PR #89 (not merged yet, awaiting review). Still needs the `/api/buildings/lookup/` endpoint for full verification; DOB lookup remains Mon/Tue 7/27-28 work per the day-by-day plan.
 
 ### Andres Ballares
 
@@ -52,7 +52,7 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 - [x] Building-scoped filtering (query param) on `LedgerListView` (Wed 7/22).
 - [ ] Backend edge-case sweep: leap-year due-date math, boundary Warning/Delinquent transitions (Thu 7/23). Not done — Thu's session didn't happen. A real bug in this exact area (a `time_machine`/local-timezone interaction in the boundary tests) surfaced and was fixed by Karl Fri 7/24 — see `docs/team/status-log.md`.
 - [x] Research which NYC Planning geocoding service is reachable (GeoSearch vs. Geoservice) + review DOB Open Data response shape — research only (Fri 7/24). **Done two days early (Wed 7/22 evening) and exceeded scope**: built a full working, tested resolver POC rather than research notes — `backend/apps/compliance/dob.py`, `docs/architecture/geocoding-reachability-findings.md`.
-- [ ] Narration-briefing service, single-turn Claude API call, mocked-client tests (Sun 7/26). Test scaffolding pre-written by Karl (PR #77, `xfail`-marked) so this lands test-first; implementation not started as of Sun 7/26 early afternoon — in progress this session.
+- [ ] Narration-briefing service, single-turn Claude API call, mocked-client tests (Sun 7/26). Test scaffolding pre-written by Karl (PR #77, `xfail`-marked); implementation completed by Claude Code (`backend-design-agent`, working under the day-by-day-plan's same-day fallback trigger after no progress by midday checkpoint). PR #89 open awaiting Cornell's review; does not count as "merged to `main`" per the checklist convention.
 - [ ] Finish AI-agent tests/coverage; start DOB Open Data address→BIN client service (Mon 7/27).
 - [ ] Finish DOB service: no-match/error fallback to manual entry, tests (Tue 7/28).
 
