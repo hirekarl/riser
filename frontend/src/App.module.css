@@ -16,6 +16,15 @@
   color: #1c3a63;
 }
 
+/* #1c3a63 against the dark-mode --bg (#14161b) is ~1.6:1, far below WCAG AA
+   — lighten it for dark mode, same light/dark hex-pairing pattern index.css
+   uses for its own tokens. ~5.8:1 against --bg in dark mode. */
+@media (prefers-color-scheme: dark) {
+  .wordmarkNavy {
+    color: #6f93c9;
+  }
+}
+
 .header p {
   color: var(--text-muted);
   margin: 0.25rem 0 0;
