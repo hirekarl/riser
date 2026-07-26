@@ -267,3 +267,76 @@ class TestLedgerAPI:
 
         statuses = [row["status"] for row in response.data]
         assert statuses == ["Delinquent", "Delinquent", "Warning", "Warning", "Compliant"]
+
+
+class TestNarrationAPI:
+    """Tests for the AI risk-narration endpoint ``GET /api/ledger/narration/``.
+
+    Not yet implemented (no ``narration.py`` module, view, or URL route) —
+    these tests are pre-written scaffolding per
+    ``docs/architecture/integration-contracts.md`` §5 and are expected to
+    fail (404, since no route exists) until the feature is built.
+
+    The monkeypatches below target ``apps.compliance.narration.generate_narration``
+    (module-qualified, not a ``from ... import`` binding). This requires the
+    eventual view to call it as ``narration.generate_narration(...)`` rather
+    than importing the name directly, matching the ``test_dob.py`` convention
+    of monkeypatching the boundary on the module object.
+
+    ``apps.compliance.narration`` doesn't exist yet, so the import is done
+    locally inside each test that needs it (rather than at module scope) —
+    that keeps the ``ImportError`` scoped to these new tests instead of
+    breaking collection of this entire file and every pre-existing test in it.
+    """
+
+    def test_empty_ledger_returns_fixed_narration_without_calling_claude(
+        self, api_client: APIClient
+    ) -> None:
+        """No elevators at all yields the fixed empty-portfolio narration, still 200."""
+        response = api_client.get("/api/ledger/narration/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["narration"] == "No elevators tracked yet."
+        # generated_at must be present and parse as an ISO 8601 datetime.
+        datetime.datetime.fromisoformat(response.data["generated_at"])
+
+    def test_non_empty_ledger_returns_generated_narration(
+        self,
+        api_client: APIClient,
+        elevator: Elevator,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A non-empty ledger's narration comes from generate_narration's return value."""
+        from apps.compliance import narration  # type: ignore[attr-defined]  # not built yet
+
+        canned = "3 elevators are Delinquent, 2 enter Warning this week."
+        monkeypatch.setattr(narration, "generate_narration", lambda entries: canned)
+
+        response = api_client.get("/api/ledger/narration/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert canned in response.data["narration"]
+        datetime.datetime.fromisoformat(response.data["generated_at"])
+
+    def test_claude_unavailable_returns_503(
+        self,
+        api_client: APIClient,
+        elevator: Elevator,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A NarrationUnavailableError from generate_narration surfaces as a bespoke 503."""
+        from apps.compliance import narration  # type: ignore[attr-defined]  # not built yet
+
+        def boom(entries: object) -> str:
+            raise narration.NarrationUnavailableError("Claude timed out")
+
+        monkeypatch.setattr(narration, "generate_narration", boom)
+
+        response = api_client.get("/api/ledger/narration/")
+
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        assert response.data == {"error": "narration_unavailable"}
+
+    def test_narration_is_read_only(self, api_client: APIClient) -> None:
+        """POST /api/ledger/narration/ is not allowed."""
+        response = api_client.post("/api/ledger/narration/", {}, format="json")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
