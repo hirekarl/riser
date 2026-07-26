@@ -27,7 +27,11 @@ export function NarrationPanel() {
     setState({ status: "loading" });
     try {
       const response = await fetchNarration();
-      setState({ status: "success", narration: response.narration, generatedAt: response.generated_at });
+      setState({
+        status: "success",
+        narration: response.narration,
+        generatedAt: response.generated_at,
+      });
     } catch {
       setState({ status: "error" });
     }
@@ -48,8 +52,8 @@ export function NarrationPanel() {
       </div>
 
       <p className={styles.description}>
-        Generate a plain-language summary of what needs attention across your portfolio, on
-        request — this never runs on its own in the background.
+        Generate a plain-language summary of what needs attention across your portfolio, on request
+        — this never runs on its own in the background.
       </p>
 
       <button
