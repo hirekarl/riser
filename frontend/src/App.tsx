@@ -65,7 +65,10 @@ function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <h1>Riser</h1>
+        <h1>
+          <span className={styles.wordmarkRust}>RI</span>
+          <span className={styles.wordmarkNavy}>SER</span>
+        </h1>
         <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
       </header>
 
@@ -90,9 +93,9 @@ function App() {
       </div>
 
       <main>
-        {/* Placement is provisional — a dedicated visual/placement design
-            pass for this panel is a follow-up task, per
-            docs/sprints/day-by-day-plan.md. */}
+        {/* Placed above the ledger as the page's lead feature, per the v3
+            design pass (docs/design/) — matches the "AI Executive
+            Briefing" position in the reference mockup. */}
         <NarrationPanel />
         <h2 className="visually-hidden">Portfolio ledger</h2>
         <ErrorBoundary>

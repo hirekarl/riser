@@ -49,14 +49,13 @@
    changes"): filled, bold, highest visual weight. */
 .primaryButton {
   font-weight: 700;
-  border: 1px solid #1f2430;
-  background-color: #1f2430;
-  color: #fff;
+  border: 1px solid var(--rust-grad-end);
+  background: linear-gradient(135deg, var(--rust-grad-start), var(--rust-grad-end));
+  color: #fff9f1;
 }
 
 .primaryButton:hover:not(:disabled) {
-  background-color: #333a4a;
-  border-color: #333a4a;
+  background: linear-gradient(135deg, var(--rust-grad-end), var(--rust-grad-end));
 }
 
 /* A non-committing/discard action (e.g. "Cancel"): outlined rather than
