@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — confirm with the team before the Sprint 01 demo.
+Accepted — confirmed by the team (Andres, Cornell, Karl) 2026-07-26. No auth work is in scope for the MVP demo. Enforcing the read/write vs. read-only distinction remains a nice-to-have, picked up only if the team gets ahead of schedule before 2026-07-29 (see `docs/sprints/day-by-day-plan.md` Post-MVP backlog) — otherwise it's post-capstone work.
 
 ## Context
 
