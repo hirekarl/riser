@@ -52,6 +52,10 @@
   font-size: 0.9rem;
 }
 
+/* Solid rust fill, not the design mockup's gradient — see the comment on
+   .primaryButton in forms.module.css for why (WCAG contrast + the
+   backgroundColor-must-differ e2e check). Same rust family, one solid
+   shade. */
 .generateButton {
   align-self: flex-start;
   font: inherit;
@@ -59,13 +63,14 @@
   padding: 0.5rem 1.25rem;
   border-radius: 6px;
   cursor: pointer;
-  border: 1px solid #a8672e;
-  background: linear-gradient(135deg, #d9a05c, #a8672e);
+  border: 1px solid #8f5525;
+  background-color: #8f5525;
   color: #fff9f1;
 }
 
 .generateButton:hover:not(:disabled) {
-  background: #a8672e;
+  background-color: #7a4720;
+  border-color: #7a4720;
 }
 
 .generateButton:disabled {

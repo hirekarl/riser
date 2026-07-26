@@ -46,16 +46,24 @@
 }
 
 /* The single committing action in a form (e.g. "Add elevator"/"Save
-   changes"): filled, bold, highest visual weight. */
+   changes"): filled, bold, highest visual weight. Solid rust fill rather
+   than the design mockup's diagonal gradient: a gradient under fixed light
+   text can't clear WCAG AA contrast across its whole range (the mockup's
+   lighter gradient stop is ~2.2:1 against this text, nowhere near the 4.5:1
+   minimum), and a background-image alone leaves backgroundColor computed as
+   transparent, which broke the Save/Cancel-must-look-different check in
+   e2e/ledger.spec.ts. #8f5525 is the same rust family, one solid shade,
+   ~5.7:1 contrast against #fff9f1 text. */
 .primaryButton {
   font-weight: 700;
-  border: 1px solid #a8672e;
-  background: linear-gradient(135deg, #d9a05c, #a8672e);
+  border: 1px solid #8f5525;
+  background-color: #8f5525;
   color: #fff9f1;
 }
 
 .primaryButton:hover:not(:disabled) {
-  background: #a8672e;
+  background-color: #7a4720;
+  border-color: #7a4720;
 }
 
 /* A non-committing/discard action (e.g. "Cancel"): outlined rather than
