@@ -43,6 +43,13 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Verify package-lock.json is in sync
+        if: needs.changes.outputs.frontend == 'true'
+        working-directory: frontend
+        run: |
+          npm install --package-lock-only
+          git diff --exit-code -- package-lock.json
+
       - name: eslint
         if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend

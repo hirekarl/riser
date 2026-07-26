@@ -7,6 +7,8 @@ name: Release
 # through the same gate as any other change.
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch: {}
 
 permissions:
