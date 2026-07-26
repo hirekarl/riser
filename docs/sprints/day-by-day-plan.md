@@ -125,6 +125,7 @@ Narration is the simpler of the two remaining features (one endpoint, one panel)
 ## Post-MVP backlog (not scheduled this sprint)
 
 - **Filing-summary / proof-of-service generation** (PRD Journey 3, clarified 2026-07-22 per Andres): pre-filled filing-summary PDF for the manager to hand/email to their licensed inspection agency, plus recordkeeping of the resulting proof-of-service against the device. Real P3 value, proposed as a possible swap for the DOB integration slot — not adopted as a swap (see above), but worth picking up post-capstone. See `docs/prd/Riser-PRD.md` §3 and `docs/design/mental-model-briefing.md` §6.
+- **Auth / read-write vs. read-only enforcement** (confirmed out of scope for the MVP demo 2026-07-26 — see `docs/adr/0002-no-auth-for-mvp.md`, issue #76): the PRD's property-manager (read/write) vs. building-owner (read-only) distinction, currently unenforced. Nice-to-have if the team gets ahead of schedule before 7/29; otherwise post-capstone.
 
 ## Verification
 
