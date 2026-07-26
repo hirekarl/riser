@@ -410,6 +410,30 @@ describe("LedgerPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows Warning-specific remediation copy (distinct from Delinquent's) when a Warning row's details are expanded", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage />);
+
+    const warningCell = await screen.findByText("EL-1"); // Warning, due_date 2026-07-25
+    const viewDetailsButton = within(warningCell.closest("tr") as HTMLElement).getByRole(
+      "button",
+      { name: /view details for el-1/i },
+    );
+
+    fireEvent.click(viewDetailsButton);
+
+    const whatsWrongTerm = screen.getByText(/what's wrong/i);
+    const detailPanel = whatsWrongTerm.closest("dl") as HTMLElement;
+
+    // Warning copy reads "due soon", never "overdue" (that's Delinquent-only
+    // phrasing), and still names the specific inspection type.
+    expect(within(detailPanel).getByText(/due soon/i)).toBeInTheDocument();
+    expect(within(detailPanel).queryByText(/overdue/i)).not.toBeInTheDocument();
+    expect(within(detailPanel).getByText(/CAT1/)).toBeInTheDocument();
+    expect(within(detailPanel).getByText(/schedule the inspection now/i)).toBeInTheDocument();
+  });
+
   it("expands a plain-language remediation panel (what's wrong / next step / where to go) when View details is clicked, and collapses on a second click", async () => {
     vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
 
