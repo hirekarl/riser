@@ -23,8 +23,14 @@ function getRemediationCopy(entry: LedgerEntry): {
   nextStep: string;
   whereToGo: string;
 } {
+  // entry.due_date is a date-only string, which Date parses as UTC midnight;
+  // normalize "now" to a UTC-midnight Date built from the local calendar date
+  // (not new Date() directly) so the diff isn't skewed by the viewer's
+  // timezone offset/time-of-day — the same UTC-date-only convention
+  // backend/apps/compliance/services.py uses for this math server-side.
   const dueDate = new Date(entry.due_date);
-  const today = new Date();
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const dayDiff = Math.round((dueDate.getTime() - today.getTime()) / MS_PER_DAY);
 
   const whatsWrong =
@@ -270,102 +276,105 @@ export function LedgerPage({
                 const hasPendingEdit =
                   pendingDate !== undefined && pendingDate !== entry.last_inspection_date;
                 const isSaving = pendingId === entry.id;
-                const needsRemediation = entry.status === "Warning" || entry.status === "Delinquent";
+                const needsRemediation =
+                  entry.status === "Warning" || entry.status === "Delinquent";
                 const isExpanded = expandedId === entry.id;
 
                 return (
                   <Fragment key={entry.id}>
-                  <tr className={rowClassName}>
-                    <td>
-                      <StatusBadge status={entry.status} />
-                    </td>
-                    <td>{entry.building_name}</td>
-                    <td>{entry.device_identifier}</td>
-                    <td>{entry.inspection_type}</td>
-                    <td>
-                      <label>
-                        <span className="visually-hidden">
-                          Last inspection date for {entry.device_identifier}
-                        </span>
-                        <input
-                          type="date"
-                          className={styles.dateInput}
-                          value={pendingDate ?? entry.last_inspection_date}
-                          disabled={isSaving || isEditingRow}
-                          onChange={(event) => handleDateInputChange(entry.id, event.target.value)}
-                        />
-                      </label>
-                      {hasPendingEdit && (
-                        <span className={styles.dateActions}>
-                          <button
-                            type="button"
-                            className={styles.saveDateButton}
-                            aria-label={`Save inspection date for ${entry.device_identifier}`}
-                            disabled={isSaving}
-                            onClick={() => handleDateSave(entry.id)}
-                          >
-                            {isSaving ? "Saving…" : "Save"}
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.cancelDateButton}
-                            aria-label={`Cancel editing inspection date for ${entry.device_identifier}`}
-                            disabled={isSaving}
-                            onClick={() => handleDateCancel(entry.id)}
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      )}
-                    </td>
-                    <td>{entry.due_date}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className={styles.editButton}
-                        aria-label={`Edit ${entry.device_identifier}`}
-                        onClick={() => onEditRequest?.(entry)}
-                      >
-                        Edit
-                      </button>
-                      {needsRemediation && (
+                    <tr className={rowClassName}>
+                      <td>
+                        <StatusBadge status={entry.status} />
+                      </td>
+                      <td>{entry.building_name}</td>
+                      <td>{entry.device_identifier}</td>
+                      <td>{entry.inspection_type}</td>
+                      <td>
+                        <label>
+                          <span className="visually-hidden">
+                            Last inspection date for {entry.device_identifier}
+                          </span>
+                          <input
+                            type="date"
+                            className={styles.dateInput}
+                            value={pendingDate ?? entry.last_inspection_date}
+                            disabled={isSaving || isEditingRow}
+                            onChange={(event) =>
+                              handleDateInputChange(entry.id, event.target.value)
+                            }
+                          />
+                        </label>
+                        {hasPendingEdit && (
+                          <span className={styles.dateActions}>
+                            <button
+                              type="button"
+                              className={styles.saveDateButton}
+                              aria-label={`Save inspection date for ${entry.device_identifier}`}
+                              disabled={isSaving}
+                              onClick={() => handleDateSave(entry.id)}
+                            >
+                              {isSaving ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.cancelDateButton}
+                              aria-label={`Cancel editing inspection date for ${entry.device_identifier}`}
+                              disabled={isSaving}
+                              onClick={() => handleDateCancel(entry.id)}
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        )}
+                      </td>
+                      <td>{entry.due_date}</td>
+                      <td>
                         <button
                           type="button"
-                          className={styles.detailsButton}
-                          aria-label={`View details for ${entry.device_identifier}`}
-                          aria-expanded={isExpanded}
-                          onClick={() => handleToggleDetails(entry.id)}
+                          className={styles.editButton}
+                          aria-label={`Edit ${entry.device_identifier}`}
+                          onClick={() => onEditRequest?.(entry)}
                         >
-                          {isExpanded ? "Hide details" : "View details"}
+                          Edit
                         </button>
-                      )}
-                    </td>
-                  </tr>
-                  {isExpanded && (
-                    <tr>
-                      <td colSpan={7} className={styles.detailCell}>
-                        {(() => {
-                          const { whatsWrong, nextStep, whereToGo } = getRemediationCopy(entry);
-                          return (
-                            <dl className={styles.detailPanel}>
-                              <div>
-                                <dt>What&apos;s wrong</dt>
-                                <dd>{whatsWrong}</dd>
-                              </div>
-                              <div>
-                                <dt>Next step</dt>
-                                <dd>{nextStep}</dd>
-                              </div>
-                              <div>
-                                <dt>Where to go</dt>
-                                <dd>{whereToGo}</dd>
-                              </div>
-                            </dl>
-                          );
-                        })()}
+                        {needsRemediation && (
+                          <button
+                            type="button"
+                            className={styles.detailsButton}
+                            aria-label={`${isExpanded ? "Hide" : "View"} details for ${entry.device_identifier}`}
+                            aria-expanded={isExpanded}
+                            onClick={() => handleToggleDetails(entry.id)}
+                          >
+                            {isExpanded ? "Hide details" : "View details"}
+                          </button>
+                        )}
                       </td>
                     </tr>
-                  )}
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={7} className={styles.detailCell}>
+                          {(() => {
+                            const { whatsWrong, nextStep, whereToGo } = getRemediationCopy(entry);
+                            return (
+                              <dl className={styles.detailPanel}>
+                                <div>
+                                  <dt>What&apos;s wrong</dt>
+                                  <dd>{whatsWrong}</dd>
+                                </div>
+                                <div>
+                                  <dt>Next step</dt>
+                                  <dd>{nextStep}</dd>
+                                </div>
+                                <div>
+                                  <dt>Where to go</dt>
+                                  <dd>{whereToGo}</dd>
+                                </div>
+                              </dl>
+                            );
+                          })()}
+                        </td>
+                      </tr>
+                    )}
                   </Fragment>
                 );
               })}
