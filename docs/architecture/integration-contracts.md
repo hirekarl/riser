@@ -112,10 +112,7 @@ export interface AddressLookupResponse {
   match: { bin: string; resolved_address: string; borough: string } | null;
   devices: DobDeviceMatch[];
   reason:
-    | "address_not_found"
-    | "no_devices_on_file"
-    | "upstream_unavailable"
-    | null;
+    "address_not_found" | "no_devices_on_file" | "upstream_unavailable" | null;
 }
 ```
 
@@ -227,7 +224,7 @@ Client: `fetchNarration(): Promise<NarrationResponse>` (let a non-200 response s
 
 ### Implementation notes
 
-- New module, e.g. `backend/apps/compliance/services/narration.py`: `generate_narration(entries: list[LedgerEntry]) -> str`, using the `anthropic` Python SDK's Messages API — single-turn, no tools, no streaming needed for this feature.
+- New module `backend/apps/compliance/narration.py` (flat, matching `dob.py` — **not** `services/narration.py`; `apps/compliance/services.py` is already a flat file imported elsewhere, so nesting under a `services/` package would break those imports): `generate_narration(entries: list[LedgerEntry]) -> str`, using the `anthropic` Python SDK's Messages API — single-turn, no tools, no streaming needed for this feature. Matches the module path already assumed by PR #77's pre-written tests (`from apps.compliance import narration`).
 - Pass the already-computed ledger rows (status, due date, building name, device identifier) as structured input; ask for a short, prioritized summary. Use a low temperature — this is a live demo, and reducing (not eliminating) output variance matters more here than creative phrasing.
 - `ANTHROPIC_API_KEY` via env var (`backend/.env.example`/`.env` — added Wed 7/22 per the day-by-day plan).
 - Wrap the Claude call in a try/except with a timeout; any failure returns the `narration_unavailable` shape rather than a 500.
