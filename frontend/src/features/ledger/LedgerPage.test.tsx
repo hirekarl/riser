@@ -23,6 +23,11 @@ const buildings: Building[] = [
   },
 ];
 
+// Computed relative to the real clock (not a hardcoded literal) so this
+// stays "due soon" regardless of when the suite runs — a fixed date string
+// silently drifts into the past over time without ever failing the test.
+const WARNING_DUE_DATE = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+
 const mixedStatusEntries: LedgerEntry[] = [
   {
     id: 3,
@@ -39,7 +44,7 @@ const mixedStatusEntries: LedgerEntry[] = [
     device_identifier: "EL-1",
     inspection_type: "CAT1",
     last_inspection_date: "2025-07-01",
-    due_date: "2026-07-25",
+    due_date: WARNING_DUE_DATE,
     status: "Warning",
   },
   {
@@ -415,11 +420,10 @@ describe("LedgerPage", () => {
 
     render(<LedgerPage />);
 
-    const warningCell = await screen.findByText("EL-1"); // Warning, due_date 2026-07-25
-    const viewDetailsButton = within(warningCell.closest("tr") as HTMLElement).getByRole(
-      "button",
-      { name: /view details for el-1/i },
-    );
+    const warningCell = await screen.findByText("EL-1"); // Warning, due_date is WARNING_DUE_DATE (5 days out)
+    const viewDetailsButton = within(warningCell.closest("tr") as HTMLElement).getByRole("button", {
+      name: /view details for el-1/i,
+    });
 
     fireEvent.click(viewDetailsButton);
 
@@ -451,6 +455,12 @@ describe("LedgerPage", () => {
     expect(screen.getByText(/next step/i)).toBeInTheDocument();
     expect(screen.getByText(/where to go/i)).toBeInTheDocument();
 
+    // The accessible name must track the visible label ("Hide details" once
+    // expanded), not stay pinned to "View details" — otherwise a
+    // screen-reader/voice-control user hears a name that doesn't match what's
+    // on screen (WCAG 2.5.3 Label in Name).
+    expect(viewDetailsButton).toHaveAccessibleName(/hide details for el-3/i);
+
     // Mentions the specific inspection type so the copy is concrete, not
     // generic — scoped to the detail panel itself, since the ledger table's
     // own "Inspection type" column also contains "CAT1" for other rows.
@@ -459,6 +469,7 @@ describe("LedgerPage", () => {
 
     fireEvent.click(viewDetailsButton);
     expect(screen.queryByText(/what's wrong/i)).not.toBeInTheDocument();
+    expect(viewDetailsButton).toHaveAccessibleName(/view details for el-3/i);
   });
 
   it("has no axe accessibility violations with a remediation panel expanded", async () => {
