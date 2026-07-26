@@ -1,0 +1,1103 @@
+<title>Riser — Portfolio Dashboard Proposal</title>
+<style>
+/* ============================================================
+   1. TOKENS — mirrors frontend/src/index.css exactly, extended
+   ============================================================ */
+:root {
+  --text: #1f2430;
+  --text-muted: #4b5261;
+  --bg: #ffffff;
+  --bg-subtle: #f6f7f9;
+  --border: #d9dde3;
+  --border-strong: #b7bdc9;
+  --focus: #2c5cf6;
+
+  /* status trio — unchanged across themes, exactly as StatusBadge.module.css */
+  --ok-bg: #e6f4ea;
+  --ok-fg: #0b6b2c;
+  --warn-bg: #fff6e0;
+  --warn-fg: #7a5200;
+  --bad-bg: #fdecea;
+  --bad-fg: #9c1c12;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e7e9ee;
+    --text-muted: #a7adba;
+    --bg: #14161b;
+    --bg-subtle: #1c1f26;
+    --border: #333844;
+    --border-strong: #454c5c;
+    --focus: #8ab4ff;
+  }
+}
+
+:root[data-theme="dark"] {
+  --text: #e7e9ee;
+  --text-muted: #a7adba;
+  --bg: #14161b;
+  --bg-subtle: #1c1f26;
+  --border: #333844;
+  --border-strong: #454c5c;
+  --focus: #8ab4ff;
+}
+
+:root[data-theme="light"] {
+  --text: #1f2430;
+  --text-muted: #4b5261;
+  --bg: #ffffff;
+  --bg-subtle: #f6f7f9;
+  --border: #d9dde3;
+  --border-strong: #b7bdc9;
+  --focus: #2c5cf6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.page {
+  color: var(--text);
+  background: var(--bg);
+  font: 16px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.page :focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.page a {
+  color: var(--focus);
+}
+
+.page h1, .page h2, .page h3 {
+  color: var(--text);
+  text-wrap: balance;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================
+   2. INTRO
+   ============================================================ */
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.intro h1 {
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.1rem);
+}
+
+.intro-copy {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--text-muted);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.section-head h2 {
+  font-size: 1.3rem;
+}
+
+.section-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--focus);
+}
+
+.section-desc {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 68ch;
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   3. DASHBOARD SUMMARY
+   ============================================================ */
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+}
+
+.dash-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.dash-asof {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.dash-attention {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.dash-attention-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6em;
+  font-weight: 800;
+  color: var(--bad-fg);
+  margin-right: 0.15em;
+}
+
+.dash-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.dash-total-num {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.dash-total-label {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.dash-bar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.dash-bar-seg {
+  height: 100%;
+}
+
+.dash-bar-ok { background: var(--ok-fg); }
+.dash-bar-warn { background: var(--warn-fg); }
+.dash-bar-bad { background: var(--bad-fg); }
+
+.dash-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.dash-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.dash-legend-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dash-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.dash-dot-ok { background: var(--ok-fg); }
+.dash-dot-warn { background: var(--warn-fg); }
+.dash-dot-bad { background: var(--bad-fg); }
+
+@media (max-width: 560px) {
+  .dash-card {
+    padding: 1.5rem;
+  }
+}
+
+/* ============================================================
+   4. BUILDING SEARCH / AUTO-RECOGNIZE
+   ============================================================ */
+.search-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  max-width: 32rem;
+}
+
+.search-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.7rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  font: inherit;
+  padding: 0.6rem 0.75rem 0.6rem 2.2rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.25);
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.search-result:hover,
+.search-result:focus-visible {
+  background: var(--bg-subtle);
+}
+
+.search-result-name {
+  font-weight: 600;
+}
+
+.search-result-addr {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.search-result mark {
+  background: none;
+  color: var(--focus);
+  font-weight: 700;
+}
+
+.match-card {
+  margin-top: 0.5rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--ok-fg);
+  border-radius: var(--radius-sm);
+  background: var(--ok-bg);
+  color: #14210a;
+  animation: match-in 0.25s ease;
+}
+
+@keyframes match-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.match-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.match-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.2em 0.6em;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--ok-fg);
+  color: #fff;
+}
+
+.match-name {
+  font-weight: 700;
+}
+
+.match-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+.match-grid dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #33622a;
+}
+
+.match-grid dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.match-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: #33622a;
+}
+
+/* ============================================================
+   5. LEDGER TABLE (existing app conventions, extended)
+   ============================================================ */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  min-width: 46rem;
+}
+
+.ledger-table th,
+.ledger-table td {
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.ledger-table thead th {
+  font-weight: 700;
+  color: var(--text);
+  background: var(--bg-subtle);
+}
+
+.ledger-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ledger-table tbody tr.is-actionable:hover {
+  background: var(--bg-subtle);
+}
+
+.ledger-table tbody tr.is-active {
+  background: var(--bg-subtle);
+  box-shadow: inset 3px 0 0 var(--focus);
+}
+
+/* status pill — exact palette from StatusBadge.module.css */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.25em 0.75em;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  border: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.pill-icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+.pill-ok { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-fg); }
+.pill-warn { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn-fg); }
+.pill-bad { background: var(--bad-bg); color: var(--bad-fg); border-color: var(--bad-fg); }
+
+.due-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.due-date {
+  font-variant-numeric: tabular-nums;
+}
+
+.sync-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.15em 0.55em;
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.details-btn {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.details-btn:hover {
+  border-color: var(--focus);
+  color: var(--focus);
+}
+
+.no-action {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   6. DETAIL PANEL
+   ============================================================ */
+.detail-panel {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  background: var(--bg);
+  animation: panel-in 0.2s ease;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.detail-head h3 {
+  font-size: 1.15rem;
+}
+
+.detail-close {
+  font: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.detail-close:hover {
+  color: var(--text);
+  background: var(--bg-subtle);
+}
+
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.detail-label {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.detail-text {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.detail-text a {
+  font-weight: 600;
+}
+
+.detail-proposed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+}
+
+.sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.proposed-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.proposed-note {
+  flex-basis: 100%;
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .detail-panel {
+    padding: 1.25rem;
+  }
+}
+</style>
+
+<main class="page">
+
+  <header class="intro">
+    <p class="eyebrow">Design proposal &middot; not shipped &middot; for team review</p>
+    <h1>Riser, extended: a portfolio view</h1>
+    <p class="intro-copy">
+      The ledger below is already built and well-liked &mdash; this mockup proposes four additions on top
+      of it: a dashboard summary above the ledger, a plain-language detail view for anything that needs
+      attention, a smarter building search, and one open idea (calendar sync) flagged for a team decision
+      rather than presented as built.
+    </p>
+  </header>
+
+  <section class="section" aria-labelledby="dash-heading">
+    <div class="section-head">
+      <p class="section-num">01 &middot; New landing view</p>
+      <h2 id="dash-heading">Portfolio dashboard</h2>
+      <p class="section-desc">
+        Sits above the ledger, which stays exactly as it is today. Pure aggregation of numbers the
+        app already computes per elevator &mdash; no new backend work implied.
+      </p>
+    </div>
+
+    <div class="dash-card">
+      <div class="dash-headline">
+        <p class="dash-asof">As of Tuesday, July 21, 2026</p>
+        <p class="dash-attention">
+          <span class="dash-attention-num">2</span>
+          elevators are past due and need attention now
+        </p>
+      </div>
+
+      <div class="dash-total">
+        <span class="dash-total-num">51</span>
+        <span class="dash-total-label">elevators across your portfolio</span>
+      </div>
+
+      <div class="dash-bar" role="img"
+           aria-label="Portfolio breakdown: 25 compliant, 24 warning, 2 delinquent, of 51 total elevators">
+        <span class="dash-bar-seg dash-bar-ok" style="width: 49%;"></span>
+        <span class="dash-bar-seg dash-bar-warn" style="width: 47%;"></span>
+        <span class="dash-bar-seg dash-bar-bad" style="width: 4%;"></span>
+      </div>
+
+      <ul class="dash-legend">
+        <li class="dash-legend-item">
+          <span class="dash-dot dash-dot-ok"></span>
+          <span class="dash-legend-num">25</span> Compliant
+        </li>
+        <li class="dash-legend-item">
+          <span class="dash-dot dash-dot-warn"></span>
+          <span class="dash-legend-num">24</span> Warning
+        </li>
+        <li class="dash-legend-item">
+          <span class="dash-dot dash-dot-bad"></span>
+          <span class="dash-legend-num">2</span> Delinquent
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="search-heading">
+    <div class="section-head">
+      <p class="section-num">02 &middot; Smarter building entry</p>
+      <h2 id="search-heading">Auto-recognize a building</h2>
+      <p class="section-desc">
+        Proposed replacement for typing a building's details from scratch in the Add Building form.
+        Start typing a name or address; Riser resolves it and fills in the rest. Try
+        <strong>&ldquo;230 Park&rdquo;</strong> or <strong>&ldquo;Flatiron&rdquo;</strong> below.
+      </p>
+    </div>
+
+    <div class="search-card">
+      <label class="search-label" for="building-search">Building name or address</label>
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+          <circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+          <line x1="13" y1="13" x2="18" y2="18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line>
+        </svg>
+        <input
+          id="building-search"
+          type="text"
+          autocomplete="off"
+          placeholder="Start typing e.g. 230 Park Ave, or Flatiron"
+          role="combobox"
+          aria-expanded="false"
+          aria-controls="search-results"
+          aria-autocomplete="list"
+        />
+      </div>
+      <ul class="search-results" id="search-results" role="listbox" hidden></ul>
+
+      <div class="match-card" id="match-card" hidden>
+        <div class="match-head">
+          <span class="match-tag">Recognized</span>
+          <span id="match-name" class="match-name"></span>
+        </div>
+        <dl class="match-grid">
+          <div><dt>Address</dt><dd id="match-address"></dd></div>
+          <div><dt>Borough</dt><dd id="match-borough"></dd></div>
+          <div><dt>Elevators on file</dt><dd id="match-elevators"></dd></div>
+          <div><dt>DOB BIN</dt><dd id="match-bin"></dd></div>
+        </dl>
+        <p class="match-hint">Fields below are filled in and ready to confirm &mdash; no re-typing needed.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="ledger-heading">
+    <div class="section-head">
+      <p class="section-num">03 &middot; The existing ledger, extended</p>
+      <h2 id="ledger-heading">Ledger &mdash; click a Warning or Delinquent row</h2>
+      <p class="section-desc">
+        Unchanged from today's app, plus two additions: rows that need action open a plain-language
+        detail panel, and due dates carry an openly-labeled &ldquo;Proposed&rdquo; calendar sync idea
+        that is not built. Showing a representative sample of the 51-elevator portfolio.
+      </p>
+    </div>
+
+    <div class="table-scroll">
+      <table class="ledger-table">
+        <caption class="visually-hidden">Elevator compliance ledger, sorted by urgency</caption>
+        <thead>
+          <tr>
+            <th scope="col">Status</th>
+            <th scope="col">Building</th>
+            <th scope="col">Device</th>
+            <th scope="col">Inspection type</th>
+            <th scope="col">Last inspection</th>
+            <th scope="col">Due date</th>
+            <th scope="col"><span class="visually-hidden">Details</span></th>
+          </tr>
+        </thead>
+        <tbody id="ledger-body">
+          <!-- rows injected by JS from LEDGER_ROWS so status pills, detail buttons,
+               and the proposed calendar-sync affordance stay in one source of truth -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="detail-panel" id="detail-panel" hidden tabindex="-1" aria-labelledby="detail-title">
+      <div class="detail-head">
+        <div>
+          <p class="detail-eyebrow" id="detail-eyebrow"></p>
+          <h3 id="detail-title"></h3>
+        </div>
+        <button type="button" class="detail-close" id="detail-close" aria-label="Close details">&times;</button>
+      </div>
+
+      <div class="detail-body">
+        <div class="detail-block">
+          <p class="detail-label">What's wrong</p>
+          <p class="detail-text" id="detail-whats-wrong"></p>
+        </div>
+        <div class="detail-block">
+          <p class="detail-label">How to fix it</p>
+          <p class="detail-text" id="detail-how-to-fix"></p>
+        </div>
+        <div class="detail-block">
+          <p class="detail-label">Where to go</p>
+          <p class="detail-text" id="detail-where"></p>
+        </div>
+        <div class="detail-block detail-proposed" id="detail-sync-block">
+          <button type="button" class="sync-btn" disabled>
+            <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+              <rect x="3" y="4" width="14" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+              <line x1="3" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="1.5"></line>
+              <line x1="6.5" y1="2.5" x2="6.5" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+              <line x1="13.5" y1="2.5" x2="13.5" y2="5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line>
+            </svg>
+            Sync due date to calendar
+          </button>
+          <span class="proposed-tag">Proposed &mdash; not built</span>
+          <p class="proposed-note">
+            Open idea, not a decision: this would need to be reconciled with the PRD's non-goal of
+            automated, push-based alerting before the team commits to it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==========================================================
+     LEDGER DATA — sorted Delinquent, then Warning, then Compliant,
+     matching the real app's sort order.
+     ========================================================== */
+  var PILL = {
+    ok: { cls: "pill-ok", icon: "✓", word: "Compliant" },
+    warn: { cls: "pill-warn", icon: "⚠", word: "Warning" },
+    bad: { cls: "pill-bad", icon: "✕", word: "Delinquent" }
+  };
+
+  var LEDGER_ROWS = [
+    {
+      id: "d1", status: "bad", building: "230 Park Ave", device: "Elevator 2 (Passenger)",
+      type: "CAT1", last: "Jun 4, 2025", due: "Jun 4, 2026", proposedSync: true,
+      whatsWrong: "The CAT1 (annual) inspection filing is 47 days overdue. The elevator was last inspected on Jun 4, 2025, with a filing due by Jun 4, 2026.",
+      howToFix: "Schedule a CAT1 inspection with a DOB-licensed elevator inspection agency, then file the resulting report (PAFF) within 30 days of the inspection date.",
+      where: "NYC DOB elevator unit &mdash; see <a href=\"#\">nyc.gov/dob elevator compliance</a>, or file a complaint / request status via <a href=\"#\">NYC 311</a>."
+    },
+    {
+      id: "d2", status: "bad", building: "1 MetroTech Center", device: "Elevator 1 (Freight)",
+      type: "CAT5", last: "Jan 10, 2020", due: "Jan 10, 2025", proposedSync: true,
+      whatsWrong: "The CAT5 (5-year) inspection filing is over 18 months overdue. This is the most urgent item in the portfolio.",
+      howToFix: "Book a CAT5 inspection immediately &mdash; these lapse into DOB violation risk the longest of any filing type. Confirm the agency's PAFF filing timeline before scheduling.",
+      where: "NYC DOB elevator unit &mdash; see <a href=\"#\">nyc.gov/dob elevator compliance</a>, or a DOB-approved private elevator inspection agency."
+    },
+    {
+      id: "w1", status: "warn", building: "350 Madison Ave", device: "Elevator 3 (Passenger)",
+      type: "CAT1", last: "Aug 2, 2025", due: "Aug 2, 2026", proposedSync: true,
+      whatsWrong: "The CAT1 (annual) inspection is due in 12 days. It is not yet overdue, but will become Delinquent if unaddressed.",
+      howToFix: "Schedule the CAT1 inspection now so the filing lands before the due date, avoiding a lapse into Delinquent status.",
+      where: "NYC DOB elevator unit &mdash; see <a href=\"#\">nyc.gov/dob elevator compliance</a>, or contact your existing elevator maintenance vendor to book the visit."
+    },
+    {
+      id: "w2", status: "warn", building: "90 Church St", device: "Elevator 1 (Passenger)",
+      type: "CAT1", last: "Jul 25, 2025", due: "Jul 25, 2026", proposedSync: true,
+      whatsWrong: "The CAT1 (annual) inspection is due in 4 days &mdash; the closest deadline in the portfolio right now.",
+      howToFix: "Prioritize scheduling this inspection this week; at 4 days out there is little buffer before it becomes Delinquent.",
+      where: "NYC DOB elevator unit &mdash; see <a href=\"#\">nyc.gov/dob elevator compliance</a>, or <a href=\"#\">NYC 311</a> for filing status."
+    },
+    { id: "c1", status: "ok", building: "200 Fifth Ave", device: "Elevator 1 (Passenger)", type: "CAT1", last: "Mar 3, 2026", due: "Mar 3, 2027" },
+    { id: "c2", status: "ok", building: "745 Fifth Ave", device: "Elevator 4 (Passenger)", type: "CAT5", last: "Nov 18, 2023", due: "Nov 18, 2028" },
+    { id: "c3", status: "ok", building: "550 Broadway", device: "Elevator 2 (Freight)", type: "CAT1", last: "May 9, 2026", due: "May 9, 2027" },
+    { id: "c4", status: "ok", building: "230 Park Ave", device: "Elevator 1 (Passenger)", type: "CAT1", last: "Feb 14, 2026", due: "Feb 14, 2027" }
+  ];
+
+  var tbody = document.getElementById("ledger-body");
+  var rowsHtml = LEDGER_ROWS.map(function (row) {
+    var pill = PILL[row.status];
+    var pillHtml =
+      '<span class="pill ' + pill.cls + '">' +
+        '<span class="pill-icon" aria-hidden="true">' + pill.icon + '</span>' + pill.word +
+      '</span>';
+
+    var syncHtml = row.proposedSync
+      ? '<span class="sync-chip" title="Proposed idea, not built">' +
+          '<svg viewBox="0 0 20 20" width="11" height="11" aria-hidden="true">' +
+            '<rect x="3" y="4" width="14" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"></rect>' +
+            '<line x1="3" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="1.6"></line>' +
+          '</svg>Proposed sync</span>'
+      : "";
+
+    var actionCell = (row.status === "bad" || row.status === "warn")
+      ? '<button type="button" class="details-btn" data-row-id="' + row.id + '" aria-expanded="false" aria-controls="detail-panel">View details</button>'
+      : '<span class="no-action">&mdash;</span>';
+
+    var rowClass = (row.status === "bad" || row.status === "warn") ? "is-actionable" : "";
+
+    return (
+      '<tr class="' + rowClass + '" data-row-id="' + row.id + '">' +
+        '<td>' + pillHtml + '</td>' +
+        '<td>' + row.building + '</td>' +
+        '<td>' + row.device + '</td>' +
+        '<td>' + row.type + '</td>' +
+        '<td class="due-date">' + row.last + '</td>' +
+        '<td><span class="due-cell"><span class="due-date">' + row.due + '</span>' + syncHtml + '</span></td>' +
+        '<td>' + actionCell + '</td>' +
+      '</tr>'
+    );
+  }).join("");
+  tbody.innerHTML = rowsHtml;
+
+  /* ==========================================================
+     DETAIL PANEL
+     ========================================================== */
+  var panel = document.getElementById("detail-panel");
+  var closeBtn = document.getElementById("detail-close");
+  var activeRowEl = null;
+  var activeBtn = null;
+
+  function openDetail(rowId, triggerBtn) {
+    var row = LEDGER_ROWS.filter(function (r) { return r.id === rowId; })[0];
+    if (!row) { return; }
+
+    document.getElementById("detail-eyebrow").textContent = row.building + " · " + row.device;
+    document.getElementById("detail-title").textContent = row.type + " inspection needs action";
+    document.getElementById("detail-whats-wrong").textContent = row.whatsWrong;
+    document.getElementById("detail-how-to-fix").textContent = row.howToFix;
+    document.getElementById("detail-where").innerHTML = row.where;
+
+    if (activeRowEl) { activeRowEl.classList.remove("is-active"); }
+    if (activeBtn) { activeBtn.setAttribute("aria-expanded", "false"); }
+
+    activeRowEl = document.querySelector('tr[data-row-id="' + rowId + '"]');
+    if (activeRowEl) { activeRowEl.classList.add("is-active"); }
+    activeBtn = triggerBtn;
+    triggerBtn.setAttribute("aria-expanded", "true");
+
+    panel.hidden = false;
+    panel.focus();
+  }
+
+  function closeDetail() {
+    panel.hidden = true;
+    if (activeRowEl) { activeRowEl.classList.remove("is-active"); }
+    if (activeBtn) {
+      activeBtn.setAttribute("aria-expanded", "false");
+      activeBtn.focus();
+    }
+    activeRowEl = null;
+    activeBtn = null;
+  }
+
+  tbody.addEventListener("click", function (evt) {
+    var btn = evt.target.closest(".details-btn");
+    if (!btn) { return; }
+    openDetail(btn.getAttribute("data-row-id"), btn);
+  });
+
+  closeBtn.addEventListener("click", closeDetail);
+
+  /* ==========================================================
+     BUILDING AUTO-RECOGNIZE SEARCH
+     ========================================================== */
+  var BUILDINGS = [
+    { name: "230 Park Avenue", address: "230 Park Ave, New York, NY 10169", borough: "Manhattan", elevators: 6, bin: "1013456" },
+    { name: "200 Fifth Avenue (Flatiron Building)", address: "200 5th Ave, New York, NY 10010", borough: "Manhattan", elevators: 4, bin: "1015200" },
+    { name: "350 Madison Avenue", address: "350 Madison Ave, New York, NY 10017", borough: "Manhattan", elevators: 5, bin: "1014980" },
+    { name: "1 MetroTech Center", address: "1 MetroTech Center, Brooklyn, NY 11201", borough: "Brooklyn", elevators: 8, bin: "3002200" },
+    { name: "90 Church Street", address: "90 Church St, New York, NY 10007", borough: "Manhattan", elevators: 5, bin: "1011200" },
+    { name: "745 Fifth Avenue", address: "745 5th Ave, New York, NY 10151", borough: "Manhattan", elevators: 3, bin: "1012870" }
+  ];
+
+  var input = document.getElementById("building-search");
+  var results = document.getElementById("search-results");
+  var matchCard = document.getElementById("match-card");
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function highlight(text, query) {
+    var idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) { return escapeHtml(text); }
+    return (
+      escapeHtml(text.slice(0, idx)) +
+      "<mark>" + escapeHtml(text.slice(idx, idx + query.length)) + "</mark>" +
+      escapeHtml(text.slice(idx + query.length))
+    );
+  }
+
+  function renderResults(query) {
+    var q = query.trim();
+    if (q.length < 2) {
+      results.hidden = true;
+      results.innerHTML = "";
+      input.setAttribute("aria-expanded", "false");
+      return;
+    }
+
+    var matches = BUILDINGS.filter(function (b) {
+      return b.name.toLowerCase().indexOf(q.toLowerCase()) !== -1 ||
+             b.address.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+    }).slice(0, 5);
+
+    if (matches.length === 0) {
+      results.hidden = true;
+      results.innerHTML = "";
+      input.setAttribute("aria-expanded", "false");
+      return;
+    }
+
+    results.innerHTML = matches.map(function (b, i) {
+      return (
+        '<li role="presentation">' +
+          '<button type="button" class="search-result" role="option" data-idx="' + BUILDINGS.indexOf(b) + '">' +
+            '<span class="search-result-name">' + highlight(b.name, q) + '</span>' +
+            '<span class="search-result-addr">' + escapeHtml(b.address) + '</span>' +
+          '</button>' +
+        '</li>'
+      );
+    }).join("");
+    results.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+  }
+
+  function showMatch(building) {
+    document.getElementById("match-name").textContent = building.name;
+    document.getElementById("match-address").textContent = building.address;
+    document.getElementById("match-borough").textContent = building.borough;
+    document.getElementById("match-elevators").textContent = building.elevators;
+    document.getElementById("match-bin").textContent = building.bin;
+    matchCard.hidden = false;
+  }
+
+  input.addEventListener("input", function () {
+    matchCard.hidden = true;
+    renderResults(input.value);
+  });
+
+  input.addEventListener("focus", function () {
+    if (input.value.trim().length >= 2 && !results.hidden) {
+      renderResults(input.value);
+    }
+  });
+
+  results.addEventListener("click", function (evt) {
+    var btn = evt.target.closest(".search-result");
+    if (!btn) { return; }
+    var building = BUILDINGS[parseInt(btn.getAttribute("data-idx"), 10)];
+    input.value = building.name;
+    results.hidden = true;
+    results.innerHTML = "";
+    input.setAttribute("aria-expanded", "false");
+    showMatch(building);
+  });
+
+  document.addEventListener("click", function (evt) {
+    if (!evt.target.closest(".search-card")) {
+      results.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+    }
+  });
+})();
+</script>
