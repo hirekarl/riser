@@ -9,11 +9,11 @@
 }
 
 .wordmarkRust {
-  color: var(--rust);
+  color: #b4805a;
 }
 
 .wordmarkNavy {
-  color: var(--navy);
+  color: #1c3a63;
 }
 
 .header p {
