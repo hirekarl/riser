@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7.0 (2026-07-26)
+
+### Feat
+
+- **frontend**: add elevator detail/remediation panel to the ledger
+- **frontend**: apply v3 design pass — brand tokens, wordmark, AI briefing card
+
+### Fix
+
+- **frontend**: fix due-date math, time-bomb test, and a11y label on remediation panel
+- **frontend**: fix dark-mode contrast on v3 brand colors
+- **frontend**: replace gradient buttons with WCAG-compliant solid rust
+- **frontend**: surface generated_at and remove duplicate loading a11y announcement
+- **frontend**: hardcode v3 accent colors per-module instead of index.css tokens
+- **design**: remove DOB BIN from auto-recognize match card
+
 ## v0.6.0 (2026-07-26)
 
 ### Feat
