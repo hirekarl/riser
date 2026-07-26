@@ -19,6 +19,14 @@ describe("NarrationPanel", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("shows the AI briefing heading, attributed to Claude, in every state", () => {
+    render(<NarrationPanel />);
+
+    const heading = screen.getByRole("heading", { name: /ai portfolio briefing/i });
+    expect(heading).toBeInTheDocument();
+    expect(screen.getByText(/powered by claude/i)).toBeInTheDocument();
+  });
+
   it("shows a loading state (disabled button, role=status) while the request is pending", async () => {
     let resolveNarration: (value: NarrationResponse) => void = () => {};
     const pending = new Promise<NarrationResponse>((resolve) => {

@@ -4,6 +4,18 @@
   gap: 2rem;
 }
 
+.header h1 {
+  letter-spacing: 0.01em;
+}
+
+.wordmarkRust {
+  color: var(--rust);
+}
+
+.wordmarkNavy {
+  color: var(--navy);
+}
+
 .header p {
   color: var(--text-muted);
   margin: 0.25rem 0 0;

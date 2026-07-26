@@ -15,9 +15,10 @@ type PanelState =
  * additive: a failed request shows an inline error without affecting the
  * rest of the app.
  *
- * This is the functional shell only (trigger, loading state, success/error
- * rendering) — visual/placement polish is a follow-up pass
- * (ui-ux-specialist-agent), per docs/sprints/day-by-day-plan.md.
+ * Visual treatment matches the v3 design pass (docs/design/): a bordered
+ * "AI Executive Briefing" card, deliberately labeled as on-demand rather
+ * than a live/background feature, since that's what this component
+ * actually does.
  */
 export function NarrationPanel() {
   const [state, setState] = useState<PanelState>({ status: "idle" });
@@ -36,11 +37,35 @@ export function NarrationPanel() {
 
   return (
     <section className={styles.panel} aria-label="AI portfolio briefing">
-      <button type="button" onClick={handleGenerate} disabled={isLoading}>
+      <div className={styles.headerRow}>
+        <span className={styles.icon} aria-hidden="true">
+          ◈
+        </span>
+        <h2 className={styles.heading}>
+          AI Portfolio Briefing <span className={styles.poweredBy}>— Powered by Claude</span>
+        </h2>
+        <span className={styles.onDemandTag}>ON DEMAND</span>
+      </div>
+
+      <p className={styles.description}>
+        Generate a plain-language summary of what needs attention across your portfolio, on
+        request — this never runs on its own in the background.
+      </p>
+
+      <button
+        type="button"
+        className={styles.generateButton}
+        onClick={handleGenerate}
+        disabled={isLoading}
+      >
         {isLoading ? "Generating briefing…" : "Generate briefing"}
       </button>
 
-      {isLoading && <p role="status">Generating briefing…</p>}
+      {isLoading && (
+        <p role="status" className={styles.loading}>
+          Generating briefing…
+        </p>
+      )}
 
       {state.status === "success" && <p className={styles.narration}>{state.narration}</p>}
 

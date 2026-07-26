@@ -7,6 +7,15 @@
   --focus: #2c5cf6;
   --focus-subtle: #e8edfe;
 
+  /* ---- brand accent (v3 design pass) ---- */
+  --rust: #b4805a;
+  --rust-strong: #a8672e;
+  --rust-tint-border: #bba995;
+  --rust-grad-start: #d9a05c;
+  --rust-grad-end: #a8672e;
+  --navy: #1c3a63;
+  --navy-tint: #edf0f4;
+
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -28,6 +37,14 @@
     --border: #333844;
     --focus: #8ab4ff;
     --focus-subtle: #243352;
+
+    --rust: #d9a05c;
+    --rust-strong: #e9b679;
+    --rust-tint-border: #6b5a3e;
+    --rust-grad-start: #e2884f;
+    --rust-grad-end: #c2703a;
+    --navy: #3d5a85;
+    --navy-tint: #1c2634;
   }
 }
 
