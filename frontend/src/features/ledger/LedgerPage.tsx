@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { listLedger, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -10,6 +10,38 @@ import styles from "./LedgerPage.module.css";
 // small margin, so the highlight class clears after the animation (or, under
 // prefers-reduced-motion, the static background) has had time to be seen.
 const HIGHLIGHT_DURATION_MS = 1800;
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// Plain-language remediation copy for a Warning/Delinquent row, derived
+// entirely from data the ledger already returns (status, due_date,
+// inspection_type) — no new endpoint. Compliant rows don't get this panel;
+// there's nothing to remediate. Where-to-go is intentionally generic (DOB's
+// elevator unit / a licensed inspection agency), not a live lookup.
+function getRemediationCopy(entry: LedgerEntry): {
+  whatsWrong: string;
+  nextStep: string;
+  whereToGo: string;
+} {
+  const dueDate = new Date(entry.due_date);
+  const today = new Date();
+  const dayDiff = Math.round((dueDate.getTime() - today.getTime()) / MS_PER_DAY);
+
+  const whatsWrong =
+    entry.status === "Delinquent"
+      ? `${entry.inspection_type} filing is ${Math.abs(dayDiff)} day${Math.abs(dayDiff) === 1 ? "" : "s"} overdue — was due ${entry.due_date}.`
+      : `${entry.inspection_type} filing is due soon — due ${entry.due_date}${dayDiff >= 0 ? ` (${dayDiff} day${dayDiff === 1 ? "" : "s"} from now)` : ""}.`;
+
+  const nextStep =
+    entry.status === "Delinquent"
+      ? "File the required inspection report as soon as possible — late fees accrue monthly until it's filed."
+      : "Schedule the inspection now so the filing lands before the due date.";
+
+  const whereToGo =
+    "Contact your building's licensed elevator inspection agency to schedule or confirm filing, or NYC DOB's elevator unit (311) for questions about a specific violation.";
+
+  return { whatsWrong, nextStep, whereToGo };
+}
 
 export interface LedgerPageProps {
   /**
@@ -50,6 +82,7 @@ export function LedgerPage({
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [updateVersion, setUpdateVersion] = useState(0);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
   const previousStatusesRef = useRef<Map<number, string> | null>(null);
   const highlightTimeoutRef = useRef<number | undefined>(undefined);
@@ -108,6 +141,10 @@ export function LedgerPage({
   function handleDateInputChange(elevatorId: number, newDate: string) {
     if (!newDate) return;
     setPendingDates((current) => ({ ...current, [elevatorId]: newDate }));
+  }
+
+  function handleToggleDetails(elevatorId: number) {
+    setExpandedId((current) => (current === elevatorId ? null : elevatorId));
   }
 
   function handleDateCancel(elevatorId: number) {
@@ -233,9 +270,12 @@ export function LedgerPage({
                 const hasPendingEdit =
                   pendingDate !== undefined && pendingDate !== entry.last_inspection_date;
                 const isSaving = pendingId === entry.id;
+                const needsRemediation = entry.status === "Warning" || entry.status === "Delinquent";
+                const isExpanded = expandedId === entry.id;
 
                 return (
-                  <tr key={entry.id} className={rowClassName}>
+                  <Fragment key={entry.id}>
+                  <tr className={rowClassName}>
                     <td>
                       <StatusBadge status={entry.status} />
                     </td>
@@ -288,8 +328,45 @@ export function LedgerPage({
                       >
                         Edit
                       </button>
+                      {needsRemediation && (
+                        <button
+                          type="button"
+                          className={styles.detailsButton}
+                          aria-label={`View details for ${entry.device_identifier}`}
+                          aria-expanded={isExpanded}
+                          onClick={() => handleToggleDetails(entry.id)}
+                        >
+                          {isExpanded ? "Hide details" : "View details"}
+                        </button>
+                      )}
                     </td>
                   </tr>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={7} className={styles.detailCell}>
+                        {(() => {
+                          const { whatsWrong, nextStep, whereToGo } = getRemediationCopy(entry);
+                          return (
+                            <dl className={styles.detailPanel}>
+                              <div>
+                                <dt>What&apos;s wrong</dt>
+                                <dd>{whatsWrong}</dd>
+                              </div>
+                              <div>
+                                <dt>Next step</dt>
+                                <dd>{nextStep}</dd>
+                              </div>
+                              <div>
+                                <dt>Where to go</dt>
+                                <dd>{whereToGo}</dd>
+                              </div>
+                            </dl>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>

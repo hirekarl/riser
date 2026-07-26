@@ -384,6 +384,76 @@ describe("LedgerPage", () => {
     );
   });
 
+  it("shows a 'View details' button for Warning/Delinquent rows but not for Compliant rows", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage />);
+
+    const delinquentCell = await screen.findByText("EL-3"); // Delinquent
+    const warningCell = await screen.findByText("EL-1"); // Warning
+    const compliantCell = await screen.findByText("EL-2"); // Compliant
+
+    expect(
+      within(delinquentCell.closest("tr") as HTMLElement).getByRole("button", {
+        name: /view details for el-3/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(warningCell.closest("tr") as HTMLElement).getByRole("button", {
+        name: /view details for el-1/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(compliantCell.closest("tr") as HTMLElement).queryByRole("button", {
+        name: /view details/i,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("expands a plain-language remediation panel (what's wrong / next step / where to go) when View details is clicked, and collapses on a second click", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    render(<LedgerPage />);
+
+    const delinquentCell = await screen.findByText("EL-3");
+    const viewDetailsButton = within(delinquentCell.closest("tr") as HTMLElement).getByRole(
+      "button",
+      { name: /view details for el-3/i },
+    );
+
+    fireEvent.click(viewDetailsButton);
+    const whatsWrongTerm = screen.getByText(/what's wrong/i);
+    expect(whatsWrongTerm).toBeInTheDocument();
+    expect(screen.getByText(/next step/i)).toBeInTheDocument();
+    expect(screen.getByText(/where to go/i)).toBeInTheDocument();
+
+    // Mentions the specific inspection type so the copy is concrete, not
+    // generic — scoped to the detail panel itself, since the ledger table's
+    // own "Inspection type" column also contains "CAT1" for other rows.
+    const detailPanel = whatsWrongTerm.closest("dl") as HTMLElement;
+    expect(within(detailPanel).getByText(/CAT1/)).toBeInTheDocument();
+
+    fireEvent.click(viewDetailsButton);
+    expect(screen.queryByText(/what's wrong/i)).not.toBeInTheDocument();
+  });
+
+  it("has no axe accessibility violations with a remediation panel expanded", async () => {
+    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+
+    const { container } = render(<LedgerPage />);
+
+    const delinquentCell = await screen.findByText("EL-3");
+    fireEvent.click(
+      within(delinquentCell.closest("tr") as HTMLElement).getByRole("button", {
+        name: /view details for el-3/i,
+      }),
+    );
+    await screen.findByText(/what's wrong/i);
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
   it("does not show a building filter when no buildings are given", async () => {
     vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
 
