@@ -16,6 +16,20 @@ Buildings and elevators are entered manually today.
 
 **In active development:** Riser is also gaining an **AI risk-narration briefing** (on-demand, Claude API-powered summary of urgent portfolio risk) and a **DOB address-lookup** feature that would pull real filing data from NYC's public DOB NOW Open Data feed, so managers could add a building by street address and have its elevator roster and current CAT1/CAT5 filing dates populate automatically — no re-entry required, with manual entry remaining the fallback. Neither feature is yet live, but both are committed to the product roadmap and will be wired into the UI during final demo rehearsals. The `ANTHROPIC_API_KEY` environment variable (see `backend/.env.example`) exists to support the narration feature when it lands.
 
+## Screenshots
+
+**Portfolio ledger** — every elevator across every building, ranked by urgency (Delinquent → Warning → Compliant), with inline editing and a per-building filter:
+
+![Riser's portfolio ledger, showing a mix of Delinquent-status elevators across several buildings, with Add Building/Add Elevator forms above it](docs/screenshots/ledger-overview.jpg)
+
+**Editing an elevator** — updating an elevator's record recalculates its due date/status live; the row being edited is highlighted and its inline date field locks while the edit form is open:
+
+![The ledger's Edit an elevator form open for one row, with that row highlighted and its inline date input disabled](docs/screenshots/elevator-edit.jpg)
+
+**Empty state** — a new portfolio with no elevators yet tracked:
+
+![Riser's empty-state message: "No elevators yet," with guidance to add a building and an elevator to start tracking compliance deadlines](docs/screenshots/empty-state.jpg)
+
 ## Team
 
 - [Karl Johnson](https://github.com/hirekarl)
