@@ -21,7 +21,7 @@ import anthropic as anthropic
 
 #: Model used for narration generation. Chosen for low latency/cost, since
 #: this is called synchronously, on-demand, during a live demo.
-NARRATION_MODEL = "claude-3-5-haiku-latest"
+NARRATION_MODEL = "claude-haiku-4-5-20251001"
 
 #: Maximum tokens to generate. The narration is meant to be a short,
 #: skimmable briefing, not an essay.
