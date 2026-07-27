@@ -3,29 +3,14 @@
 Mirrors the pattern in ``test_dob.py``: a thin, monkeypatchable boundary
 function (here, ``_call_claude``) isolates the actual Anthropic SDK call, so
 no test ever hits the real network/API.
-
-None of ``apps.compliance.narration`` exists yet (see
-``docs/architecture/integration-contracts.md`` §5) — these tests are
-pre-written scaffolding and are expected to fail with ``ImportError``
-until the module is implemented. The import is done locally inside each
-test (rather than at module scope) so that ``ImportError`` only fails
-these specific tests instead of aborting collection of the whole file,
-matching the same convention used in ``test_api.py``'s ``TestNarrationAPI``.
-
-Marked ``xfail`` (rather than left as plain failures) so the pre-push
-coverage gate stays green on this branch despite the intentionally
-unimplemented target module; remove the ``pytestmark`` line once
-``apps.compliance.narration`` exists and these pass for real.
 """
 
+import dataclasses
 from typing import Any
 
 import pytest
 
-pytestmark = pytest.mark.xfail(
-    reason="apps.compliance.narration not implemented yet — integration-contracts.md §5",
-    strict=False,
-)
+from apps.compliance import narration
 
 # Canned ledger-row-shaped entries, matching the LedgerEntrySerializer output
 # (id/inspection_type/last_inspection_date omitted here as unnecessary noise
@@ -53,7 +38,6 @@ class TestGenerateNarration:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """An empty portfolio short-circuits locally and never calls Claude."""
-        from apps.compliance import narration  # type: ignore[attr-defined]  # not built yet
 
         def boom(entries: list[dict[str, Any]]) -> str:
             raise AssertionError("_call_claude must not be called for an empty portfolio")
@@ -65,8 +49,6 @@ class TestGenerateNarration:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Non-empty entries are passed to the Claude boundary, whose result passes through."""
-        from apps.compliance import narration  # type: ignore[attr-defined]  # not built yet
-
         seen: dict[str, Any] = {}
 
         def fake(entries: list[dict[str, Any]]) -> str:
@@ -83,7 +65,6 @@ class TestGenerateNarration:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A Claude timeout/API error is wrapped in NarrationUnavailableError, not raised raw."""
-        from apps.compliance import narration  # type: ignore[attr-defined]  # not built yet
 
         def fake(entries: list[dict[str, Any]]) -> str:
             raise RuntimeError("timed out")
@@ -92,3 +73,77 @@ class TestGenerateNarration:
 
         with pytest.raises(narration.NarrationUnavailableError):
             narration.generate_narration(_ENTRIES)
+
+
+@dataclasses.dataclass
+class _FakeMessage:
+    """A minimal stand-in for an Anthropic SDK ``Message`` response."""
+
+    content: list[Any]
+
+
+class TestCallClaude:
+    """Tests for the Anthropic SDK boundary :func:`apps.compliance.narration._call_claude`.
+
+    Mirrors ``test_dob.py``'s ``TestHttpGetJson``: mocks the SDK client
+    itself (``anthropic.Anthropic``) so the request-building and
+    response-parsing logic is exercised without ever hitting the network.
+    Real ``anthropic.types`` content-block instances are used (rather than
+    hand-rolled fakes) so the ``isinstance(..., TextBlock)`` filtering in
+    ``_call_claude`` is exercised against the real discriminated union.
+    """
+
+    def test_builds_request_and_extracts_text(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The client is called with the tuned model params, and text blocks are joined."""
+        captured: dict[str, Any] = {}
+
+        class FakeMessages:
+            def create(self, **kwargs: Any) -> _FakeMessage:
+                captured["create_kwargs"] = kwargs
+                return _FakeMessage(
+                    content=[
+                        narration.anthropic.types.TextBlock(
+                            type="text", text="3 elevators are Delinquent, "
+                        ),
+                        narration.anthropic.types.TextBlock(
+                            type="text", text="2 enter Warning this week."
+                        ),
+                    ]
+                )
+
+        class FakeAnthropic:
+            def __init__(self, **kwargs: Any) -> None:
+                captured["client_kwargs"] = kwargs
+                self.messages = FakeMessages()
+
+        monkeypatch.setattr(narration.anthropic, "Anthropic", FakeAnthropic)
+
+        result = narration._call_claude(_ENTRIES)
+
+        assert result == "3 elevators are Delinquent, 2 enter Warning this week."
+        assert captured["create_kwargs"]["model"] == narration.NARRATION_MODEL
+        assert captured["create_kwargs"]["temperature"] == narration.NARRATION_TEMPERATURE
+        assert captured["create_kwargs"]["max_tokens"] == narration.NARRATION_MAX_TOKENS
+        assert captured["client_kwargs"]["timeout"] == narration.NARRATION_TIMEOUT_SECONDS
+
+    def test_ignores_non_text_blocks(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Non-text content blocks (if any) are skipped rather than erroring."""
+
+        class FakeMessages:
+            def create(self, **kwargs: Any) -> _FakeMessage:
+                return _FakeMessage(
+                    content=[
+                        narration.anthropic.types.ToolUseBlock(
+                            id="toolu_1", input={}, name="ignored", type="tool_use"
+                        ),
+                        narration.anthropic.types.TextBlock(type="text", text="only this counts"),
+                    ]
+                )
+
+        class FakeAnthropic:
+            def __init__(self, **kwargs: Any) -> None:
+                self.messages = FakeMessages()
+
+        monkeypatch.setattr(narration.anthropic, "Anthropic", FakeAnthropic)
+
+        assert narration._call_claude(_ENTRIES) == "only this counts"
