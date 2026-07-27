@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchNarration } from "../../api/client";
+import { logError } from "../../lib/logger";
 import styles from "./NarrationPanel.module.css";
 
 type PanelState =
@@ -22,17 +23,27 @@ type PanelState =
  */
 export function NarrationPanel() {
   const [state, setState] = useState<PanelState>({ status: "idle" });
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   async function handleGenerate() {
     setState({ status: "loading" });
     try {
       const response = await fetchNarration();
+      if (!isMountedRef.current) return;
       setState({
         status: "success",
         narration: response.narration,
         generatedAt: response.generated_at,
       });
-    } catch {
+    } catch (err) {
+      logError("Failed to generate narration briefing", err);
+      if (!isMountedRef.current) return;
       setState({ status: "error" });
     }
   }
