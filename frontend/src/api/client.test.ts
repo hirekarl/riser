@@ -195,7 +195,7 @@ describe("api client", () => {
     };
     const fetchMock = mockFetchOnce(response);
 
-    const result = await lookupBuildingByAddress("350 Fifth Avenue, Manhattan");
+    const result = await lookupBuildingByAddress({ address: "350 Fifth Avenue, Manhattan" });
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringMatching(/\/buildings\/lookup\/?$/),
@@ -216,7 +216,30 @@ describe("api client", () => {
     };
     mockFetchOnce(response);
 
-    await expect(lookupBuildingByAddress("nonexistent address")).resolves.toEqual(response);
+    await expect(lookupBuildingByAddress({ address: "nonexistent address" })).resolves.toEqual(
+      response,
+    );
+  });
+
+  it("lookupBuildingByAddress POSTs the bin as JSON to /buildings/lookup/ for the disambiguation re-call", async () => {
+    const response: AddressLookupResponse = {
+      match: { bin: "1001686", resolved_address: "200 WATER STREET", borough: "MANHATTAN" },
+      matches: null,
+      drafts: [],
+      reason: null,
+    };
+    const fetchMock = mockFetchOnce(response);
+
+    const result = await lookupBuildingByAddress({ bin: "1001686" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/buildings\/lookup\/?$/),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ bin: "1001686" }),
+      }),
+    );
+    expect(result).toEqual(response);
   });
 
   it("throws a descriptive error when the response is not ok", async () => {

@@ -98,7 +98,7 @@ describe("LedgerPage", () => {
       expect(screen.queryByRole("table")).not.toBeInTheDocument();
     });
     expect(screen.getByText(/no elevators/i)).toBeInTheDocument();
-    expect(screen.getByText(/add your first building/i)).toBeInTheDocument();
+    expect(screen.getByText(/look up your first building by address/i)).toBeInTheDocument();
   });
 
   it("has no axe accessibility violations in a populated state", async () => {

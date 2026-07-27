@@ -85,9 +85,10 @@ describe("App", () => {
 
     expect(await screen.findByText(/no elevators/i)).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(/building name/i), "Tower A");
-    await user.type(screen.getByLabelText(/address/i), "1 Main St");
-    await user.click(screen.getByRole("button", { name: /add building/i }));
+    const buildingForm = screen.getByRole("form", { name: /add a building/i });
+    await user.type(within(buildingForm).getByLabelText(/building name/i), "Tower A");
+    await user.type(within(buildingForm).getByLabelText(/address/i), "1 Main St");
+    await user.click(within(buildingForm).getByRole("button", { name: /add building/i }));
 
     const elevatorForm = await screen.findByRole("form", { name: /add an elevator/i });
 

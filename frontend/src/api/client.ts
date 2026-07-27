@@ -87,8 +87,15 @@ export function fetchNarration(): Promise<NarrationResponse> {
 // "no match"/"no devices" cases are expected outcomes returned as HTTP 200
 // with a `reason` field, not thrown errors — only a genuinely unexpected
 // failure (e.g. malformed request) should reject this promise.
-export function lookupBuildingByAddress(address: string): Promise<AddressLookupResponse> {
-  const payload: AddressLookupRequest = { address };
+//
+// Accepts a discriminated query rather than a bare string: `{ address }` for
+// the initial lookup, `{ bin }` for the disambiguation re-call after the
+// user picks a candidate from an `"ambiguous_match"` response. Exactly one
+// of the two is ever present per request, per the contract doc.
+export function lookupBuildingByAddress(
+  query: { address: string } | { bin: string },
+): Promise<AddressLookupResponse> {
+  const payload: AddressLookupRequest = query;
   return request<AddressLookupResponse>("buildings/lookup/", {
     method: "POST",
     body: JSON.stringify(payload),
