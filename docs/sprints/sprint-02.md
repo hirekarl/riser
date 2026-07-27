@@ -34,7 +34,8 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 - [x] Pre-write failing/`xfail` tests for the AI-narration endpoint, test-first ahead of Cornell's implementation (Sun 7/26) — PR #77, merged. `apps.compliance.narration` and the view/URL still don't exist as of Sun 7/26 early afternoon; Cornell's implementation is in progress this session.
 - [x] Confirm ADR-0002 (no-auth for MVP) with the team; close issue #76 (Sun 7/26) — PR #82, merged. Andres and Cornell confirmed no-auth stays for the capstone demo; read/write vs. read-only enforcement moved to the post-MVP backlog as a nice-to-have.
 - [x] Review/merge Andres's README screenshots PR (Sun 7/26) — PR #81, merged.
-- [ ] Schedule + write the real capstone demo script and start the deck (Sun 7/26, gap identified — no deck existed anywhere and the existing script was written for the cancelled Week 1 demo). Scheduling fix (Mon 7/27 evening slot) opened as PR #83; the actual script/deck work itself is still outstanding.
+- [x] Schedule the real capstone demo script and deck work (Sun 7/26, gap identified — no deck existed anywhere and the existing script was written for the cancelled Week 1 demo). Scheduling fix (Mon 7/27 evening slot) opened as PR #83, merged. The script/deck work itself reassigned to Schiffon Mon 7/27 evening — see her checklist below.
+- [ ] Pick up the frontend-logic half of issue #80 (`NarrationPanel` unmount guard + swallowed error detail) — Schiffon's a11y-lane items on the same issue already closed via PR #85; these two are frontend-state items, unclaimed until now (Mon 7/27 evening).
 - [ ] End-to-end contract verification + best-effort cut call on DOB integration (Tue 7/28). **Partially unblocked** — Cornell's narration service implementation is now open as PR #89 (not merged yet, awaiting review). Still needs the `/api/buildings/lookup/` endpoint for full verification; DOB lookup remains Mon/Tue 7/27-28 work per the day-by-day plan.
 
 ### Andres Ballares
@@ -65,6 +66,7 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 - [ ] AI-narration panel placement + empty/loading/error states (Sun 7/26, after Andres pushes). Andres's panel merged (PR #78) — unblocked. Not done — Schiffon not present Sun 7/26 as of this update.
 - [ ] AI-panel accessibility/visual QA; start "review and override" screen design (Mon 7/27, after Andres pushes).
 - [ ] Polish review/override screen (Tue 7/28, after Andres pushes).
+- [ ] Rewrite the capstone demo script and start the slide deck (Mon 7/27 evening, reassigned from Karl — see day-by-day-plan.md).
 
 ## Notes / carry-over
 
