@@ -3,13 +3,14 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from apps.compliance.views import BuildingViewSet, ElevatorViewSet, LedgerListView
+from apps.compliance.views import BuildingViewSet, ElevatorViewSet, LedgerListView, NarrationView
 
 router = DefaultRouter()
 router.register("buildings", BuildingViewSet, basename="building")
 router.register("elevators", ElevatorViewSet, basename="elevator")
 
 urlpatterns = [
+    path("ledger/narration/", NarrationView.as_view(), name="ledger-narration"),
     path("ledger/", LedgerListView.as_view(), name="ledger"),
     *router.urls,
 ]
