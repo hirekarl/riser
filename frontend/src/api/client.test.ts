@@ -182,13 +182,13 @@ describe("api client", () => {
   it("lookupBuildingByAddress POSTs the address as JSON to /buildings/lookup/", async () => {
     const response: AddressLookupResponse = {
       match: { bin: "1001686", resolved_address: "350 5 AVENUE", borough: "MANHATTAN" },
-      devices: [
+      matches: null,
+      drafts: [
         {
-          device_number: "1P766",
+          dob_device_number: "1P766",
           device_status: "Active",
-          cat1_latest_report_filed: "2026-03-01",
-          cat5_latest_report_filed: null,
-          periodic_latest_inspection: "2026-03-01",
+          inspection_type: "CAT1",
+          last_inspection_date: "2026-03-01",
         },
       ],
       reason: null,
@@ -210,7 +210,8 @@ describe("api client", () => {
   it("lookupBuildingByAddress resolves (not throws) on a no-match reason, per the 200-with-reason contract", async () => {
     const response: AddressLookupResponse = {
       match: null,
-      devices: [],
+      matches: null,
+      drafts: [],
       reason: "address_not_found",
     };
     mockFetchOnce(response);
