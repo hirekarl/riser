@@ -86,21 +86,42 @@ export interface NarrationErrorResponse {
  * Shapes for POST /api/buildings/lookup/ (not yet implemented backend-side —
  * scheduled Mon 2026-07-27). Added ahead of the endpoint per
  * docs/architecture/integration-contracts.md §3.
+ *
+ * Exactly one of `address`/`bin` is present per request: `address` for the
+ * initial lookup, `bin` when the client re-calls after the user disambiguates
+ * via the picker shown for an `"ambiguous_match"` response (skips geocoding,
+ * goes straight to the DOB device fetch for that BIN).
  */
 export interface AddressLookupRequest {
-  address: string;
+  address?: string;
+  bin?: string;
 }
 
-export interface DobDeviceMatch {
-  device_number: string;
+/**
+ * One elevator row derived from a DOB device's populated CAT1/CAT5 filing
+ * date — shaped to match `CreateElevatorPayload` so it's directly postable
+ * to POST /api/elevators/ once the user reviews/overrides it. A single DOB
+ * device with both dates populated yields two drafts (one CAT1, one CAT5)
+ * sharing the same `dob_device_number`. See integration-contracts.md §4
+ * Stage 3 (`map_dob_devices_to_drafts`).
+ */
+export interface ElevatorDraft {
+  dob_device_number: string;
   device_status: string;
-  cat1_latest_report_filed: string | null;
-  cat5_latest_report_filed: string | null;
-  periodic_latest_inspection: string | null;
+  inspection_type: InspectionType;
+  last_inspection_date: string;
 }
 
 export interface AddressLookupResponse {
   match: { bin: string; resolved_address: string; borough: string } | null;
-  devices: DobDeviceMatch[];
-  reason: "address_not_found" | "no_devices_on_file" | "upstream_unavailable" | null;
+  /**
+   * Populated only when `reason` is `"ambiguous_match"` (otherwise `null`) —
+   * one entry per candidate BIN the address resolved to. The frontend must
+   * render these as a disambiguation picker and never silently take the
+   * first entry; re-call this endpoint with the chosen candidate's `bin`.
+   */
+  matches: { bin: string; resolved_address: string; borough: string }[] | null;
+  drafts: ElevatorDraft[];
+  reason:
+    "address_not_found" | "no_devices_on_file" | "upstream_unavailable" | "ambiguous_match" | null;
 }

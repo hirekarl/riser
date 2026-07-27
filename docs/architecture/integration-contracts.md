@@ -39,11 +39,19 @@ Proposed as a custom action on `BuildingViewSet` rather than a new top-level res
 
 **`POST /api/buildings/lookup/`**
 
-Request:
+Request — initial lookup by address:
 
 ```json
 { "address": "350 Fifth Avenue, Manhattan" }
 ```
+
+Request — re-call after the user disambiguates via the picker (skips geocoding entirely, goes straight to the Stage 2 device fetch for that BIN):
+
+```json
+{ "bin": "1001686" }
+```
+
+Exactly one of `address`/`bin` must be present in a request; the client sends `bin` only when re-calling after resolving an `"ambiguous_match"` response, and never sends both.
 
 Response — match found:
 
@@ -54,13 +62,13 @@ Response — match found:
     "resolved_address": "350 5 AVENUE",
     "borough": "MANHATTAN"
   },
-  "devices": [
+  "matches": null,
+  "drafts": [
     {
-      "device_number": "...",
+      "dob_device_number": "...",
       "device_status": "...",
-      "cat1_latest_report_filed": "2026-03-01",
-      "cat5_latest_report_filed": null,
-      "periodic_latest_inspection": "2026-03-01"
+      "inspection_type": "CAT1",
+      "last_inspection_date": "2026-03-01"
     }
   ],
   "reason": null
@@ -72,7 +80,8 @@ Response — address resolved but DOB has no devices on file:
 ```json
 {
   "match": { "bin": "...", "resolved_address": "...", "borough": "..." },
-  "devices": [],
+  "matches": null,
+  "drafts": [],
   "reason": "no_devices_on_file"
 }
 ```
@@ -80,43 +89,79 @@ Response — address resolved but DOB has no devices on file:
 Response — address didn't resolve to a BIN at all:
 
 ```json
-{ "match": null, "devices": [], "reason": "address_not_found" }
+{ "match": null, "matches": null, "drafts": [], "reason": "address_not_found" }
 ```
 
 Response — upstream service (geocoder or Socrata) unavailable:
 
 ```json
-{ "match": null, "devices": [], "reason": "upstream_unavailable" }
+{
+  "match": null,
+  "matches": null,
+  "drafts": [],
+  "reason": "upstream_unavailable"
+}
 ```
 
-**Design choice:** always return HTTP 200 with a `reason` field rather than 4xx/5xx for the "no match"/"no devices" cases — these are expected, user-facing outcomes the frontend needs to branch on gracefully (fall back to manual entry), not exceptional errors. Reserve a non-200 status for genuinely unexpected failures (malformed request body, etc.).
+Response — address resolved to more than one distinct BIN (ambiguous — e.g. `"200 Water St"` spans Manhattan and Brooklyn); the frontend must show a disambiguation picker built from `matches` and never silently take the first entry, then re-call this endpoint with the chosen candidate's `bin`:
 
-**This endpoint is read-only/preview — it does not persist anything.** The frontend takes the response, lets the user review/override each device in the list, then calls the _existing_ `POST /api/buildings/` + `POST /api/elevators/` endpoints to actually save — same validation, same code path, same tests as manual entry. This avoids needing a bulk-create endpoint and keeps the write path identical regardless of how the data originated.
+```json
+{
+  "match": null,
+  "matches": [
+    {
+      "bin": "1001686",
+      "resolved_address": "200 WATER STREET",
+      "borough": "MANHATTAN"
+    },
+    {
+      "bin": "3001234",
+      "resolved_address": "200 WATER STREET",
+      "borough": "BROOKLYN"
+    }
+  ],
+  "drafts": [],
+  "reason": "ambiguous_match"
+}
+```
+
+**Design choice:** always return HTTP 200 with a `reason` field rather than 4xx/5xx for the "no match"/"no devices"/"ambiguous match" cases — these are expected, user-facing outcomes the frontend needs to branch on gracefully (fall back to manual entry, or show the picker), not exceptional errors. Reserve a non-200 status for genuinely unexpected failures (malformed request body, etc.).
+
+`matches` is populated only when `reason` is `"ambiguous_match"`; it is `null` in every other case. It carries one entry per `AddressMatch` candidate returned by `resolve_address` (`backend/apps/compliance/dob.py`), using each candidate's `label` as `resolved_address` and `borough` as-is.
+
+**This endpoint is read-only/preview — it does not persist anything.** The frontend takes the response, lets the user review/override each draft in the list, then calls the _existing_ `POST /api/buildings/` + `POST /api/elevators/` endpoints to actually save — same validation, same code path, same tests as manual entry. This avoids needing a bulk-create endpoint and keeps the write path identical regardless of how the data originated.
+
+`drafts` is the response's device data, already shaped one-elevator-row-per-draft to match `CreateElevatorPayload` directly (see §4 Stage 3) — **not** raw DOB device rows. A single physical device with both a CAT1 and a CAT5 filing date yields two entries in `drafts`, one per inspection type, both carrying the same `dob_device_number`. This is deliberate: the frontend's review/override screen (PRD Journey 1 P1) renders and edits one elevator per row, and drafts are directly postable to `POST /api/elevators/` once the user assigns/creates the building. Note also that `periodic_latest_inspection` — present in an earlier stale draft of this doc — is dropped from the contract entirely: it's not implemented anywhere in `dob.py`'s `DobDevice`/`fetch_devices` and is out of scope for this feature.
 
 TS types to add in `domain.ts`:
 
 ```ts
 export interface AddressLookupRequest {
-  address: string;
+  address?: string;
+  bin?: string;
 }
 
-export interface DobDeviceMatch {
-  device_number: string;
+export interface ElevatorDraft {
+  dob_device_number: string;
   device_status: string;
-  cat1_latest_report_filed: string | null;
-  cat5_latest_report_filed: string | null;
-  periodic_latest_inspection: string | null;
+  inspection_type: "CAT1" | "CAT5";
+  last_inspection_date: string;
 }
 
 export interface AddressLookupResponse {
   match: { bin: string; resolved_address: string; borough: string } | null;
-  devices: DobDeviceMatch[];
+  matches: { bin: string; resolved_address: string; borough: string }[] | null;
+  drafts: ElevatorDraft[];
   reason:
-    "address_not_found" | "no_devices_on_file" | "upstream_unavailable" | null;
+    | "address_not_found"
+    | "no_devices_on_file"
+    | "upstream_unavailable"
+    | "ambiguous_match"
+    | null;
 }
 ```
 
-Client: `lookupBuildingByAddress(address: string): Promise<AddressLookupResponse>`.
+Client: `lookupBuildingByAddress(request: AddressLookupRequest): Promise<AddressLookupResponse>` — note the existing POC signature (`lookupBuildingByAddress(address: string)` in `frontend/src/api/client.ts`) predates the `bin`-based disambiguation re-call and needs updating to accept the full request shape; that update is frontend follow-up work, not part of this contract doc.
 
 ### New model fields this implies
 
