@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.compliance import narration
+from apps.compliance import dob, narration
 from apps.compliance.models import Building, Elevator
 
 pytestmark = pytest.mark.django_db
@@ -327,4 +327,232 @@ class TestNarrationAPI:
     def test_narration_is_read_only(self, api_client: APIClient) -> None:
         """POST /api/ledger/narration/ is not allowed."""
         response = api_client.post("/api/ledger/narration/", {}, format="json")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+class TestBuildingLookupAPI:
+    """Tests for ``POST /api/buildings/lookup/``.
+
+    The monkeypatches below target ``apps.compliance.dob.resolve_address``
+    and ``apps.compliance.dob.fetch_devices`` (module-qualified), matching
+    ``test_dob.py``'s convention of mocking the external boundary rather
+    than hitting the network.
+    """
+
+    def test_malformed_body_neither_field_returns_400(self, api_client: APIClient) -> None:
+        """A body with neither ``address`` nor ``bin`` is a 400."""
+        response = api_client.post("/api/buildings/lookup/", {}, format="json")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_malformed_body_both_fields_returns_400(self, api_client: APIClient) -> None:
+        """A body with both ``address`` and ``bin`` is a 400."""
+        response = api_client.post(
+            "/api/buildings/lookup/",
+            {"address": "350 Fifth Avenue", "bin": "1001686"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_address_not_found(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An address with no geocoder matches yields the not-found reason."""
+        monkeypatch.setattr(dob, "resolve_address", lambda address: [])
+
+        response = api_client.post(
+            "/api/buildings/lookup/", {"address": "nowhere at all"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            "match": None,
+            "matches": None,
+            "drafts": [],
+            "reason": "address_not_found",
+        }
+
+    def test_ambiguous_match(self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch) -> None:
+        """An address spanning more than one BIN yields the ambiguous reason and candidates."""
+        matches = [
+            dob.AddressMatch("200 WATER STREET, New York, NY", "Manhattan", "1001163"),
+            dob.AddressMatch("200 WATER STREET, Brooklyn, NY", "Brooklyn", "3000094"),
+        ]
+        monkeypatch.setattr(dob, "resolve_address", lambda address: matches)
+
+        response = api_client.post(
+            "/api/buildings/lookup/", {"address": "200 Water St"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            "match": None,
+            "matches": [
+                {
+                    "bin": "1001163",
+                    "resolved_address": "200 WATER STREET, New York, NY",
+                    "borough": "Manhattan",
+                },
+                {
+                    "bin": "3000094",
+                    "resolved_address": "200 WATER STREET, Brooklyn, NY",
+                    "borough": "Brooklyn",
+                },
+            ],
+            "drafts": [],
+            "reason": "ambiguous_match",
+        }
+
+    def test_no_devices_on_file(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A resolved BIN with no DOB devices yields the no-devices reason."""
+        matches = [dob.AddressMatch("350 5 AVENUE", "Manhattan", "1001686")]
+        monkeypatch.setattr(dob, "resolve_address", lambda address: matches)
+        monkeypatch.setattr(dob, "fetch_devices", lambda bin_value, **kwargs: [])
+
+        response = api_client.post(
+            "/api/buildings/lookup/", {"address": "350 Fifth Avenue"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            "match": {
+                "bin": "1001686",
+                "resolved_address": "350 5 AVENUE",
+                "borough": "Manhattan",
+            },
+            "matches": None,
+            "drafts": [],
+            "reason": "no_devices_on_file",
+        }
+
+    def test_successful_lookup_by_address_returns_drafts(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A single unambiguous match with devices returns match + drafts."""
+        matches = [dob.AddressMatch("350 5 AVENUE", "Manhattan", "1001686")]
+        devices = [
+            dob.DobDevice(
+                device_number="1P766",
+                device_type="Elevator",
+                device_status="Active",
+                cat1_latest_report_filed=datetime.date(2026, 3, 1),
+                cat5_latest_report_filed=None,
+                house_number="350",
+                street_name="5 AVENUE",
+                bin="1001686",
+            )
+        ]
+        monkeypatch.setattr(dob, "resolve_address", lambda address: matches)
+        monkeypatch.setattr(dob, "fetch_devices", lambda bin_value, **kwargs: devices)
+
+        response = api_client.post(
+            "/api/buildings/lookup/", {"address": "350 Fifth Avenue"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            "match": {
+                "bin": "1001686",
+                "resolved_address": "350 5 AVENUE",
+                "borough": "Manhattan",
+            },
+            "matches": None,
+            "drafts": [
+                {
+                    "dob_device_number": "1P766",
+                    "device_status": "Active",
+                    "inspection_type": "CAT1",
+                    "last_inspection_date": "2026-03-01",
+                }
+            ],
+            "reason": None,
+        }
+
+    def test_successful_lookup_by_bin_skips_geocoding(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A re-call with ``bin`` goes straight to the device fetch stage."""
+
+        def boom(address: str) -> list[dob.AddressMatch]:
+            raise AssertionError("resolve_address should not be called for a bin re-call")
+
+        monkeypatch.setattr(dob, "resolve_address", boom)
+        devices = [
+            dob.DobDevice(
+                device_number="1P767",
+                device_type="Elevator",
+                device_status="Active",
+                cat1_latest_report_filed=None,
+                cat5_latest_report_filed=datetime.date(2020, 5, 15),
+                house_number="200",
+                street_name="WATER STREET",
+                bin="1001163",
+            )
+        ]
+        monkeypatch.setattr(dob, "fetch_devices", lambda bin_value, **kwargs: devices)
+
+        response = api_client.post("/api/buildings/lookup/", {"bin": "1001163"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["reason"] is None
+        assert response.data["match"] == {
+            "bin": "1001163",
+            "resolved_address": None,
+            "borough": None,
+        }
+        assert response.data["drafts"] == [
+            {
+                "dob_device_number": "1P767",
+                "device_status": "Active",
+                "inspection_type": "CAT5",
+                "last_inspection_date": "2020-05-15",
+            }
+        ]
+
+    def test_resolve_address_upstream_failure_returns_200_with_reason(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A ``DobLookupError`` from resolve_address is caught, not a 500."""
+
+        def boom(address: str) -> list[dob.AddressMatch]:
+            raise dob.DobLookupError("geocoder timed out")
+
+        monkeypatch.setattr(dob, "resolve_address", boom)
+
+        response = api_client.post(
+            "/api/buildings/lookup/", {"address": "350 Fifth Avenue"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            "match": None,
+            "matches": None,
+            "drafts": [],
+            "reason": "upstream_unavailable",
+        }
+
+    def test_fetch_devices_upstream_failure_returns_200_with_reason(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A ``DobLookupError`` from fetch_devices is caught, not a 500."""
+
+        def boom(bin_value: str, **kwargs: object) -> list[dob.DobDevice]:
+            raise dob.DobLookupError("Socrata timed out")
+
+        monkeypatch.setattr(dob, "fetch_devices", boom)
+
+        response = api_client.post("/api/buildings/lookup/", {"bin": "1001686"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            "match": None,
+            "matches": None,
+            "drafts": [],
+            "reason": "upstream_unavailable",
+        }
+
+    def test_lookup_get_not_allowed(self, api_client: APIClient) -> None:
+        """GET /api/buildings/lookup/ is not allowed; this is a POST-only action."""
+        response = api_client.get("/api/buildings/lookup/")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

@@ -8,14 +8,16 @@ from typing import Any
 from django.db.models import QuerySet
 from rest_framework import generics, viewsets
 from rest_framework import status as http_status
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.compliance import narration
+from apps.compliance import dob, narration
 from apps.compliance.models import Building, Elevator
 from apps.compliance.serializers import (
+    AddressLookupRequestSerializer,
     BuildingSerializer,
     ElevatorSerializer,
     LedgerEntrySerializer,
@@ -77,11 +79,149 @@ def _parse_building_id_param(request: Request) -> int | None:
         raise ValidationError({"building": f"{raw!r} is not a valid integer id."}) from None
 
 
+def _match_dict(match: dob.AddressMatch) -> dict[str, str]:
+    """Shape an :class:`~apps.compliance.dob.AddressMatch` for the lookup response.
+
+    Args:
+        match: A resolved geocoder candidate.
+
+    Returns:
+        A dict with ``bin``, ``resolved_address`` (the match's ``label``),
+        and ``borough``, per ``docs/architecture/integration-contracts.md`` §3.
+    """
+    return {"bin": match.bin, "resolved_address": match.label, "borough": match.borough}
+
+
+def _draft_dict(draft: dob.ElevatorDraft) -> dict[str, str]:
+    """Shape an :class:`~apps.compliance.dob.ElevatorDraft` for the lookup response.
+
+    Args:
+        draft: One reviewable elevator row derived from a DOB device.
+
+    Returns:
+        A dict matching ``CreateElevatorPayload``'s shape, with the date
+        serialized to ISO 8601.
+    """
+    return {
+        "dob_device_number": draft.dob_device_number,
+        "device_status": draft.device_status,
+        "inspection_type": draft.inspection_type,
+        "last_inspection_date": draft.last_inspection_date.isoformat(),
+    }
+
+
+#: Canned response for the "an external service failed" outcome, reused by
+#: both stages of the lookup pipeline (address geocoding and device fetch).
+_UPSTREAM_UNAVAILABLE_RESPONSE: dict[str, Any] = {
+    "match": None,
+    "matches": None,
+    "drafts": [],
+    "reason": "upstream_unavailable",
+}
+
+
 class BuildingViewSet(viewsets.ModelViewSet[Building]):
     """CRUD API for :class:`Building` records."""
 
     queryset = Building.objects.all()
     serializer_class = BuildingSerializer
+
+    @action(detail=False, methods=["post"])
+    def lookup(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """Resolve a street address (or a picked BIN) to DOB elevator drafts.
+
+        ``POST /api/buildings/lookup/`` — the P0 "add a building by
+        address" feature (PRD Journey 1). Composes the three lookup
+        stages in :mod:`apps.compliance.dob`: geocode an address to a
+        BIN (:func:`dob.resolve_address`), fetch that BIN's known
+        elevator devices (:func:`dob.fetch_devices`), then map those
+        devices onto reviewable rows (:func:`dob.map_dob_devices_to_drafts`).
+
+        This endpoint is read-only/preview — it does not persist
+        anything. The caller reviews/overrides the returned drafts, then
+        creates the building and elevators via the existing
+        ``POST /api/buildings/`` and ``POST /api/elevators/`` endpoints.
+
+        The request body must contain exactly one of ``address`` (an
+        initial lookup) or ``bin`` (a re-call after the caller resolves
+        an ``"ambiguous_match"`` response via a disambiguation picker,
+        skipping geocoding entirely).
+
+        Every outcome, including "no match", "no devices on file", and
+        "upstream service unavailable", is returned as an HTTP 200 with
+        a ``reason`` field the caller branches on — only a genuinely
+        malformed request body (neither/both of ``address``/``bin``)
+        produces a non-200 status. See
+        ``docs/architecture/integration-contracts.md`` §3 for the full
+        contract.
+
+        Args:
+            request: The incoming DRF request; its body is validated by
+                :class:`~apps.compliance.serializers.AddressLookupRequestSerializer`.
+            *args: Unused positional arguments from the URL dispatcher.
+            **kwargs: Unused keyword arguments from the URL dispatcher.
+
+        Returns:
+            A ``Response`` with ``{"match", "matches", "drafts", "reason"}``,
+            always HTTP 200 for well-formed requests (HTTP 400 for a
+            malformed body).
+        """
+        request_serializer = AddressLookupRequestSerializer(data=request.data)
+        request_serializer.is_valid(raise_exception=True)
+        address = request_serializer.validated_data.get("address")
+        bin_value = request_serializer.validated_data.get("bin")
+
+        match: dob.AddressMatch | None = None
+        if address:
+            try:
+                matches = dob.resolve_address(address)
+            except dob.DobLookupError:
+                logger.exception("Address geocoding failed")
+                return Response(_UPSTREAM_UNAVAILABLE_RESPONSE)
+            if not matches:
+                return Response(
+                    {"match": None, "matches": None, "drafts": [], "reason": "address_not_found"}
+                )
+            if dob.is_ambiguous(matches):
+                return Response(
+                    {
+                        "match": None,
+                        "matches": [_match_dict(candidate) for candidate in matches],
+                        "drafts": [],
+                        "reason": "ambiguous_match",
+                    }
+                )
+            match = matches[0]
+            bin_value = match.bin
+
+        assert bin_value is not None  # noqa: S101 — guaranteed by the request serializer's XOR check
+
+        try:
+            devices = dob.fetch_devices(bin_value)
+        except dob.DobLookupError:
+            logger.exception("DOB device fetch failed")
+            return Response(_UPSTREAM_UNAVAILABLE_RESPONSE)
+
+        match_dict = (
+            _match_dict(match)
+            if match is not None
+            else {"bin": bin_value, "resolved_address": None, "borough": None}
+        )
+
+        if not devices:
+            return Response(
+                {"match": match_dict, "matches": None, "drafts": [], "reason": "no_devices_on_file"}
+            )
+
+        drafts = dob.map_dob_devices_to_drafts(devices)
+        return Response(
+            {
+                "match": match_dict,
+                "matches": None,
+                "drafts": [_draft_dict(draft) for draft in drafts],
+                "reason": None,
+            }
+        )
 
 
 class ElevatorViewSet(viewsets.ModelViewSet[Elevator]):

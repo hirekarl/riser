@@ -15,11 +15,12 @@ Two external, keyless, no-auth sources are used:
 * **DOB NOW: Elevator Safety Compliance** (Socrata resource
   ``e5aq-a4j2``) returns every device recorded against a BIN.
 
-This is a proof of concept for Monday's integration work: it proves the
-chain end-to-end and normalizes the raw payloads into typed objects. It
-deliberately stops short of a DRF endpoint or of mapping devices onto the
-``Elevator`` model — those decisions touch the API contract and belong to
-the team (see the module's TODO note).
+This module proves the chain end-to-end: it normalizes the raw payloads
+into typed objects (:class:`AddressMatch`, :class:`DobDevice`) and maps
+devices onto reviewable :class:`ElevatorDraft` rows shaped to match
+``CreateElevatorPayload``. It deliberately stops short of a DRF endpoint —
+that's composed in ``apps/compliance/views.py``'s
+``BuildingViewSet.lookup`` action.
 """
 
 import dataclasses
@@ -83,6 +84,31 @@ class DobDevice:
     house_number: str
     street_name: str
     bin: str
+
+
+@dataclasses.dataclass(frozen=True)
+class ElevatorDraft:
+    """One reviewable elevator row derived from a DOB device's filing dates.
+
+    Shaped to match ``CreateElevatorPayload`` directly (see
+    ``docs/architecture/integration-contracts.md`` §3/§4 Stage 3) so the
+    frontend can post it straight to ``POST /api/elevators/`` once the
+    user assigns/creates the building. A single :class:`DobDevice` can
+    yield up to two drafts (one per populated CAT1/CAT5 date), both
+    carrying the same ``dob_device_number``.
+
+    Attributes:
+        dob_device_number: The source device's DOB ``device_number``.
+        device_status: The source device's status, e.g. ``"Active"``.
+        inspection_type: Which statutory category this draft represents,
+            ``"CAT1"`` or ``"CAT5"``.
+        last_inspection_date: The filing date for ``inspection_type``.
+    """
+
+    dob_device_number: str
+    device_status: str
+    inspection_type: str
+    last_inspection_date: datetime.date
 
 
 def _http_get_json(url: str) -> Any:
@@ -191,9 +217,42 @@ def fetch_devices(bin_value: str, *, limit: int = 1000) -> list[DobDevice]:
     ]
 
 
-# Resolved 2026-07-24 (docs/architecture/integration-contracts.md §4 Stage 3):
-# map_dob_devices_to_drafts() emits one ElevatorDraft per populated cat1/cat5
-# date on a DobDevice (up to two rows per device), each carrying the source
-# device_number as dob_device_number. Not yet implemented here — this POC
-# deliberately stops at fetch_devices(); the mapping function and the
-# /api/buildings/lookup/ endpoint composing all three stages are Monday's work.
+def map_dob_devices_to_drafts(devices: list[DobDevice]) -> list[ElevatorDraft]:
+    """Map DOB devices to one reviewable :class:`ElevatorDraft` per filed date.
+
+    Resolved 2026-07-24 (``docs/architecture/integration-contracts.md`` §4
+    Stage 3): a :class:`DobDevice` can carry both a CAT1 and a CAT5 filing
+    date, whereas an ``Elevator`` row has one ``inspection_type`` plus one
+    ``last_inspection_date``. This function keeps that one-type-per-row
+    model intact by emitting a separate draft per populated date field.
+
+    Args:
+        devices: Normalized devices from :func:`fetch_devices`.
+
+    Returns:
+        One :class:`ElevatorDraft` per populated ``cat1_latest_report_filed``
+        or ``cat5_latest_report_filed`` field, in device order (CAT1 before
+        CAT5 for a given device). A device with neither date populated
+        contributes no drafts.
+    """
+    drafts: list[ElevatorDraft] = []
+    for device in devices:
+        if device.cat1_latest_report_filed is not None:
+            drafts.append(
+                ElevatorDraft(
+                    dob_device_number=device.device_number,
+                    device_status=device.device_status,
+                    inspection_type="CAT1",
+                    last_inspection_date=device.cat1_latest_report_filed,
+                )
+            )
+        if device.cat5_latest_report_filed is not None:
+            drafts.append(
+                ElevatorDraft(
+                    dob_device_number=device.device_number,
+                    device_status=device.device_status,
+                    inspection_type="CAT5",
+                    last_inspection_date=device.cat5_latest_report_filed,
+                )
+            )
+    return drafts
