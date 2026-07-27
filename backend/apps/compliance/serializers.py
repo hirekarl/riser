@@ -6,6 +6,37 @@ from apps.compliance.models import Building, Elevator
 from apps.compliance.services import calculate_due_date, calculate_status
 
 
+class AddressLookupRequestSerializer(serializers.Serializer[dict[str, str]]):
+    """Validates the request body for ``POST /api/buildings/lookup/``.
+
+    Exactly one of ``address``/``bin`` must be present: ``address`` for an
+    initial lookup, ``bin`` to re-call after the user resolves an
+    ``"ambiguous_match"`` response via the disambiguation picker.
+    """
+
+    address = serializers.CharField(required=False, allow_blank=False)
+    bin = serializers.CharField(required=False, allow_blank=False)
+
+    def validate(self, attrs: dict[str, str]) -> dict[str, str]:
+        """Ensure exactly one of ``address``/``bin`` was supplied.
+
+        Args:
+            attrs: The field values that passed per-field validation.
+
+        Returns:
+            ``attrs`` unchanged, once the exactly-one-of check passes.
+
+        Raises:
+            serializers.ValidationError: If neither or both fields are
+                present.
+        """
+        has_address = bool(attrs.get("address"))
+        has_bin = bool(attrs.get("bin"))
+        if has_address == has_bin:
+            raise serializers.ValidationError("Exactly one of 'address' or 'bin' is required.")
+        return attrs
+
+
 class BuildingSerializer(serializers.ModelSerializer[Building]):
     """Serializer for CRUD operations on :class:`Building`."""
 

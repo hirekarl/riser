@@ -38,6 +38,17 @@ class TestBuilding:
         with pytest.raises(Exception):  # noqa: B017, PT011
             building.full_clean()
 
+    def test_bin_defaults_to_none(self) -> None:
+        """A manually-created Building has no cached BIN by default."""
+        building = Building.objects.create(name="A", address="1 A St")
+        assert building.bin is None
+
+    def test_bin_can_be_set(self) -> None:
+        """The resolved BIN can be cached on a Building."""
+        building = Building.objects.create(name="A", address="1 A St", bin="1001686")
+        building.refresh_from_db()
+        assert building.bin == "1001686"
+
 
 class TestElevator:
     """Tests for the :class:`Elevator` model."""
@@ -93,3 +104,25 @@ class TestElevator:
                 inspection_type="CAT1",
                 last_inspection_date=datetime.date(2026, 1, 1),
             )
+
+    def test_dob_device_number_defaults_to_none(self, building: Building) -> None:
+        """A manually-created Elevator has no DOB device number by default."""
+        elevator = Elevator.objects.create(
+            building=building,
+            device_identifier="EL-004",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2026, 1, 1),
+        )
+        assert elevator.dob_device_number is None
+
+    def test_dob_device_number_can_be_set(self, building: Building) -> None:
+        """The source DOB device number can be cached on an Elevator."""
+        elevator = Elevator.objects.create(
+            building=building,
+            device_identifier="EL-005",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2026, 1, 1),
+            dob_device_number="1P766",
+        )
+        elevator.refresh_from_db()
+        assert elevator.dob_device_number == "1P766"

@@ -14,6 +14,12 @@ class Building(models.Model):
 
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=500)
+    bin = models.CharField(  # noqa: DJ001 — null distinguishes "never looked up" from ""
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="Cached NYC Building Identification Number, resolved via DOB lookup.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -47,6 +53,12 @@ class Elevator(models.Model):
     device_identifier = models.CharField(max_length=100)
     inspection_type = models.CharField(max_length=4, choices=InspectionType.choices)
     last_inspection_date = models.DateField()
+    dob_device_number = models.CharField(  # noqa: DJ001 — null means "not from a DOB lookup"
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="Raw DOB device_number, when this row originated from a DOB lookup.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

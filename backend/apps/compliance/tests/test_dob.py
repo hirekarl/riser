@@ -139,6 +139,98 @@ class TestFetchDevices:
         assert "bin=1001026" in seen["url"]
 
 
+class TestMapDobDevicesToDrafts:
+    """Tests for :func:`apps.compliance.dob.map_dob_devices_to_drafts`."""
+
+    def test_both_dates_populated_yields_two_drafts(self) -> None:
+        """A device with both CAT1 and CAT5 dates yields one draft each."""
+        device = dob.DobDevice(
+            device_number="1P766",
+            device_type="Elevator",
+            device_status="Active",
+            cat1_latest_report_filed=datetime.date(2026, 2, 4),
+            cat5_latest_report_filed=datetime.date(2024, 1, 15),
+            house_number="108",
+            street_name="BROADWAY",
+            bin="1001026",
+        )
+        drafts = dob.map_dob_devices_to_drafts([device])
+        assert len(drafts) == 2
+        assert drafts[0] == dob.ElevatorDraft(
+            dob_device_number="1P766",
+            device_status="Active",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2026, 2, 4),
+        )
+        assert drafts[1] == dob.ElevatorDraft(
+            dob_device_number="1P766",
+            device_status="Active",
+            inspection_type="CAT5",
+            last_inspection_date=datetime.date(2024, 1, 15),
+        )
+
+    def test_one_date_populated_yields_one_draft(self) -> None:
+        """A device with only a CAT1 date yields a single CAT1 draft."""
+        device = dob.DobDevice(
+            device_number="1P767",
+            device_type="Elevator",
+            device_status="Active",
+            cat1_latest_report_filed=datetime.date(2026, 2, 4),
+            cat5_latest_report_filed=None,
+            house_number="108",
+            street_name="BROADWAY",
+            bin="1001026",
+        )
+        drafts = dob.map_dob_devices_to_drafts([device])
+        assert drafts == [
+            dob.ElevatorDraft(
+                dob_device_number="1P767",
+                device_status="Active",
+                inspection_type="CAT1",
+                last_inspection_date=datetime.date(2026, 2, 4),
+            )
+        ]
+
+    def test_neither_date_populated_yields_no_drafts(self) -> None:
+        """A device with neither date populated yields no drafts."""
+        device = dob.DobDevice(
+            device_number="1P768",
+            device_type="Elevator",
+            device_status="Active",
+            cat1_latest_report_filed=None,
+            cat5_latest_report_filed=None,
+            house_number="108",
+            street_name="BROADWAY",
+            bin="1001026",
+        )
+        assert dob.map_dob_devices_to_drafts([device]) == []
+
+    def test_multiple_devices_flattened(self) -> None:
+        """Drafts from multiple devices are flattened into a single list."""
+        device_a = dob.DobDevice(
+            device_number="A",
+            device_type="Elevator",
+            device_status="Active",
+            cat1_latest_report_filed=datetime.date(2026, 1, 1),
+            cat5_latest_report_filed=None,
+            house_number="1",
+            street_name="A ST",
+            bin="1",
+        )
+        device_b = dob.DobDevice(
+            device_number="B",
+            device_type="Elevator",
+            device_status="Active",
+            cat1_latest_report_filed=None,
+            cat5_latest_report_filed=datetime.date(2020, 1, 1),
+            house_number="2",
+            street_name="B ST",
+            bin="1",
+        )
+        drafts = dob.map_dob_devices_to_drafts([device_a, device_b])
+        assert [d.dob_device_number for d in drafts] == ["A", "B"]
+
+
 class TestParseDobDate:
     """Tests for the internal date parser."""
 
