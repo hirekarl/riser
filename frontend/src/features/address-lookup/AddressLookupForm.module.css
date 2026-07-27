@@ -1,0 +1,105 @@
+/* Functional styling only — this is a form shell (Mon 2026-07-27 scope).
+   Final visual/interaction design for the review-and-override screen that
+   sits on top of this shell is explicitly out of scope here (see
+   docs/sprints/day-by-day-plan.md). Reuses the same shapes/spacing idioms as
+   forms.module.css so it doesn't look out of place next to BuildingForm and
+   ElevatorForm in the interim. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid #d9dde3;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.form h2 {
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.field input {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #7a8091;
+  border-radius: 6px;
+}
+
+.primaryButton {
+  align-self: flex-start;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #8f5525;
+  background-color: #8f5525;
+  color: #fff9f1;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background-color: #7a4720;
+  border-color: #7a4720;
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.loading {
+  color: #4b5261;
+  font-size: 0.9rem;
+}
+
+.errorBanner {
+  background-color: #fdecea;
+  color: #9c1c12;
+  border: 1px solid #9c1c12;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.previewNote {
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.deviceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deviceItem {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d9dde3;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+}
+
+.hint {
+  color: #4b5261;
+  font-size: 0.9rem;
+}

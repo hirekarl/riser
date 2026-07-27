@@ -210,7 +210,13 @@ test("full add building -> add elevator -> status color -> edit date -> status u
 
   // Add a building.
   await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  // Scoped to the "Add a building" form: the new address-lookup form shell
+  // (AddressLookupForm) also has an "Address" labeled field elsewhere on the
+  // page, so an unscoped getByLabel(/address/i) is now ambiguous.
+  await page
+    .getByRole("form", { name: /add a building/i })
+    .getByLabel(/address/i)
+    .fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
@@ -256,7 +262,13 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
 
   // Add a building.
   await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  // Scoped to the "Add a building" form: the new address-lookup form shell
+  // (AddressLookupForm) also has an "Address" labeled field elsewhere on the
+  // page, so an unscoped getByLabel(/address/i) is now ambiguous.
+  await page
+    .getByRole("form", { name: /add a building/i })
+    .getByLabel(/address/i)
+    .fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
@@ -336,7 +348,13 @@ test("visually marks the row currently open in the Edit form, distinct from othe
   await page.goto("/");
 
   await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  // Scoped to the "Add a building" form: the new address-lookup form shell
+  // (AddressLookupForm) also has an "Address" labeled field elsewhere on the
+  // page, so an unscoped getByLabel(/address/i) is now ambiguous.
+  await page
+    .getByRole("form", { name: /add a building/i })
+    .getByLabel(/address/i)
+    .fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
@@ -399,7 +417,13 @@ test("ledger table does not cause horizontal page overflow on a narrow (phone-wi
 
   // Add a building.
   await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  // Scoped to the "Add a building" form: the new address-lookup form shell
+  // (AddressLookupForm) also has an "Address" labeled field elsewhere on the
+  // page, so an unscoped getByLabel(/address/i) is now ambiguous.
+  await page
+    .getByRole("form", { name: /add a building/i })
+    .getByLabel(/address/i)
+    .fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
@@ -441,4 +465,60 @@ test("ledger table does not cause horizontal page overflow on a narrow (phone-wi
   await page.mouse.wheel(500, 0);
   const scrollXAfterAttempt = await page.evaluate(() => window.scrollX);
   expect(scrollXAfterAttempt).toBe(0);
+});
+
+test("address-lookup form shell previews DOB devices for a matched address, never exposing the BIN", async ({
+  page,
+}) => {
+  await mockApi(page);
+
+  const bin = "1001686";
+  await page.route("**/api/buildings/lookup/**", async (route) => {
+    await route.fulfill({
+      json: {
+        match: {
+          bin,
+          resolved_address: "350 5 AVENUE",
+          borough: "MANHATTAN",
+        },
+        devices: [
+          {
+            device_number: "DEV-1",
+            device_status: "Active",
+            cat1_latest_report_filed: "2026-03-01",
+            cat5_latest_report_filed: null,
+            periodic_latest_inspection: "2026-02-01",
+          },
+        ],
+        reason: null,
+      },
+    });
+  });
+
+  await page.goto("/");
+
+  const lookupForm = page.getByRole("form", { name: /look up a building/i });
+  await lookupForm.getByLabel(/address/i).fill("350 Fifth Avenue, Manhattan");
+  await lookupForm.getByRole("button", { name: /look up address/i }).click();
+
+  await expect(page.getByText(/350 5 avenue/i)).toBeVisible();
+  await expect(page.getByText(/manhattan/i)).toBeVisible();
+  await expect(page.getByText(/dev-1/i)).toBeVisible();
+  await expect(page.getByText(/preview only/i)).toBeVisible();
+
+  // The BIN must never appear anywhere in the rendered page, even though the
+  // mocked response includes it (needed by tomorrow's save flow, not today's
+  // preview) — see docs/sprints/day-by-day-plan.md's explicit "no BIN
+  // exposed to the user" requirement.
+  const bodyText = await page.locator("body").innerText();
+  expect(bodyText).not.toContain(bin);
+  const bodyHtml = await page.locator("body").innerHTML();
+  expect(bodyHtml).not.toContain(bin);
+
+  // Accessibility: zero critical/serious violations with the device preview rendered.
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+  const seriousOrCritical = accessibilityScanResults.violations.filter((violation: Result) =>
+    ["serious", "critical"].includes(violation.impact ?? ""),
+  );
+  expect(seriousOrCritical).toEqual([]);
 });

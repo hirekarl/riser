@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { listBuildings } from "./api/client";
+import { AddressLookupForm } from "./features/address-lookup/AddressLookupForm";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { NarrationPanel } from "./features/narration/NarrationPanel";
@@ -82,6 +83,15 @@ function App() {
       )}
 
       <div className={styles.formsRow}>
+        {/* Address-lookup form shell (Mon 2026-07-27 scope): preview-only
+            today, not yet wired to createBuilding/createElevator — that
+            wiring plus the review/override-before-saving flow lands
+            tomorrow, on top of this shell. Placed alongside the manual
+            forms since it's an alternate way to add a building; exact
+            placement/visual treatment is not final (Schiffon's afternoon
+            task starts the visual design for the screen built on top of
+            this). */}
+        <AddressLookupForm />
         <BuildingForm onCreated={handleBuildingCreated} />
         <ElevatorForm
           buildings={buildings}
