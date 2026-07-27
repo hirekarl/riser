@@ -150,4 +150,4 @@ Schiffon acknowledged Karl's 7/26 evening Slack message covering PR #92 (favicon
 | --- | --- | --- | --- |
 | PR #92 favicon review | Schiffon | Reviewed, approved | Rendered the SVG at 16px/32px/128px to confirm real-tab-size legibility — clean, on-brand (rust/cream), no issues found. |
 | Final visual pass: status colors distinct/high-contrast in practice | Schiffon | In progress | Real human pass today, on top of Karl's 7/25 automated fallback. |
-| Final accessibility pass: contrast/jsx-a11y/axe + screen-reader/keyboard walkthrough | Schiffon | In progress | Keyboard-only walkthrough starting today (Claude Code driving it, results to follow); screen-reader (VoiceOver) pass needs Schiffon directly. Targeting done before the 7/29 capstone.
+| Final accessibility pass: contrast/jsx-a11y/axe + screen-reader/keyboard walkthrough | Schiffon | In progress | Keyboard-only walkthrough starting today (Claude Code driving it, results to follow); screen-reader (VoiceOver) pass needs Schiffon directly. Targeting done before the 7/29 capstone. |
