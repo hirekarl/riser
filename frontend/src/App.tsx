@@ -3,6 +3,7 @@ import { listBuildings } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { NarrationPanel } from "./features/narration/NarrationPanel";
+import { AddressLookupForm } from "./features/portfolio/AddressLookupForm";
 import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
@@ -36,6 +37,14 @@ function App() {
   }, [loadBuildings]);
 
   function handleBuildingCreated(building: Building) {
+    setBuildings((current) => [...current, building]);
+    setReloadSignal((n) => n + 1);
+  }
+
+  // Address lookup calls createBuilding + createElevator itself (see
+  // AddressLookupForm), then hands the finished building back here once
+  // everything is saved, so this mirrors handleBuildingCreated exactly.
+  function handleAddressLookupSaved(building: Building) {
     setBuildings((current) => [...current, building]);
     setReloadSignal((n) => n + 1);
   }
@@ -80,6 +89,8 @@ function App() {
           </button>
         </div>
       )}
+
+      <AddressLookupForm onSaved={handleAddressLookupSaved} />
 
       <div className={styles.formsRow}>
         <BuildingForm onCreated={handleBuildingCreated} />

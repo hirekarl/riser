@@ -13,10 +13,12 @@ describe("EmptyState", () => {
 
   it("gives explicit, actionable instructions rather than a bare 'no data' message", () => {
     render(<EmptyState />);
-    // Points at the actually-working fast start: the forms rendered above the ledger.
-    expect(screen.getByText(/add your first building/i)).toBeInTheDocument();
+    // Points at the address-lookup fast start first, with the manual forms
+    // rendered above the ledger as the fallback path.
+    expect(screen.getByText(/look up your first building by address/i)).toBeInTheDocument();
 
     const steps = screen.getAllByRole("listitem").map((item) => item.textContent);
+    expect(steps.some((text) => /look up an address/i.test(text ?? ""))).toBe(true);
     expect(steps.some((text) => /add a building/i.test(text ?? ""))).toBe(true);
     expect(steps.some((text) => /add an elevator/i.test(text ?? ""))).toBe(true);
   });
