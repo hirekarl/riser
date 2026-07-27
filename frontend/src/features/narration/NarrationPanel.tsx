@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { fetchNarration } from "../../api/client";
+import { logError } from "../../lib/logger";
+import { useIsMounted } from "./useIsMounted";
 import styles from "./NarrationPanel.module.css";
 
 type PanelState =
@@ -22,17 +24,21 @@ type PanelState =
  */
 export function NarrationPanel() {
   const [state, setState] = useState<PanelState>({ status: "idle" });
+  const isMounted = useIsMounted();
 
   async function handleGenerate() {
     setState({ status: "loading" });
     try {
       const response = await fetchNarration();
+      if (!isMounted()) return;
       setState({
         status: "success",
         narration: response.narration,
         generatedAt: response.generated_at,
       });
-    } catch {
+    } catch (error) {
+      logError("Failed to generate portfolio briefing", error);
+      if (!isMounted()) return;
       setState({ status: "error" });
     }
   }

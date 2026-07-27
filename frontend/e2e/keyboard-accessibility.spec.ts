@@ -243,8 +243,10 @@ test("keyboard-only walkthrough: every control is reachable, operable, and visib
   // single most common real-world keyboard-accessibility failure (a control
   // that *works* via keyboard but a sighted keyboard user can't tell is
   // focused).
-  expect(missingFocusRing, `Elements with no visible focus ring:\n${missingFocusRing.join("\n")}`)
-    .toEqual([]);
+  expect(
+    missingFocusRing,
+    `Elements with no visible focus ring:\n${missingFocusRing.join("\n")}`,
+  ).toEqual([]);
 });
 
 test("keyboard-only: the status legend opens via keyboard, not just mouse click", async ({
