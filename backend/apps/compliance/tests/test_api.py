@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.compliance import narration
 from apps.compliance.models import Building, Elevator
 
 pytestmark = pytest.mark.django_db
@@ -272,31 +273,12 @@ class TestLedgerAPI:
 class TestNarrationAPI:
     """Tests for the AI risk-narration endpoint ``GET /api/ledger/narration/``.
 
-    Not yet implemented (no ``narration.py`` module, view, or URL route) —
-    these tests are pre-written scaffolding per
-    ``docs/architecture/integration-contracts.md`` §5 and are expected to
-    fail (404, since no route exists) until the feature is built.
-
     The monkeypatches below target ``apps.compliance.narration.generate_narration``
     (module-qualified, not a ``from ... import`` binding). This requires the
-    eventual view to call it as ``narration.generate_narration(...)`` rather
-    than importing the name directly, matching the ``test_dob.py`` convention
-    of monkeypatching the boundary on the module object.
-
-    ``apps.compliance.narration`` doesn't exist yet, so the import is done
-    locally inside each test that needs it (rather than at module scope) —
-    that keeps the ``ImportError`` scoped to these new tests instead of
-    breaking collection of this entire file and every pre-existing test in it.
-
-    Marked ``xfail`` so the pre-push coverage gate stays green on this
-    branch; remove ``pytestmark`` once the endpoint exists and these pass
-    for real.
+    view to call it as ``narration.generate_narration(...)`` rather than
+    importing the name directly, matching the ``test_dob.py`` convention of
+    monkeypatching the boundary on the module object.
     """
-
-    pytestmark = pytest.mark.xfail(
-        reason="GET /api/ledger/narration/ not implemented yet — integration-contracts.md §5",
-        strict=False,
-    )
 
     def test_empty_ledger_returns_fixed_narration_without_calling_claude(
         self, api_client: APIClient
@@ -315,8 +297,6 @@ class TestNarrationAPI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """A non-empty ledger's narration comes from generate_narration's return value."""
-        from apps.compliance import narration  # type: ignore[attr-defined]  # not built yet
-
         canned = "3 elevators are Delinquent, 2 enter Warning this week."
         monkeypatch.setattr(narration, "generate_narration", lambda entries: canned)
 
@@ -333,7 +313,6 @@ class TestNarrationAPI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """A NarrationUnavailableError from generate_narration surfaces as a bespoke 503."""
-        from apps.compliance import narration  # type: ignore[attr-defined]  # not built yet
 
         def boom(entries: object) -> str:
             raise narration.NarrationUnavailableError("Claude timed out")

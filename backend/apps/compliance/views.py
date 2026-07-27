@@ -1,15 +1,19 @@
 """DRF views for the compliance app."""
 
+import datetime
 import logging
 from collections.abc import Sequence
 from typing import Any
 
 from django.db.models import QuerySet
 from rest_framework import generics, viewsets
+from rest_framework import status as http_status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from apps.compliance import narration
 from apps.compliance.models import Building, Elevator
 from apps.compliance.serializers import (
     BuildingSerializer,
@@ -27,6 +31,25 @@ _STATUS_RANK = {
     Status.WARNING: 1,
     Status.COMPLIANT: 2,
 }
+
+
+def _sort_by_urgency(elevators: Sequence[Elevator]) -> list[Elevator]:
+    """Sort elevators by urgency (status), then by ascending due date.
+
+    Args:
+        elevators: The elevators to sort.
+
+    Returns:
+        Elevators ordered by status rank (Delinquent, then Warning, then
+        Compliant) and, within each tier, by ascending computed due date.
+    """
+
+    def sort_key(elevator: Elevator) -> tuple[int, str]:
+        due_date = calculate_due_date(elevator.inspection_type, elevator.last_inspection_date)
+        rank = _STATUS_RANK[calculate_status(due_date)]
+        return (rank, due_date.isoformat())
+
+    return sorted(elevators, key=sort_key)
 
 
 def _parse_building_id_param(request: Request) -> int | None:
@@ -123,14 +146,7 @@ class LedgerListView(generics.ListAPIView[Elevator]):
             Elevators ordered by status rank (Delinquent, then Warning,
             then Compliant) and, within each tier, by ascending due date.
         """
-        elevators = list(self.filter_queryset(self.get_queryset()))
-
-        def sort_key(elevator: Elevator) -> tuple[int, str]:
-            due_date = calculate_due_date(elevator.inspection_type, elevator.last_inspection_date)
-            rank = _STATUS_RANK[calculate_status(due_date)]
-            return (rank, due_date.isoformat())
-
-        return sorted(elevators, key=sort_key)
+        return _sort_by_urgency(list(self.filter_queryset(self.get_queryset())))
 
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """Return the ranked ledger as a plain (unpaginated) JSON list.
@@ -145,3 +161,40 @@ class LedgerListView(generics.ListAPIView[Elevator]):
         """
         serializer = self.get_serializer(self._sorted_elevators(), many=True)
         return Response(serializer.data)
+
+
+class NarrationView(APIView):
+    """The AI risk-narration briefing: ``GET /api/ledger/narration/``.
+
+    Read-only and on-demand, over the whole portfolio (no ``?building=``
+    scoping). Reuses the same urgency-sorted, serialized ledger rows that
+    :class:`LedgerListView` produces as the structured input to
+    :func:`apps.compliance.narration.generate_narration`, rather than
+    recomputing due dates/statuses here.
+    """
+
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """Return a generated narration for the current ledger state.
+
+        Args:
+            request: The incoming DRF request.
+            *args: Unused positional arguments from the URL dispatcher.
+            **kwargs: Unused keyword arguments from the URL dispatcher.
+
+        Returns:
+            A ``Response`` with ``{"narration": ..., "generated_at": ...}``
+            on success (200), or ``{"error": "narration_unavailable"}``
+            (503) if the underlying Claude API call failed or timed out.
+        """
+        elevators = _sort_by_urgency(list(Elevator.objects.select_related("building").all()))
+        entries = LedgerEntrySerializer(elevators, many=True).data
+        try:
+            text = narration.generate_narration(list(entries))
+        except narration.NarrationUnavailableError:
+            logger.exception("Narration generation failed")
+            return Response(
+                {"error": "narration_unavailable"},
+                status=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        generated_at = datetime.datetime.now(tz=datetime.UTC).isoformat()
+        return Response({"narration": text, "generated_at": generated_at})
