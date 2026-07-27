@@ -141,3 +141,13 @@ Note: The three merged design PRs (#79, #85, #87) represent work that was not on
 ### Fri 7/24 Outstanding items — follow-up for next session
 
 Schiffon's two items from the Fri 7/24 "Outstanding" table (Final visual pass on status colors; Final accessibility pass on contrast/jsx-a11y/axe) remain logically open even after Karl's automated fallback passes on Sat 7/25 — they require her human judgment and direct action. Per Karl's direction this session: Karl plans to ask Schiffon directly for the manual passes before the 7/29 capstone, rather than have another session's automated fallback substitute for her. Schiffon was demonstrably active today (3 merged PRs: #79, #85, #87), so direct coordination is now feasible and preferred.
+
+## 2026-07-27 (Mon) — Schiffon back online, QA + favicon follow-up
+
+Schiffon acknowledged Karl's 7/26 evening Slack message covering PR #92 (favicon review) and the two outstanding Fri 7/24 QA items (final visual pass, final accessibility pass).
+
+| Task | Assigned to | Status | Notes |
+| --- | --- | --- | --- |
+| PR #92 favicon review | Schiffon | Reviewed, approved | Rendered the SVG at 16px/32px/128px to confirm real-tab-size legibility — clean, on-brand (rust/cream), no issues found. |
+| Final visual pass: status colors distinct/high-contrast in practice | Schiffon | In progress | Real human pass today, on top of Karl's 7/25 automated fallback. |
+| Final accessibility pass: contrast/jsx-a11y/axe + screen-reader/keyboard walkthrough | Schiffon | In progress | Keyboard-only walkthrough starting today (Claude Code driving it, results to follow); screen-reader (VoiceOver) pass needs Schiffon directly. Targeting done before the 7/29 capstone. |
