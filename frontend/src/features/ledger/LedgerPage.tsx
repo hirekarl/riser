@@ -3,7 +3,7 @@ import { deleteElevator, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import { logError } from "../../lib/logger";
-import type { Building, LedgerEntry } from "../../types/domain";
+import type { Building, ComplianceStatus, LedgerEntry } from "../../types/domain";
 import styles from "./LedgerPage.module.css";
 
 // Matches the sweep-fade animation duration in LedgerPage.module.css, plus a
@@ -12,6 +12,11 @@ import styles from "./LedgerPage.module.css";
 const HIGHLIGHT_DURATION_MS = 1800;
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// Same urgency order the ledger endpoint itself sorts by (see LedgerEntry in
+// types/domain.ts) — the status filter's options follow that order rather
+// than, say, alphabetical, so the dropdown reads consistently with the table.
+const STATUS_FILTER_OPTIONS: ComplianceStatus[] = ["Delinquent", "Warning", "Compliant"];
 
 // Plain-language remediation copy for a Warning/Delinquent row, derived
 // entirely from data the ledger already returns (status, due_date,
@@ -97,9 +102,11 @@ export function LedgerPage({
   onElevatorUpdated,
 }: LedgerPageProps) {
   const filterId = useId();
+  const statusFilterId = useId();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
+  const [selectedStatus, setSelectedStatus] = useState<ComplianceStatus | undefined>(undefined);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
 
@@ -235,12 +242,16 @@ export function LedgerPage({
 
   // LedgerEntry (see types/domain.ts) deliberately omits the building's
   // numeric id, exposing only `building_name` — so the filter matches by
-  // name rather than id. This only ever filters the already server-sorted
-  // `entries` down to a subset (order preserved); it never re-sorts them.
+  // name rather than id. Both filters below only ever narrow the
+  // already server-sorted `entries` down to a subset (order preserved, AND'd
+  // together); neither ever re-sorts them.
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId);
-  const visibleEntries = selectedBuilding
-    ? (entries ?? []).filter((entry) => entry.building_name === selectedBuilding.name)
-    : entries;
+  const visibleEntries =
+    entries === null
+      ? null
+      : entries
+          .filter((entry) => !selectedBuilding || entry.building_name === selectedBuilding.name)
+          .filter((entry) => !selectedStatus || entry.status === selectedStatus);
 
   return (
     <div className={styles.wrapper}>
@@ -307,6 +318,27 @@ export function LedgerPage({
             {buildings.map((building) => (
               <option key={building.id} value={building.id}>
                 {building.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {entries && entries.length > 0 && (
+        <div className={styles.filterRow}>
+          <label htmlFor={statusFilterId}>Filter by status</label>
+          <select
+            id={statusFilterId}
+            value={selectedStatus ?? ""}
+            onChange={(event) => {
+              const { value } = event.target;
+              setSelectedStatus(value === "" ? undefined : (value as ComplianceStatus));
+            }}
+          >
+            <option value="">All statuses</option>
+            {STATUS_FILTER_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status}
               </option>
             ))}
           </select>
