@@ -101,6 +101,25 @@ describe("LedgerPage", () => {
     await waitFor(() => expect(onSeeded).toHaveBeenCalled());
   });
 
+  it("defaults onSeeded to a no-op so the sample-data button works even when the parent doesn't pass one", async () => {
+    const response: SeedDemoDataResponse = { buildings_created: 7, elevators_created: 27 };
+    vi.spyOn(client, "seedDemoData").mockResolvedValue(response);
+    const user = userEvent.setup();
+
+    render(<LedgerPage entries={[]} />);
+
+    await user.click(screen.getByRole("button", { name: /try sample data/i }));
+
+    // No onSeeded was passed, so this exercises LedgerPage's default no-op —
+    // the button click must still succeed (seed request resolves, success
+    // message announced) without throwing, rather than crashing on a missing
+    // handler. Matched by text, not role="status": the page also has an
+    // always-present visually-hidden live region with that same role (used
+    // for delete/save announcements elsewhere), so an unscoped role query is
+    // ambiguous once both are on the page at once.
+    expect(await screen.findByText(/7 buildings/i)).toBeInTheDocument();
+  });
+
   it("has no axe accessibility violations in a populated state", async () => {
     const { container } = render(<LedgerPage entries={mixedStatusEntries} />);
 
