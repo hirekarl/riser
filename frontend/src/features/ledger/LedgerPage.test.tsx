@@ -733,6 +733,68 @@ describe("LedgerPage", () => {
     expect(results).toHaveNoViolations();
   });
 
+  it("does not show a status filter when there are no entries", () => {
+    render(<LedgerPage entries={[]} />);
+
+    expect(screen.queryByLabelText(/filter by status/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a status filter with an 'All statuses' option plus one per status, ordered by urgency", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
+
+    const select = screen.getByLabelText(/filter by status/i);
+    const options = within(select).getAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual([
+      "All statuses",
+      "Delinquent",
+      "Warning",
+      "Compliant",
+    ]);
+  });
+
+  it("filters the displayed rows to the selected status without triggering a new fetch", () => {
+    const listLedgerSpy = vi.spyOn(client, "listLedger");
+
+    render(<LedgerPage entries={mixedStatusEntries} />);
+    const select = screen.getByLabelText(/filter by status/i);
+
+    fireEvent.change(select, { target: { value: "Compliant" } });
+
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
+    expect(listLedgerSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows the unfiltered ledger again when switching back to 'All statuses'", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
+    const select = screen.getByLabelText(/filter by status/i);
+
+    fireEvent.change(select, { target: { value: "Compliant" } });
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+
+    fireEvent.change(select, { target: { value: "" } });
+
+    expect(screen.getByText("EL-1")).toBeInTheDocument();
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.getByText("EL-3")).toBeInTheDocument();
+  });
+
+  it("combines the building and status filters with AND, not OR", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    const buildingSelect = screen.getByLabelText(/filter by building/i);
+    const statusSelect = screen.getByLabelText(/filter by status/i);
+
+    fireEvent.change(buildingSelect, { target: { value: "1" } }); // Tower A
+    fireEvent.change(statusSelect, { target: { value: "Delinquent" } });
+
+    // Only EL-3 is both in Tower A and Delinquent.
+    expect(screen.getByText("EL-3")).toBeInTheDocument();
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument(); // Tower A but Warning
+    expect(screen.queryByText("EL-2")).not.toBeInTheDocument(); // Compliant but Tower B
+  });
+
   it("disables the inline date input and marks the row for whichever entry is the current edit target", () => {
     const { rerender } = render(<LedgerPage entries={mixedStatusEntries} editingElevatorId={1} />);
 
