@@ -276,7 +276,42 @@ Client: `fetchNarration(): Promise<NarrationResponse>` (let a non-200 response s
 - `ANTHROPIC_API_KEY` via env var (`backend/.env.example`/`.env` — added Wed 7/22 per the day-by-day plan).
 - Wrap the Claude call in a try/except with a timeout; any failure returns the `narration_unavailable` shape rather than a 500.
 
-## 6. Sequencing cross-reference
+## 6. New contract: fine/penalty exposure (issue #120)
+
+Two additions, both read-only:
+
+**`GET /api/ledger/`** rows now carry `has_open_violation: boolean` — resolved by joining each row's `dob_device_number` against the DOB Safety Violations feed (`855j-jady`, Socrata), batched once per request rather than per row (`backend/apps/compliance/violations.py::fetch_open_device_numbers`). An elevator with no `dob_device_number` is always `false`. `GET /api/ledger/narration/` uses the same batched flag on its input entries, and the narration system prompt (`narration.py::_SYSTEM_PROMPT`) now instructs Claude to call out elevators with an open violation explicitly.
+
+**`GET /api/buildings/fine-exposure/`** — new, portfolio-wide, always fetched once on load (alongside `listBuildings()`/`listLedger()`, not on a per-building click). Returns one row per building, resolved via a **single batched** Socrata call across every building's BIN (`violations.py::fetch_building_fine_exposures`) rather than one request per building — this was revised 2026-07-28 from an earlier on-demand-per-building design once batching turned out to be just as cheap as the `has_open_violation` join above; see this file's git history for the superseded per-building shape if it's ever useful as a reference.
+
+```json
+[
+  {
+    "building": 20,
+    "bin": "1036156",
+    "total_exposure": "0",
+    "open_violation_count": 0,
+    "reason": null
+  },
+  {
+    "building": 19,
+    "bin": null,
+    "total_exposure": null,
+    "open_violation_count": null,
+    "reason": "no_bin_on_file"
+  }
+]
+```
+
+`reason` is per-row: `"no_bin_on_file"` (that building was never DOB-matched — no BIN to query by) or `"upstream_unavailable"` (the batched Socrata call failed — every building that _does_ have a BIN gets this reason together; a no-BIN building keeps `"no_bin_on_file"` regardless, since there was never a lookup to fail for it). Both are still HTTP 200, mirroring `POST /api/buildings/lookup/`'s contract in §3. `total_exposure` is a decimal **string**, not a number — avoids float precision loss on a dollar amount; parse client-side only for display, never for further arithmetic.
+
+**Why building-level, not per-elevator dollars**: the ECB feed only joins by BIN, not by device number, so an exact per-elevator dollar figure isn't reliably attributable when a building has more than one elevator with concurrent violations. See the issue's "join-key gap" writeup for the full reasoning — this was a deliberate product call, not an oversight.
+
+**AI narration also gets this data**: `GET /api/ledger/narration/` additionally batches fine exposure for every building represented in the ledger (`views.py::_fetch_building_fine_exposures_for_narration`) and passes it to `narration.generate_narration()` as a second argument, `building_fine_exposures` — a list of `{building_name, total_exposure, open_violation_count}` for buildings that have a BIN (buildings without one are omitted, not reported as zero). The system prompt instructs Claude to cite the actual dollar figure for a building when one is present, and never to invent one for a building outside that list.
+
+TS types: `LedgerEntry.has_open_violation`, `BuildingFineExposure` (both in `frontend/src/types/domain.ts`). Client: `fetchPortfolioFineExposure(): Promise<BuildingFineExposure[]>`, called once by `App` on mount/`reloadSignal` alongside `listBuildings()`/`listLedger()`.
+
+## 7. Sequencing cross-reference
 
 | Contract | Day | Owner(s) |
 | --- | --- | --- |
@@ -284,9 +319,11 @@ Client: `fetchNarration(): Promise<NarrationResponse>` (let a non-200 response s
 | Ledger `?building=` filter | Wed 7/22 | Cornell (backend), Andres (UI) |
 | AI narration (`/api/ledger/narration/`) | Sun 7/26 | Cornell (backend), Karl (TS type + client), Andres (panel), Schiffon (styling) |
 | Address lookup (`/api/buildings/lookup/`) | Mon–Tue 7/27–28 | Cornell (backend + geocoding risk), Karl (TS type + client), Andres (form + wiring), Schiffon (review-screen styling) |
+| Fine/penalty exposure (`has_open_violation`, `/api/buildings/fine-exposure/`, narration wiring) | Tue 7/28 | Karl (backend + TS type + client, fallback trigger — see issue #120) |
 
-## 7. Open verification items
+## 8. Open verification items
 
 - ~~**Geocoding service reachability + auth** (§4, Stage 1)~~ — **resolved 2026-07-22** by Cornell: GeoSearch v2, keyless. See `docs/architecture/geocoding-reachability-findings.md`.
-- **NYC Open Data app token** — optional, anonymous access likely sufficient at demo scale; confirm no rate-limit issues surface during rehearsal.
+- **NYC Open Data app token** — optional, anonymous access likely sufficient at demo scale; confirm no rate-limit issues surface during rehearsal. `violations.py` (§6) hits two more Socrata resources anonymously, same as `dob.py`'s existing pattern — an app token is available if rate-limiting shows up (offered 2026-07-28), but hasn't been needed yet.
 - **`ANTHROPIC_API_KEY` provisioning** — who actually holds/generates this key, needed by Wed 7/22 per the env-prep task.
+- **§103-02 statutory penalty amounts** (issue #120) — the flat-fee/monthly-late-fee figures cited in the issue are from secondary sources, not yet verified against the primary NYC rule text. Not load-bearing for the shipped feature (which surfaces real recorded violations from the ECB feed, not computed statutory estimates), but worth closing out before those figures are ever hardcoded/displayed anywhere.

@@ -4,7 +4,7 @@ import { axe } from "vitest-axe";
 import { BuildingList } from "./BuildingList";
 import * as client from "../../api/client";
 import * as logger from "../../lib/logger";
-import type { Building } from "../../types/domain";
+import type { Building, BuildingFineExposure } from "../../types/domain";
 
 const buildings: Building[] = [
   {
@@ -199,7 +199,18 @@ describe("BuildingList", () => {
   it("announces which building was deleted via a polite status region", async () => {
     vi.spyOn(client, "deleteBuilding").mockResolvedValue(undefined);
 
-    render(<BuildingList buildings={buildings} />);
+    // Resolved entries for every building avoid the per-row loading state's
+    // own role="status" elements colliding with the delete-announcement
+    // region this test is asserting on (a missing/pending entry falls back
+    // to that same loading state — see FineExposureSummary).
+    const resolvedFineExposures: BuildingFineExposure[] = buildings.map((b) => ({
+      building: b.id,
+      bin: null,
+      total_exposure: null,
+      open_violation_count: null,
+      reason: "no_bin_on_file",
+    }));
+    render(<BuildingList buildings={buildings} fineExposures={resolvedFineExposures} />);
     const item = screen.getByText("Tower A").closest("li") as HTMLElement;
 
     fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
@@ -211,6 +222,120 @@ describe("BuildingList", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent(/tower a deleted/i);
+    });
+  });
+
+  describe("fine exposure (issue #120, always visible)", () => {
+    it("shows a loading state per row while fineExposures is null", () => {
+      render(<BuildingList buildings={buildings} fineExposures={null} />);
+
+      const rows = screen.getAllByText(/checking fine exposure/i);
+      expect(rows).toHaveLength(buildings.length);
+    });
+
+    it("shows the total exposure and violation count once resolved", () => {
+      const fineExposures: BuildingFineExposure[] = [
+        {
+          building: 1,
+          bin: "1001026",
+          total_exposure: "3150.50",
+          open_violation_count: 2,
+          reason: null,
+        },
+        { building: 2, bin: "2000094", total_exposure: "0", open_violation_count: 0, reason: null },
+      ];
+      render(<BuildingList buildings={buildings} fineExposures={fineExposures} />);
+
+      expect(screen.getByText(/\$3,150\.50/)).toBeInTheDocument();
+      expect(screen.getByText(/2 open violations/i)).toBeInTheDocument();
+    });
+
+    it("uses singular 'violation' when the count is exactly 1", () => {
+      const fineExposures: BuildingFineExposure[] = [
+        {
+          building: 1,
+          bin: "1001026",
+          total_exposure: "3000.00",
+          open_violation_count: 1,
+          reason: null,
+        },
+        { building: 2, bin: "2000094", total_exposure: "0", open_violation_count: 0, reason: null },
+      ];
+      render(<BuildingList buildings={buildings} fineExposures={fineExposures} />);
+
+      expect(screen.getByText(/1 open violation\./i)).toBeInTheDocument();
+    });
+
+    it("shows an explanatory (non-error) message for a building with no BIN on file", () => {
+      const fineExposures: BuildingFineExposure[] = [
+        {
+          building: 1,
+          bin: null,
+          total_exposure: null,
+          open_violation_count: null,
+          reason: "no_bin_on_file",
+        },
+        { building: 2, bin: "2000094", total_exposure: "0", open_violation_count: 0, reason: null },
+      ];
+      render(<BuildingList buildings={buildings} fineExposures={fineExposures} />);
+
+      expect(screen.getByText(/hasn.t been matched to a NYC DOB building/i)).toBeInTheDocument();
+    });
+
+    it("shows a per-row error when that building's entry has reason upstream_unavailable", () => {
+      const fineExposures: BuildingFineExposure[] = [
+        {
+          building: 1,
+          bin: "1001026",
+          total_exposure: null,
+          open_violation_count: null,
+          reason: "upstream_unavailable",
+        },
+        { building: 2, bin: "2000094", total_exposure: "0", open_violation_count: 0, reason: null },
+      ];
+      render(<BuildingList buildings={buildings} fineExposures={fineExposures} />);
+
+      expect(screen.getByText(/couldn.t check fine exposure/i)).toBeInTheDocument();
+      // Tower B still resolved fine — one building's failure doesn't blank the others.
+      expect(screen.getByText(/\$0\.00/)).toBeInTheDocument();
+    });
+
+    it("shows a fineExposuresError banner when the whole portfolio fetch failed", () => {
+      render(
+        <BuildingList
+          buildings={buildings}
+          fineExposures={null}
+          fineExposuresError="Could not load fine exposure. Please try again."
+        />,
+      );
+
+      expect(screen.getByRole("alert")).toHaveTextContent(/could not load fine exposure/i);
+    });
+
+    it("renders nothing fine-exposure-related when the prop is omitted entirely", () => {
+      render(<BuildingList buildings={buildings} />);
+
+      // Defaults to the loading state (null), not a silently missing feature.
+      expect(screen.getAllByText(/checking fine exposure/i)).toHaveLength(buildings.length);
+    });
+
+    it("has no axe accessibility violations once resolved", async () => {
+      const fineExposures: BuildingFineExposure[] = [
+        {
+          building: 1,
+          bin: "1001026",
+          total_exposure: "3150.50",
+          open_violation_count: 2,
+          reason: null,
+        },
+        { building: 2, bin: "2000094", total_exposure: "0", open_violation_count: 0, reason: null },
+      ];
+      const { container } = render(
+        <BuildingList buildings={buildings} fineExposures={fineExposures} />,
+      );
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
     });
   });
 });

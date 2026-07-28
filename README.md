@@ -24,6 +24,37 @@ Managers can add buildings and elevators in two ways:
 - **Status filter** — filter the ledger by compliance status (Compliant, Warning, Delinquent, or All).
 - **Delete actions** — remove buildings or individual elevators from the portfolio, with cascade-delete of a building's elevators.
 - **Sample data button** — populate the app with demo buildings and elevators in the empty state for a quick first look at the feature set.
+- **Fine/penalty exposure** — a Warning/Delinquent elevator matched to a DOB device shows whether it has an open DOB safety violation on file, and every building always shows its total outstanding ECB fine balance (see the pipeline diagram below for how the two are joined).
+
+## Pipeline
+
+How a manager's actions flow through Riser, from onboarding a building to seeing what it's costing them:
+
+```mermaid
+flowchart TD
+    A["Manager enters a street address"] -->|"POST /api/buildings/lookup/"| B["NYC Planning GeoSearch v2\naddress → BIN"]
+    B --> C["DOB NOW: Elevator Safety Compliance\n(e5aq-a4j2) — BIN → devices +\nCAT1/CAT5 filing dates"]
+    C --> D["Manager reviews/overrides\nthe pulled devices"]
+    D -->|"POST /api/buildings/, /api/elevators/"| E[("Building + Elevator\nrows persisted")]
+    M["Manager enters a building/elevator manually"] -->|"POST /api/buildings/, /api/elevators/"| E
+
+    E -->|"GET /api/ledger/"| F["Due date + status computed\n(services.py, on every read)"]
+    F --> G["DOB Safety Violations\n(855j-jady) — batched\ndevice_number join"]
+    G --> H["Ledger row:\nstatus + has_open_violation"]
+
+    H --> I["Portfolio ledger UI\n(ranked, filterable,\nOpen violation badge)"]
+
+    E -->|"GET /api/buildings/fine-exposure/\n(fetched once on load,\none batched call for\nevery building)"| L["DOB ECB Violations\n(6bgk-3dad) — BIN-level\nbalance_due sum, per building"]
+    L --> N["Buildings UI:\n$ total + violation count,\nalways visible per row"]
+
+    H -->|"GET /api/ledger/narration/\n(on demand)"| J["Claude API\nrisk-narration briefing"]
+    L -.->|"building_fine_exposure"| J
+```
+
+Two things worth calling out about this shape:
+
+- **Always visible, one batched call — not N per-building requests.** Every building's fine exposure loads automatically alongside the buildings list and ledger, resolved via a single Socrata call across every BIN rather than one request per building, so the cost stays flat regardless of portfolio size. The AI narration stays the one deliberately on-demand/button-triggered piece (per-run Claude API cost), and it's fed the same dollar figures so it can cite them directly.
+- **The violation flag and the dollar figure come from different joins, deliberately.** `has_open_violation` is device-level (joins by `dob_device_number`) but carries no dollar amount; the fine-exposure total is building-level (joins by BIN) because the underlying ECB feed has no device-level identifier. See `docs/architecture/integration-contracts.md` §6 for the full reasoning — this is a documented product decision, not a missing feature.
 
 ## Screenshots
 

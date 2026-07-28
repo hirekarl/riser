@@ -50,6 +50,17 @@ export interface LedgerEntry {
   building_name: string;
   due_date: string;
   status: ComplianceStatus;
+  /**
+   * Whether this elevator has an open DOB safety violation on file
+   * (issue #120), resolved server-side by joining `dob_device_number`
+   * against the DOB Safety Violations feed (`855j-jady`). Always `false`
+   * for an elevator with no `dob_device_number` — there's nothing to join
+   * against. This flag carries no dollar amount; see
+   * `FineExposureResponse` for the building-level dollar figure, which
+   * can't be attributed to a specific elevator (see the "join-key gap"
+   * discussion in issue #120).
+   */
+  has_open_violation: boolean;
 }
 
 export interface CreateBuildingPayload {
@@ -154,4 +165,26 @@ export interface AddressLookupResponse {
   drafts: ElevatorDraft[];
   reason:
     "address_not_found" | "no_devices_on_file" | "upstream_unavailable" | "ambiguous_match" | null;
+}
+
+/**
+ * One row of GET /api/buildings/fine-exposure/ (issue #120) — one entry per
+ * building in the portfolio, resolved via a single batched call server-side
+ * rather than one request per building. Always a building-level total,
+ * never per-elevator — the underlying DOB ECB Violations feed only joins by
+ * BIN, not by device number, so a precise per-elevator dollar figure isn't
+ * reliably attributable when a building has more than one elevator with
+ * concurrent violations.
+ *
+ * `total_exposure` is a decimal string (e.g. `"3150.50"`), not a number —
+ * mirrors the backend's `Decimal`-via-`str()` serialization to avoid float
+ * precision loss on a dollar amount. Parse with `Number()` only for
+ * display formatting, never for further arithmetic.
+ */
+export interface BuildingFineExposure {
+  building: number;
+  bin: string | null;
+  total_exposure: string | null;
+  open_violation_count: number | null;
+  reason: "no_bin_on_file" | "upstream_unavailable" | null;
 }

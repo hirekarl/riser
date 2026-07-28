@@ -204,3 +204,38 @@
   color: #ff9c92;
   border-color: #ff9c92;
 }
+
+/* Always-visible fine exposure (issue #120) — one summary line per building
+   row, populated from a single portfolio-wide batched fetch (no per-row
+   button/trigger). */
+.fineExposureStatus {
+  display: flex;
+  align-items: center;
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.fineExposureResult {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.fineExposureHint {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Same red pair as .errorBanner, sized down to fit inline in the row. */
+.fineExposureError {
+  margin: 0.35rem 0 0;
+  color: #9c1c12;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+:root[data-theme="dark"] .fineExposureError {
+  color: #ff9c92;
+}

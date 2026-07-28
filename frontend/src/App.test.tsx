@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
@@ -8,6 +8,14 @@ import * as logger from "./lib/logger";
 import type { AddressLookupResponse, Building, Elevator, LedgerEntry } from "./types/domain";
 
 describe("App", () => {
+  beforeEach(() => {
+    // Fetched unconditionally on every App mount (issue #120) — stubbed to
+    // an empty resolved array by default so tests unrelated to fine
+    // exposure don't have to think about it; tests that do care override
+    // this per-test.
+    vi.spyOn(client, "fetchPortfolioFineExposure").mockResolvedValue([]);
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -69,6 +77,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: "2027-01-01",
       status: "Compliant",
+      has_open_violation: false,
     };
 
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
@@ -177,6 +186,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const after: LedgerEntry = {
       ...before,
@@ -185,6 +195,7 @@ describe("App", () => {
       last_inspection_date: "2026-07-01",
       due_date: "2027-07-01",
       status: "Compliant",
+      has_open_violation: false,
     };
     const updatedElevator: Elevator = {
       id: 1,
@@ -238,12 +249,14 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const afterInlineEdit: LedgerEntry = {
       ...before,
       last_inspection_date: "2026-06-01",
       due_date: "2027-06-01",
       status: "Compliant",
+      has_open_violation: false,
     };
 
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
@@ -289,6 +302,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
 
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
@@ -318,6 +332,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const entryB: LedgerEntry = {
       id: 2,
@@ -328,6 +343,7 @@ describe("App", () => {
       building_name: "Tower B",
       due_date: "2029-01-01",
       status: "Compliant",
+      has_open_violation: false,
     };
 
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
@@ -437,6 +453,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10),
       status: "Warning",
+      has_open_violation: false,
     };
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
     const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
@@ -470,6 +487,24 @@ describe("App", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/could not load the ledger/i);
   });
 
+  it("shows an error banner when the portfolio-wide fine-exposure fetch fails", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([
+      { id: 1, name: "Tower A", address: "1 Main St", created_at: "x", updated_at: "x" },
+    ]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+    const fineExposureError = new Error("network down");
+    vi.spyOn(client, "fetchPortfolioFineExposure").mockRejectedValue(fineExposureError);
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
+
+    render(<App />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not load fine exposure/i);
+    expect(logErrorSpy).toHaveBeenCalledWith(
+      "Failed to load building fine exposure",
+      fineExposureError,
+    );
+  });
+
   it("refetches the shared ledger after an inline Save in the Ledger tab, without disturbing an unrelated open Edit form", async () => {
     const before: LedgerEntry = {
       id: 1,
@@ -480,12 +515,14 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const after: LedgerEntry = {
       ...before,
       last_inspection_date: "2026-07-01",
       due_date: "2027-07-01",
       status: "Compliant",
+      has_open_violation: false,
     };
 
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
@@ -589,6 +626,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: "2027-01-01",
       status: "Compliant",
+      has_open_violation: false,
     };
 
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
@@ -620,6 +658,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10),
       status: "Warning",
+      has_open_violation: false,
     };
     const dueLater: LedgerEntry = {
       id: 2,
@@ -630,6 +669,7 @@ describe("App", () => {
       building_name: "Tower A",
       due_date: new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10),
       status: "Compliant",
+      has_open_violation: false,
     };
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
     vi.spyOn(client, "listLedger").mockResolvedValue([dueSoon, dueLater]);

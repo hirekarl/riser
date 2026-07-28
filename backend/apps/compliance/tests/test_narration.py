@@ -39,7 +39,9 @@ class TestGenerateNarration:
     ) -> None:
         """An empty portfolio short-circuits locally and never calls Claude."""
 
-        def boom(entries: list[dict[str, Any]]) -> str:
+        def boom(
+            entries: list[dict[str, Any]], building_fine_exposures: list[dict[str, Any]]
+        ) -> str:
             raise AssertionError("_call_claude must not be called for an empty portfolio")
 
         monkeypatch.setattr(narration, "_call_claude", boom)
@@ -51,8 +53,11 @@ class TestGenerateNarration:
         """Non-empty entries are passed to the Claude boundary, whose result passes through."""
         seen: dict[str, Any] = {}
 
-        def fake(entries: list[dict[str, Any]]) -> str:
+        def fake(
+            entries: list[dict[str, Any]], building_fine_exposures: list[dict[str, Any]]
+        ) -> str:
             seen["entries"] = entries
+            seen["building_fine_exposures"] = building_fine_exposures
             return "3 elevators are Delinquent, 2 enter Warning this week."
 
         monkeypatch.setattr(narration, "_call_claude", fake)
@@ -60,13 +65,37 @@ class TestGenerateNarration:
 
         assert result == "3 elevators are Delinquent, 2 enter Warning this week."
         assert seen["entries"] == _ENTRIES
+        # Omitting building_fine_exposures defaults to an empty list, not None.
+        assert seen["building_fine_exposures"] == []
+
+    def test_building_fine_exposures_are_passed_through(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A supplied building_fine_exposures list reaches the Claude boundary unchanged."""
+        exposures = [
+            {"building_name": "Tower A", "total_exposure": "3150.50", "open_violation_count": 2}
+        ]
+        seen: dict[str, Any] = {}
+
+        def fake(
+            entries: list[dict[str, Any]], building_fine_exposures: list[dict[str, Any]]
+        ) -> str:
+            seen["building_fine_exposures"] = building_fine_exposures
+            return "briefing"
+
+        monkeypatch.setattr(narration, "_call_claude", fake)
+        narration.generate_narration(_ENTRIES, exposures)
+
+        assert seen["building_fine_exposures"] == exposures
 
     def test_claude_failure_raises_narration_unavailable_error(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A Claude timeout/API error is wrapped in NarrationUnavailableError, not raised raw."""
 
-        def fake(entries: list[dict[str, Any]]) -> str:
+        def fake(
+            entries: list[dict[str, Any]], building_fine_exposures: list[dict[str, Any]]
+        ) -> str:
             raise RuntimeError("timed out")
 
         monkeypatch.setattr(narration, "_call_claude", fake)
@@ -118,13 +147,41 @@ class TestCallClaude:
 
         monkeypatch.setattr(narration.anthropic, "Anthropic", FakeAnthropic)
 
-        result = narration._call_claude(_ENTRIES)
+        result = narration._call_claude(_ENTRIES, [])
 
         assert result == "3 elevators are Delinquent, 2 enter Warning this week."
         assert captured["create_kwargs"]["model"] == narration.NARRATION_MODEL
         assert captured["create_kwargs"]["temperature"] == narration.NARRATION_TEMPERATURE
         assert captured["create_kwargs"]["max_tokens"] == narration.NARRATION_MAX_TOKENS
         assert captured["client_kwargs"]["timeout"] == narration.NARRATION_TIMEOUT_SECONDS
+
+    def test_includes_building_fine_exposure_in_the_prompt_content(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The building-level exposure payload reaches the Messages API content."""
+        captured: dict[str, Any] = {}
+
+        class FakeMessages:
+            def create(self, **kwargs: Any) -> _FakeMessage:
+                captured["create_kwargs"] = kwargs
+                return _FakeMessage(
+                    content=[narration.anthropic.types.TextBlock(type="text", text="briefing")]
+                )
+
+        class FakeAnthropic:
+            def __init__(self, **kwargs: Any) -> None:
+                self.messages = FakeMessages()
+
+        monkeypatch.setattr(narration.anthropic, "Anthropic", FakeAnthropic)
+
+        exposures = [
+            {"building_name": "Tower A", "total_exposure": "3150.50", "open_violation_count": 2}
+        ]
+        narration._call_claude(_ENTRIES, exposures)
+
+        content = captured["create_kwargs"]["messages"][0]["content"]
+        assert "3150.50" in content
+        assert "Tower A" in content
 
     def test_ignores_non_text_blocks(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Non-text content blocks (if any) are skipped rather than erroring."""
@@ -146,4 +203,4 @@ class TestCallClaude:
 
         monkeypatch.setattr(narration.anthropic, "Anthropic", FakeAnthropic)
 
-        assert narration._call_claude(_ENTRIES) == "only this counts"
+        assert narration._call_claude(_ENTRIES, []) == "only this counts"
