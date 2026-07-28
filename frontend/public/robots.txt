@@ -1,2 +1,38 @@
+# Riser is public with no auth (docs/adr/0002-no-auth-for-mvp.md), so
+# everything is disallowed until auth exists (issue #93). AI-crawler user
+# agents are listed explicitly, on purpose, rather than left to be covered
+# only by the wildcard rule below (robots.txt is voluntary compliance, not
+# an access-control mechanism, but the decision itself should be explicit).
+
 User-agent: *
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Applebot-Extended
 Disallow: /
