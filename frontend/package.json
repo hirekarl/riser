@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@lhci/cli": "^0.15.1",
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.62.0",
     "@testing-library/jest-dom": "^7.0.0",
