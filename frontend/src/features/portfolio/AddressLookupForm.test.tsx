@@ -238,6 +238,42 @@ describe("AddressLookupForm", () => {
       expect(await screen.findByLabelText(/building name/i)).toBeInTheDocument();
     });
 
+    it("uses the picked candidate's address/borough, not the response's, since the bin-only re-call cannot echo them back", async () => {
+      // BuildingViewSet.lookup skips geocoding on a bin-only request and
+      // returns resolved_address/borough as null (it has no AddressMatch to
+      // read a label/borough from at that point) — the review screen and
+      // the eventual createBuilding call must fall back to the candidate
+      // the user already picked from the picker instead.
+      const bareMatchResponse: AddressLookupResponse = {
+        ...successResponse,
+        match: { bin: "3001234", resolved_address: null, borough: null },
+      };
+      vi.spyOn(client, "lookupBuildingByAddress")
+        .mockResolvedValueOnce(ambiguousResponse)
+        .mockResolvedValueOnce(bareMatchResponse);
+      const createBuildingSpy = vi
+        .spyOn(client, "createBuilding")
+        .mockResolvedValue({} as Building);
+      vi.spyOn(client, "createElevator").mockResolvedValue({} as Elevator);
+      const user = userEvent.setup();
+
+      render(<AddressLookupForm onSaved={vi.fn()} />);
+      await submitAddress(user, "200 Water St");
+      await user.click(screen.getByRole("button", { name: /200 water street.*brooklyn/i }));
+
+      expect(await screen.findByText(/matched 200 water street, brooklyn/i)).toBeInTheDocument();
+
+      await user.type(screen.getByLabelText(/building name/i), "Brooklyn Tower");
+      await user.click(screen.getByRole("button", { name: /^save$/i }));
+
+      await waitFor(() =>
+        expect(createBuildingSpy).toHaveBeenCalledWith({
+          name: "Brooklyn Tower",
+          address: "200 WATER STREET",
+        }),
+      );
+    });
+
     it("has no axe accessibility violations in the ambiguous-match state", async () => {
       vi.spyOn(client, "lookupBuildingByAddress").mockResolvedValue(ambiguousResponse);
       const user = userEvent.setup();

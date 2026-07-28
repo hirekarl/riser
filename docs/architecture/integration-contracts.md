@@ -53,6 +53,8 @@ Request — re-call after the user disambiguates via the picker (skips geocoding
 
 Exactly one of `address`/`bin` must be present in a request; the client sends `bin` only when re-calling after resolving an `"ambiguous_match"` response, and never sends both.
 
+**On a `bin`-only request, `match.resolved_address`/`match.borough` come back `null`** — that path skips geocoding entirely (per the request note above), so the backend has no `AddressMatch` label/borough to echo back, only the BIN it was given. The client already has the real `resolved_address`/`borough` for the chosen candidate from the `matches` array of the prior `"ambiguous_match"` response — use that instead of trusting these fields when they're null, rather than displaying/saving a null address.
+
 Response — match found:
 
 ```json
