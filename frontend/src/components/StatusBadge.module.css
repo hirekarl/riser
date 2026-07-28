@@ -66,28 +66,26 @@
      .unknown    #a7adba on #1c1f26  ~7.3:1 (matches --text-muted/--bg-subtle's
                  own dark-mode values, since "unknown" is intentionally the
                  one variant with no brand hue to preserve). */
-@media (prefers-color-scheme: dark) {
-  .compliant {
-    background-color: #0f2f1c;
-    color: #7fdba0;
-    border-color: #7fdba0;
-  }
+:root[data-theme="dark"] .compliant {
+  background-color: #0f2f1c;
+  color: #7fdba0;
+  border-color: #7fdba0;
+}
 
-  .warning {
-    background-color: #3a2c05;
-    color: #ffcf70;
-    border-color: #ffcf70;
-  }
+:root[data-theme="dark"] .warning {
+  background-color: #3a2c05;
+  color: #ffcf70;
+  border-color: #ffcf70;
+}
 
-  .delinquent {
-    background-color: #3a1512;
-    color: #ff9c92;
-    border-color: #ff9c92;
-  }
+:root[data-theme="dark"] .delinquent {
+  background-color: #3a1512;
+  color: #ff9c92;
+  border-color: #ff9c92;
+}
 
-  .unknown {
-    background-color: #1c1f26;
-    color: #a7adba;
-    border-color: #a7adba;
-  }
+:root[data-theme="dark"] .unknown {
+  background-color: #1c1f26;
+  color: #a7adba;
+  border-color: #a7adba;
 }

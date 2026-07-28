@@ -49,10 +49,8 @@
 /* #a8672e against the dark-mode --bg (#14161b) is ~4.0:1, just under WCAG
    AA's 4.5:1 — lighten it for dark mode, same as .wordmarkNavy in
    App.module.css. ~7.5:1 against --bg in dark mode. */
-@media (prefers-color-scheme: dark) {
-  .onDemandTag {
-    color: #d99a5c;
-  }
+:root[data-theme="dark"] .onDemandTag {
+  color: #d99a5c;
 }
 
 .description {

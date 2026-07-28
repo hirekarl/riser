@@ -74,14 +74,12 @@
 
 /* #7a8091 -> #9aa4b8 dark-mode lightening, same as LedgerPage.module.css's
    equivalent buttons; background already tracks the theme via var(--bg). */
-@media (prefers-color-scheme: dark) {
-  .deleteButton {
-    border-color: #9aa4b8;
-  }
+:root[data-theme="dark"] .deleteButton {
+  border-color: #9aa4b8;
+}
 
-  .deleteButton:hover {
-    background: #262b35;
-  }
+:root[data-theme="dark"] .deleteButton:hover {
+  background: #262b35;
 }
 
 /* Groups the cascade-impact warning paragraph with the Confirm delete/Cancel
@@ -114,11 +112,9 @@
 
 /* Dark-mode counterpart for the Warning palette, same pairing StatusBadge
    .module.css uses for its own .warning dark variant: ~9.3:1 text-on-bg. */
-@media (prefers-color-scheme: dark) {
-  .deleteWarning {
-    background-color: #3a2c05;
-    color: #ffcf70;
-  }
+:root[data-theme="dark"] .deleteWarning {
+  background-color: #3a2c05;
+  color: #ffcf70;
 }
 
 /* Confirm delete/Cancel: intentionally matches LedgerPage.module.css's
@@ -156,11 +152,9 @@
   border-color: #333a4a;
 }
 
-@media (prefers-color-scheme: dark) {
-  .confirmDeleteButton:hover:not(:disabled) {
-    background-color: #c7cbd6;
-    border-color: #c7cbd6;
-  }
+:root[data-theme="dark"] .confirmDeleteButton:hover:not(:disabled) {
+  background-color: #c7cbd6;
+  border-color: #c7cbd6;
 }
 
 .cancelDeleteButton {
@@ -173,10 +167,8 @@
   background-color: #f0f1f3;
 }
 
-@media (prefers-color-scheme: dark) {
-  .cancelDeleteButton:hover:not(:disabled) {
-    background-color: #262b35;
-  }
+:root[data-theme="dark"] .cancelDeleteButton:hover:not(:disabled) {
+  background-color: #262b35;
 }
 
 .confirmDeleteButton:disabled,
@@ -207,10 +199,8 @@
 
 /* Same red dark pair used by every other .errorBanner in the app: ~8.0:1
    text-on-bg, ~9.0:1 against the page --bg for the border. */
-@media (prefers-color-scheme: dark) {
-  .errorBanner {
-    background-color: #3a1512;
-    color: #ff9c92;
-    border-color: #ff9c92;
-  }
+:root[data-theme="dark"] .errorBanner {
+  background-color: #3a1512;
+  color: #ff9c92;
+  border-color: #ff9c92;
 }

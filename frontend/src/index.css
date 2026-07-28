@@ -47,6 +47,13 @@
   --border: #d9dde3;
   --focus: #2c5cf6;
   --focus-subtle: #e8edfe;
+  /* Without this, native form controls (text inputs, selects, etc.) keep
+     following the OS's prefers-color-scheme regardless of this override —
+     `color-scheme: light dark` on the base :root just tells the browser
+     both are supported, not which one is active. That produced dark
+     browser-chrome inputs with dark (var(--text)) text drawn on top when a
+     user manually chose light mode on a dark-OS system: unreadable. */
+  color-scheme: light;
 }
 
 :root[data-theme="dark"] {
@@ -57,6 +64,7 @@
   --border: #333844;
   --focus: #8ab4ff;
   --focus-subtle: #243352;
+  color-scheme: dark;
 }
 
 * {

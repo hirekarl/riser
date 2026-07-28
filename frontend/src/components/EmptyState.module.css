@@ -14,11 +14,9 @@
    .emptyState: #fafbfc (near-white card) would float on the dark page,
    #1c1f26 matches --bg-subtle's dark value instead; #b7bdc9's dashed border
    is lightened to clear 3:1 against the dark --bg (~3.4:1). */
-@media (prefers-color-scheme: dark) {
-  .emptyState {
-    border-color: #626b7d;
-    background-color: #1c1f26;
-  }
+:root[data-theme="dark"] .emptyState {
+  border-color: #626b7d;
+  background-color: #1c1f26;
 }
 
 .icon {
@@ -70,10 +68,8 @@
 }
 
 /* Same #b7bdc9 -> #626b7d dark-mode lightening as .emptyState's border. */
-@media (prefers-color-scheme: dark) {
-  .altPath {
-    border-top-color: #626b7d;
-  }
+:root[data-theme="dark"] .altPath {
+  border-top-color: #626b7d;
 }
 
 .altPathLede {
@@ -120,12 +116,10 @@
 
 /* Same red dark pair as LedgerPage.module.css's/TimelinePage.module.css's
    .errorBanner: ~8.0:1 text-on-bg, ~9.0:1 against the page --bg. */
-@media (prefers-color-scheme: dark) {
-  .errorBanner {
-    background-color: #3a1512;
-    color: #ff9c92;
-    border-color: #ff9c92;
-  }
+:root[data-theme="dark"] .errorBanner {
+  background-color: #3a1512;
+  color: #ff9c92;
+  border-color: #ff9c92;
 }
 
 /* Reuses StatusBadge.module.css's .compliant palette (#0b6b2c on #e6f4ea,
@@ -151,10 +145,8 @@
 /* Same dark-mode green as StatusBadge.module.css's .compliant, so this
    reused "compliant" palette stays visually identical across both files:
    ~8.7:1 text-on-bg. */
-@media (prefers-color-scheme: dark) {
-  .successMessage:not(:empty) {
-    background-color: #0f2f1c;
-    color: #7fdba0;
-    border-color: #7fdba0;
-  }
+:root[data-theme="dark"] .successMessage:not(:empty) {
+  background-color: #0f2f1c;
+  color: #7fdba0;
+  border-color: #7fdba0;
 }

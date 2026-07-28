@@ -148,10 +148,8 @@
 /* #7a8091 already clears 3:1 against the dark-mode --bg (~4.6:1), but a
    lighter tone reads more clearly as an interactive-control boundary next to
    dark surfaces — ~7.2:1 against --bg, ~6.6:1 against --bg-subtle. */
-@media (prefers-color-scheme: dark) {
-  .filterRow select {
-    border-color: #9aa4b8;
-  }
+:root[data-theme="dark"] .filterRow select {
+  border-color: #9aa4b8;
 }
 
 /* Marks the row whose elevator is currently the target of the (parent-owned)
@@ -179,10 +177,8 @@
 }
 
 /* Same #7a8091 -> #9aa4b8 dark-mode lightening as .filterRow select above. */
-@media (prefers-color-scheme: dark) {
-  .dateInput {
-    border-color: #9aa4b8;
-  }
+:root[data-theme="dark"] .dateInput {
+  border-color: #9aa4b8;
 }
 
 /* Styling for the inline date input's Save/Cancel confirm affordance,
@@ -228,11 +224,9 @@
 /* Dark-mode hover: a dimmer version of the light-mode-inverted button
    surface (still ~11.2:1 against --bg text), since #333a4a (the light-mode
    hover shade) is now far too dark against the light dark-mode button bg. */
-@media (prefers-color-scheme: dark) {
-  .saveDateButton:hover:not(:disabled) {
-    background-color: #c7cbd6;
-    border-color: #c7cbd6;
-  }
+:root[data-theme="dark"] .saveDateButton:hover:not(:disabled) {
+  background-color: #c7cbd6;
+  border-color: #c7cbd6;
 }
 
 /* Text/border colors chosen to clear WCAG AA (>= 4.5:1 for text, >= 3:1 for
@@ -251,10 +245,8 @@
 }
 
 /* Dark-mode hover overlay for the mostly-transparent cancel button. */
-@media (prefers-color-scheme: dark) {
-  .cancelDateButton:hover:not(:disabled) {
-    background-color: #262b35;
-  }
+:root[data-theme="dark"] .cancelDateButton:hover:not(:disabled) {
+  background-color: #262b35;
 }
 
 .saveDateButton:disabled,
@@ -288,15 +280,13 @@
 
 /* Same #7a8091 -> #9aa4b8 dark-mode lightening as .filterRow select/
    .dateInput above; background already tracks the theme via var(--bg). */
-@media (prefers-color-scheme: dark) {
-  .editButton,
-  .deleteButton {
-    border-color: #9aa4b8;
-  }
+:root[data-theme="dark"] .editButton,
+:root[data-theme="dark"] .deleteButton {
+  border-color: #9aa4b8;
+}
 
-  .deleteButton:hover {
-    background: #262b35;
-  }
+:root[data-theme="dark"] .deleteButton:hover {
+  background: #262b35;
 }
 
 /* Styling for the per-row Delete action's inline reveal-confirm pair,
@@ -336,11 +326,9 @@
   border-color: #333a4a;
 }
 
-@media (prefers-color-scheme: dark) {
-  .confirmDeleteButton:hover:not(:disabled) {
-    background-color: #c7cbd6;
-    border-color: #c7cbd6;
-  }
+:root[data-theme="dark"] .confirmDeleteButton:hover:not(:disabled) {
+  background-color: #c7cbd6;
+  border-color: #c7cbd6;
 }
 
 .cancelDeleteButton {
@@ -353,10 +341,8 @@
   background-color: #f0f1f3;
 }
 
-@media (prefers-color-scheme: dark) {
-  .cancelDeleteButton:hover:not(:disabled) {
-    background-color: #262b35;
-  }
+:root[data-theme="dark"] .cancelDeleteButton:hover:not(:disabled) {
+  background-color: #262b35;
 }
 
 .confirmDeleteButton:disabled,
@@ -384,15 +370,13 @@
    fixed for .wordmarkNavy in App.module.css — reuse that same lightened
    navy (~5.8:1 against --bg) for consistency across the app's one "navy"
    brand color. */
-@media (prefers-color-scheme: dark) {
-  .detailsButton {
-    border-color: #6f93c9;
-    color: #6f93c9;
-  }
+:root[data-theme="dark"] .detailsButton {
+  border-color: #6f93c9;
+  color: #6f93c9;
+}
 
-  .detailsButton:hover {
-    background: #1a2436;
-  }
+:root[data-theme="dark"] .detailsButton:hover {
+  background: #1a2436;
 }
 
 .detailCell {
@@ -421,15 +405,13 @@
 /* Same navy lightening as .detailsButton; the light #edf0f4 panel surface
    becomes a navy-tinted dark surface instead of floating as a light
    rectangle on the dark page. */
-@media (prefers-color-scheme: dark) {
-  .detailPanel {
-    background: #1a2436;
-    border-left-color: #6f93c9;
-  }
+:root[data-theme="dark"] .detailPanel {
+  background: #1a2436;
+  border-left-color: #6f93c9;
+}
 
-  .detailPanel dt {
-    color: #6f93c9;
-  }
+:root[data-theme="dark"] .detailPanel dt {
+  color: #6f93c9;
 }
 
 .errorBanner {
@@ -443,12 +425,10 @@
 /* Desaturated-but-still-red dark pair so the error banner keeps its "this
    is an error" hue instead of collapsing to generic gray: ~8.0:1 text-on-bg,
    ~9.0:1 text against the page --bg for the border. */
-@media (prefers-color-scheme: dark) {
-  .errorBanner {
-    background-color: #3a1512;
-    color: #ff9c92;
-    border-color: #ff9c92;
-  }
+:root[data-theme="dark"] .errorBanner {
+  background-color: #3a1512;
+  color: #ff9c92;
+  border-color: #ff9c92;
 }
 
 /* Secondary annotation for a DOB-sourced elevator's authoritative device
