@@ -550,6 +550,141 @@ describe("LedgerPage", () => {
     expect(screen.getByText("EL-3")).toBeInTheDocument();
   });
 
+  it("reveals Confirm delete/Cancel controls when Delete is clicked, without calling deleteElevator yet", () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const deleteSpy = vi.spyOn(client, "deleteElevator");
+
+    render(<LedgerPage entries={[entry]} />);
+    const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+
+    fireEvent.click(within(row).getByRole("button", { name: /^delete el-1$/i }));
+
+    expect(within(row).getByRole("button", { name: /^confirm delete el-1$/i })).toBeInTheDocument();
+    expect(
+      within(row).getByRole("button", { name: /^cancel deleting el-1$/i }),
+    ).toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it("hides the Confirm delete/Cancel controls and calls no API when Cancel is clicked", () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const deleteSpy = vi.spyOn(client, "deleteElevator");
+
+    render(<LedgerPage entries={[entry]} />);
+    const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+
+    fireEvent.click(within(row).getByRole("button", { name: /^delete el-1$/i }));
+    fireEvent.click(within(row).getByRole("button", { name: /^cancel deleting el-1$/i }));
+
+    expect(
+      within(row).queryByRole("button", { name: /^confirm delete el-1$/i }),
+    ).not.toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: /^delete el-1$/i })).toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it("calls deleteElevator and onElevatorUpdated after Confirm delete is clicked", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    vi.spyOn(client, "deleteElevator").mockResolvedValue(undefined);
+    const onElevatorUpdated = vi.fn();
+
+    render(<LedgerPage entries={[entry]} onElevatorUpdated={onElevatorUpdated} />);
+    const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+
+    fireEvent.click(within(row).getByRole("button", { name: /^delete el-1$/i }));
+    fireEvent.click(within(row).getByRole("button", { name: /^confirm delete el-1$/i }));
+
+    expect(client.deleteElevator).toHaveBeenCalledWith(1);
+    await waitFor(() => {
+      expect(onElevatorUpdated).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("shows a pending/disabled state while deleting, then an error banner when deleting an elevator fails", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const error = new Error("boom");
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
+    let rejectDelete!: (err: Error) => void;
+    vi.spyOn(client, "deleteElevator").mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectDelete = reject;
+      }),
+    );
+
+    render(<LedgerPage entries={[entry]} />);
+    const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+
+    fireEvent.click(within(row).getByRole("button", { name: /^delete el-1$/i }));
+    const confirmButton = within(row).getByRole("button", { name: /^confirm delete el-1$/i });
+    fireEvent.click(confirmButton);
+
+    expect(confirmButton).toBeDisabled();
+
+    rejectDelete(error);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not delete/i);
+    expect(logErrorSpy).toHaveBeenCalledWith("Failed to delete elevator", error, {
+      elevatorId: 1,
+    });
+  });
+
+  it("gives the inline Confirm delete/Cancel controls distinguishable aria-labels and no axe violations", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+
+    render(<LedgerPage entries={[entry]} />);
+    const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+    fireEvent.click(within(row).getByRole("button", { name: /^delete el-1$/i }));
+
+    const confirmButton = within(row).getByRole("button", { name: "Confirm delete EL-1" });
+    const cancelButton = within(row).getByRole("button", { name: "Cancel deleting EL-1" });
+    expect(confirmButton.getAttribute("aria-label")).not.toEqual(
+      cancelButton.getAttribute("aria-label"),
+    );
+
+    const results = await axe(row);
+    expect(results).toHaveNoViolations();
+  });
+
   it("disables the inline date input and marks the row for whichever entry is the current edit target", () => {
     const { rerender } = render(<LedgerPage entries={mixedStatusEntries} editingElevatorId={1} />);
 

@@ -231,6 +231,70 @@
   cursor: pointer;
 }
 
+.deleteButton {
+  font: inherit;
+  padding: 0.3rem 0.7rem;
+  margin-left: 0.4rem;
+  border: 1px solid #7a8091;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.deleteButton:hover {
+  background: #f0f1f3;
+}
+
+/* Styling for the per-row Delete action's inline reveal-confirm pair,
+   deliberately matching .saveDateButton/.cancelDateButton's (and, in turn,
+   ElevatorForm's .primaryButton/.secondaryButton) commit/discard visual
+   language: Confirm delete is the filled, bold "commits" action; Cancel is
+   the outlined, lower-priority "discards" action. Colors are duplicated
+   rather than imported cross-module to keep each CSS module self-contained,
+   same rationale as .dateActions above. */
+.deleteActions {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: 0.4rem;
+}
+
+.confirmDeleteButton,
+.cancelDeleteButton {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.confirmDeleteButton {
+  font-weight: 700;
+  border: 1px solid #1f2430;
+  background-color: #1f2430;
+  color: #fff;
+}
+
+.confirmDeleteButton:hover:not(:disabled) {
+  background-color: #333a4a;
+  border-color: #333a4a;
+}
+
+.cancelDeleteButton {
+  border: 1px solid #4b5261;
+  background-color: transparent;
+  color: #1f2430;
+}
+
+.cancelDeleteButton:hover:not(:disabled) {
+  background-color: #f0f1f3;
+}
+
+.confirmDeleteButton:disabled,
+.cancelDeleteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .detailsButton {
   font: inherit;
   padding: 0.3rem 0.7rem;

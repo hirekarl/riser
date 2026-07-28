@@ -522,6 +522,48 @@ describe("App", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it("lists buildings in a standalone building-management surface, and refetches both buildings and the ledger after a successful delete", async () => {
+    const towerA: Building = {
+      id: 1,
+      name: "Tower A",
+      address: "1 Main St",
+      created_at: "x",
+      updated_at: "x",
+    };
+    const towerB: Building = {
+      id: 2,
+      name: "Tower B",
+      address: "2 Main St",
+      created_at: "x",
+      updated_at: "x",
+    };
+
+    const listBuildingsSpy = vi
+      .spyOn(client, "listBuildings")
+      .mockResolvedValueOnce([towerA, towerB])
+      .mockResolvedValueOnce([towerB]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+    vi.spyOn(client, "deleteBuilding").mockResolvedValue(undefined);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const buildingList = await screen.findByRole("region", { name: /buildings/i });
+    expect(within(buildingList).getByText("Tower A")).toBeInTheDocument();
+    expect(within(buildingList).getByText("Tower B")).toBeInTheDocument();
+
+    const item = within(buildingList).getByText("Tower A").closest("li") as HTMLElement;
+    await user.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
+    await user.click(
+      within(item).getByRole("button", { name: /^confirm delete building tower a$/i }),
+    );
+
+    await waitFor(() => {
+      expect(within(buildingList).queryByText("Tower A")).not.toBeInTheDocument();
+    });
+    expect(listBuildingsSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("has no axe violations on the Timeline tab once it's populated with upcoming entries, including a due-very-soon row", async () => {
     const dueSoon: LedgerEntry = {
       id: 1,
