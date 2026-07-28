@@ -24,6 +24,7 @@ describe("ElevatorForm", () => {
       device_identifier: "EL-9",
       inspection_type: "CAT5",
       last_inspection_date: "2025-06-01",
+      dob_device_number: null,
       created_at: "x",
       updated_at: "x",
     };
@@ -44,6 +45,7 @@ describe("ElevatorForm", () => {
       device_identifier: "EL-9",
       inspection_type: "CAT5",
       last_inspection_date: "2025-06-01",
+      dob_device_number: null,
     });
     await vi.waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
   });
@@ -103,6 +105,7 @@ describe("ElevatorForm", () => {
         device_identifier: "EL-7B",
         inspection_type: "CAT5",
         last_inspection_date: "2025-01-01",
+        dob_device_number: null,
         created_at: "x",
         updated_at: "x",
       };

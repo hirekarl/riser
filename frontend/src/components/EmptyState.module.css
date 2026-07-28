@@ -10,6 +10,17 @@
   background-color: #fafbfc;
 }
 
+/* Dark-mode counterparts, same reasoning as TimelinePage.module.css's
+   .emptyState: #fafbfc (near-white card) would float on the dark page,
+   #1c1f26 matches --bg-subtle's dark value instead; #b7bdc9's dashed border
+   is lightened to clear 3:1 against the dark --bg (~3.4:1). */
+@media (prefers-color-scheme: dark) {
+  .emptyState {
+    border-color: #626b7d;
+    background-color: #1c1f26;
+  }
+}
+
 .icon {
   font-size: 2rem;
   line-height: 1;
@@ -22,7 +33,7 @@
 .lede {
   margin: 0;
   max-width: 48ch;
-  color: #4b5261;
+  color: var(--text-muted);
 }
 
 .steps {
@@ -31,7 +42,7 @@
   max-width: 48ch;
   text-align: left;
   list-style-position: inside;
-  color: #1f2430;
+  color: var(--text);
 }
 
 .steps li + li {
@@ -39,7 +50,7 @@
 }
 
 .steps strong {
-  color: #1f2430;
+  color: var(--text);
 }
 
 /* Separates the "Try sample data" shortcut from the three numbered steps
@@ -58,9 +69,16 @@
   border-top: 1px dashed #b7bdc9;
 }
 
+/* Same #b7bdc9 -> #626b7d dark-mode lightening as .emptyState's border. */
+@media (prefers-color-scheme: dark) {
+  .altPath {
+    border-top-color: #626b7d;
+  }
+}
+
 .altPathLede {
   margin: 0;
-  color: #4b5261;
+  color: var(--text-muted);
 }
 
 /* Matches the .primaryButton visual language in
@@ -100,6 +118,16 @@
   padding: 0.6rem 0.8rem;
 }
 
+/* Same red dark pair as LedgerPage.module.css's/TimelinePage.module.css's
+   .errorBanner: ~8.0:1 text-on-bg, ~9.0:1 against the page --bg. */
+@media (prefers-color-scheme: dark) {
+  .errorBanner {
+    background-color: #3a1512;
+    color: #ff9c92;
+    border-color: #ff9c92;
+  }
+}
+
 /* Reuses StatusBadge.module.css's .compliant palette (#0b6b2c on #e6f4ea,
    ~5.9:1 contrast) so a "something succeeded" message reads consistently
    with the rest of the app's color language, rather than inventing a new
@@ -118,4 +146,15 @@
   border: 1px solid #0b6b2c;
   border-radius: 6px;
   padding: 0.6rem 0.8rem;
+}
+
+/* Same dark-mode green as StatusBadge.module.css's .compliant, so this
+   reused "compliant" palette stays visually identical across both files:
+   ~8.7:1 text-on-bg. */
+@media (prefers-color-scheme: dark) {
+  .successMessage:not(:empty) {
+    background-color: #0f2f1c;
+    color: #7fdba0;
+    border-color: #7fdba0;
+  }
 }

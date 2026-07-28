@@ -87,6 +87,7 @@ describe("api client", () => {
         device_identifier: "EL-1",
         inspection_type: "CAT1",
         last_inspection_date: "2020-01-01",
+        dob_device_number: null,
         due_date: "2021-01-01",
         status: "Delinquent",
       },
@@ -134,6 +135,7 @@ describe("api client", () => {
       device_identifier: "EL-2",
       inspection_type: "CAT5",
       last_inspection_date: "2025-06-01",
+      dob_device_number: null,
     };
     const fetchMock = mockFetchOnce({ id: 5, ...payload, created_at: "x", updated_at: "x" });
 

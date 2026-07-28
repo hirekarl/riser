@@ -112,6 +112,7 @@ export function ElevatorForm({
         device_identifier: deviceIdentifier,
         inspection_type: inspectionType,
         last_inspection_date: lastInspectionDate,
+        dob_device_number: null,
       });
       onCreated(elevator);
       setDeviceIdentifier("");

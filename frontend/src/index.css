@@ -31,6 +31,34 @@
   }
 }
 
+/* Manual light/dark toggle scaffold: a `data-theme` attribute on <html> lets
+   a future toggle component override the OS-level prefers-color-scheme
+   default above. Placed after the @media block so these rules win via
+   source order/specificity once the attribute is set; when the attribute is
+   absent, the @media query above still governs. Values are duplicated
+   (rather than deriving one from the other) to keep both the "system
+   default" and "explicit override" cases each fully self-contained and
+   easy to audit independently. */
+:root[data-theme="light"] {
+  --text: #1f2430;
+  --text-muted: #4b5261;
+  --bg: #ffffff;
+  --bg-subtle: #f6f7f9;
+  --border: #d9dde3;
+  --focus: #2c5cf6;
+  --focus-subtle: #e8edfe;
+}
+
+:root[data-theme="dark"] {
+  --text: #e7e9ee;
+  --text-muted: #a7adba;
+  --bg: #14161b;
+  --bg-subtle: #1c1f26;
+  --border: #333844;
+  --focus: #8ab4ff;
+  --focus-subtle: #243352;
+}
+
 * {
   box-sizing: border-box;
 }

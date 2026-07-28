@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 1.25rem;
-  border: 1px solid #d9dde3;
+  border: 1px solid var(--border);
   border-radius: 10px;
   text-align: left;
 }
@@ -29,6 +29,16 @@
   padding: 0.45rem 0.6rem;
   border: 1px solid #7a8091;
   border-radius: 6px;
+}
+
+/* #7a8091 -> #9aa4b8 dark-mode lightening, same as LedgerPage.module.css's
+   .filterRow select/.dateInput: ~7.2:1 against --bg, ~6.6:1 against
+   --bg-subtle. */
+@media (prefers-color-scheme: dark) {
+  .field input,
+  .field select {
+    border-color: #9aa4b8;
+  }
 }
 
 .actions {
@@ -75,13 +85,21 @@
    legibility or discoverability. */
 .secondaryButton {
   font-weight: 600;
-  border: 1px solid #4b5261;
+  border: 1px solid var(--text-muted);
   background-color: transparent;
-  color: #1f2430;
+  color: var(--text);
 }
 
 .secondaryButton:hover:not(:disabled) {
   background-color: #f0f1f3;
+}
+
+/* Dark-mode hover overlay for the mostly-transparent secondary/cancel
+   button, matching LedgerPage.module.css's equivalent buttons. */
+@media (prefers-color-scheme: dark) {
+  .secondaryButton:hover:not(:disabled) {
+    background-color: #262b35;
+  }
 }
 
 .primaryButton:disabled,
@@ -98,7 +116,17 @@
   padding: 0.6rem 0.8rem;
 }
 
+/* Same red dark pair used by every other .errorBanner in the app: ~8.0:1
+   text-on-bg, ~9.0:1 against the page --bg for the border. */
+@media (prefers-color-scheme: dark) {
+  .errorBanner {
+    background-color: #3a1512;
+    color: #ff9c92;
+    border-color: #ff9c92;
+  }
+}
+
 .hint {
-  color: #4b5261;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }

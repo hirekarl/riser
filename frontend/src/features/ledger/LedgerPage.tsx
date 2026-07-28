@@ -402,7 +402,14 @@ export function LedgerPage({
                         <StatusBadge status={entry.status} />
                       </td>
                       <td>{entry.building_name}</td>
-                      <td>{entry.device_identifier}</td>
+                      <td>
+                        {entry.device_identifier}
+                        {entry.dob_device_number && (
+                          <span className={styles.dobDeviceNumber}>
+                            (DOB #{entry.dob_device_number})
+                          </span>
+                        )}
+                      </td>
                       <td>{entry.inspection_type}</td>
                       <td>
                         <label>

@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 1.25rem;
-  border: 1px solid #d9dde3;
+  border: 1px solid var(--border);
   border-radius: 10px;
   text-align: left;
 }
@@ -28,7 +28,7 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #d9dde3;
+  border-bottom: 1px solid var(--border);
 }
 
 /* Applied in addition to .item while this row's delete confirmation (with
@@ -64,12 +64,24 @@
   padding: 0.3rem 0.7rem;
   border: 1px solid #7a8091;
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg);
   cursor: pointer;
 }
 
 .deleteButton:hover {
   background: #f0f1f3;
+}
+
+/* #7a8091 -> #9aa4b8 dark-mode lightening, same as LedgerPage.module.css's
+   equivalent buttons; background already tracks the theme via var(--bg). */
+@media (prefers-color-scheme: dark) {
+  .deleteButton {
+    border-color: #9aa4b8;
+  }
+
+  .deleteButton:hover {
+    background: #262b35;
+  }
 }
 
 /* Groups the cascade-impact warning paragraph with the Confirm delete/Cancel
@@ -100,6 +112,15 @@
   text-align: left;
 }
 
+/* Dark-mode counterpart for the Warning palette, same pairing StatusBadge
+   .module.css uses for its own .warning dark variant: ~9.3:1 text-on-bg. */
+@media (prefers-color-scheme: dark) {
+  .deleteWarning {
+    background-color: #3a2c05;
+    color: #ffcf70;
+  }
+}
+
 /* Confirm delete/Cancel: intentionally matches LedgerPage.module.css's
    .confirmDeleteButton/.cancelDeleteButton exactly (colors, spacing,
    hover/focus-visible), not this file's own .deleteButton or
@@ -117,11 +138,17 @@
   cursor: pointer;
 }
 
+/* border/background use var(--text) and text uses var(--bg) — same
+   inverted "commits" button dark-mode treatment as
+   LedgerPage.module.css's .saveDateButton/.confirmDeleteButton: pixel-
+   identical in light mode, flips to a light surface (~14.9:1) on dark bg
+   instead of the old near-black-on-near-black collision the task called
+   out for this "dark primary button" pattern. */
 .confirmDeleteButton {
   font-weight: 700;
-  border: 1px solid #1f2430;
-  background-color: #1f2430;
-  color: #fff;
+  border: 1px solid var(--text);
+  background-color: var(--text);
+  color: var(--bg);
 }
 
 .confirmDeleteButton:hover:not(:disabled) {
@@ -129,14 +156,27 @@
   border-color: #333a4a;
 }
 
+@media (prefers-color-scheme: dark) {
+  .confirmDeleteButton:hover:not(:disabled) {
+    background-color: #c7cbd6;
+    border-color: #c7cbd6;
+  }
+}
+
 .cancelDeleteButton {
-  border: 1px solid #4b5261;
+  border: 1px solid var(--text-muted);
   background-color: transparent;
-  color: #1f2430;
+  color: var(--text);
 }
 
 .cancelDeleteButton:hover:not(:disabled) {
   background-color: #f0f1f3;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cancelDeleteButton:hover:not(:disabled) {
+    background-color: #262b35;
+  }
 }
 
 .confirmDeleteButton:disabled,
@@ -152,7 +192,7 @@
 }
 
 .hint {
-  color: #4b5261;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -163,4 +203,14 @@
   border: 1px solid #9c1c12;
   border-radius: 6px;
   padding: 0.6rem 0.8rem;
+}
+
+/* Same red dark pair used by every other .errorBanner in the app: ~8.0:1
+   text-on-bg, ~9.0:1 against the page --bg for the border. */
+@media (prefers-color-scheme: dark) {
+  .errorBanner {
+    background-color: #3a1512;
+    color: #ff9c92;
+    border-color: #ff9c92;
+  }
 }

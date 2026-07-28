@@ -17,6 +17,7 @@ interface Candidate {
 interface DraftRow {
   key: string;
   deviceIdentifier: string;
+  dobDeviceNumber: string | null;
   inspectionType: InspectionType;
   lastInspectionDate: string;
   included: boolean;
@@ -47,6 +48,7 @@ function draftsToRows(drafts: ElevatorDraft[]): DraftRow[] {
   return drafts.map((draft, index) => ({
     key: `${draft.dob_device_number}-${draft.inspection_type}-${index}`,
     deviceIdentifier: draft.dob_device_number,
+    dobDeviceNumber: draft.dob_device_number,
     inspectionType: draft.inspection_type,
     lastInspectionDate: draft.last_inspection_date,
     included: true,
@@ -162,6 +164,7 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
           device_identifier: row.deviceIdentifier,
           inspection_type: row.inspectionType,
           last_inspection_date: row.lastInspectionDate,
+          dob_device_number: row.dobDeviceNumber,
         });
       }
       if (!isMounted()) return;
