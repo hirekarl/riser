@@ -138,18 +138,41 @@
   font-size: 0.9rem;
 }
 
+/* Matches the "drop box" treatment from the v3 design pass
+   (docs/design/riser-executive-dashboard.html's .select-navy) — same
+   navy-tinted field + custom chevron as the portfolio forms' selects
+   (frontend/src/features/portfolio/forms.module.css), so filter controls
+   and add-elevator controls read as the same visual language. */
 .filterRow select {
   font: inherit;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid #7a8091;
-  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.4375rem 2rem 0.4375rem 0.625rem;
+  background-color: #edf0f4;
+  color: #1c3a63;
+  border: 1px solid #c9d2de;
+  border-radius: 9px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%23566274' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
 }
 
-/* #7a8091 already clears 3:1 against the dark-mode --bg (~4.6:1), but a
-   lighter tone reads more clearly as an interactive-control boundary next to
-   dark surfaces — ~7.2:1 against --bg, ~6.6:1 against --bg-subtle. */
+.filterRow select:focus {
+  outline: 2px solid #8f5525;
+  outline-offset: 1px;
+}
+
+/* Dark-mode counterpart to the navy chip above (same rationale as
+   forms.module.css's .field select dark rule) — re-derives the light
+   treatment's text/chevron-on-tinted-chip relationship against the dark
+   palette rather than just lightening a border: ~8.8:1 text-on-chip, ~5.7:1
+   chevron-on-chip. */
 :root[data-theme="dark"] .filterRow select {
-  border-color: #9aa4b8;
+  background-color: #232e46;
+  color: #c3d1ea;
+  border-color: #5b6a94;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%239aa8cc' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Marks the row whose elevator is currently the target of the (parent-owned)

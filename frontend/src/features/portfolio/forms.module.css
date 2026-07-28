@@ -23,8 +23,7 @@
   font-size: 0.9rem;
 }
 
-.field input,
-.field select {
+.field input {
   font: inherit;
   padding: 0.45rem 0.6rem;
   border: 1px solid #7a8091;
@@ -32,11 +31,48 @@
 }
 
 /* #7a8091 -> #9aa4b8 dark-mode lightening, same as LedgerPage.module.css's
-   .filterRow select/.dateInput: ~7.2:1 against --bg, ~6.6:1 against
-   --bg-subtle. */
-:root[data-theme="dark"] .field input,
-:root[data-theme="dark"] .field select {
+   .dateInput: ~7.2:1 against --bg, ~6.6:1 against --bg-subtle. */
+:root[data-theme="dark"] .field input {
   border-color: #9aa4b8;
+}
+
+/* Matches the "drop box" treatment from the v3 design pass
+   (docs/design/riser-executive-dashboard.html's .select-navy): a light
+   navy-tinted field with a custom chevron instead of the browser default,
+   rather than looking like an unstyled native control. */
+.field select {
+  width: 100%;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.6875rem 2.125rem 0.6875rem 0.8125rem;
+  background-color: #edf0f4;
+  color: #1c3a63;
+  border: 1px solid #c9d2de;
+  border-radius: 9px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%23566274' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8125rem center;
+}
+
+.field select:focus {
+  outline: 2px solid #8f5525;
+  outline-offset: 1px;
+}
+
+/* Dark-mode counterpart to the navy chip above — the light treatment's
+   #edf0f4/#1c3a63/#c9d2de trio doesn't work once inverted onto a dark page,
+   so this re-derives the same relationships (light text on a tinted navy
+   chip, muted chevron) against the dark palette instead of just lightening
+   a border like .field input's dark rule does: ~8.8:1 text-on-chip, ~5.7:1
+   chevron-on-chip, chip itself reads as a bounded control against
+   --bg/--bg-subtle the same way the light chip reads against white. */
+:root[data-theme="dark"] .field select {
+  background-color: #232e46;
+  color: #c3d1ea;
+  border-color: #5b6a94;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%239aa8cc' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .actions {
