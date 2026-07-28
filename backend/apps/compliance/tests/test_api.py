@@ -53,6 +53,20 @@ class TestBuildingAPI:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not Building.objects.filter(pk=building.pk).exists()
 
+    def test_delete_building_cascades_to_its_elevators(
+        self, api_client: APIClient, building: Building, elevator: Elevator
+    ) -> None:
+        """DELETE /api/buildings/<id>/ via the API also removes its elevators.
+
+        The model layer already asserts cascade delete directly
+        (``test_models.py::test_cascade_delete``); this closes the gap at the
+        API layer, where the request goes through the viewset/router rather
+        than calling ``building.delete()`` directly.
+        """
+        response = api_client.delete(f"/api/buildings/{building.pk}/")
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not Elevator.objects.filter(pk=elevator.pk).exists()
+
 
 class TestElevatorAPI:
     """CRUD tests for ``/api/elevators/``."""
