@@ -321,7 +321,13 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
   await expect(updatedRow).toBeVisible();
   await expect(updatedRow.getByText(/compliant/i)).toBeVisible();
   await expect(page.getByRole("row").filter({ hasText: /^EL-1$/ })).toHaveCount(0);
-  await expect(page.getByText(/delinquent/i)).not.toBeVisible();
+  // Scoped to the ledger table itself (not the whole page): the page also
+  // always contains the word "Delinquent" in the collapsed status-meaning
+  // legend, and — since the status filter dropdown added its own
+  // `<option>Delinquent</option>` — an unscoped page-wide locator here is
+  // ambiguous (a Playwright strict-mode violation) even though neither of
+  // those is the ledger row this assertion actually cares about.
+  await expect(page.getByRole("table").getByText(/delinquent/i)).not.toBeVisible();
 
   // Accessibility: zero critical/serious violations after the edit flow.
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
