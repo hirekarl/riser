@@ -172,3 +172,42 @@ The address-lookup feature's visual/interaction design and polish (form/review-s
 ### Mon 7/27 evening — parallel tracks
 
 Three concurrent threads running tonight, ahead of the 7/28 full dress rehearsal: Andres is writing up the demo user journey; Schiffon is working on the slide deck and presentation script; Karl (with Claude Code) is tying up remaining technical loose ends — the DOB address-lookup delivery above, plus the Timeline tab (P1, stretch) and P2 polish items (delete UI, status filter, sample-data button) time permitting, per the approved plan.
+
+## 2026-07-28 (Tue) — Final integration polish and PR merge session
+
+All six PRs triaged and merged to `main` in dependency order, with one superseded PR closed. Karl (with Claude Code) ran the merge triage solo, reviewing each branch against `main`, fixing a real e2e test locator ambiguity introduced by the status-filter dropdown, and closing codecov coverage gaps in two PRs before merge. Final state: all P0 and P2 items shipped, 90%+ coverage maintained on both backend and frontend, ready for Wed 2026-07-29 capstone presentation.
+
+| PR # | Title | Status | Notes |
+| --- | --- | --- | --- |
+| #106 | Add address-lookup form shell (earlier PR) | Closed as superseded | Closed in favor of #107 (which includes the full address-lookup feature including backend endpoint, migrations, frontend form, review screen, and bug fixes). |
+| #107 | feat(backend+frontend): DOB address-lookup (full E2E, 2026-07-27 pickup) | Merged | Backend: 89 tests at 100% coverage. Frontend: address-lookup form + review screen, 113 tests at ~96%/91% coverage. Two critical bugs caught via live E2E: (1) null-address fallback after disambiguation; (2) React key collision on multi-address BINs (e.g., "200 Water St"). Both fixed. Coverage gap (1 line) closed with test before merge. Merged 2026-07-28. |
+| #109 | Fix e2e test ambiguity from status-filter dropdown | Merged | Playwright's `getByLabel(/delinquent/i)` was matching both the status filter dropdown option and the ledger table cell displaying "Delinquent" status. Scoped the ledger locator to `getByRole('table')` to disambiguate. Real bug caught by pre-merge e2e run, not a pre-existing issue. Merged before #111 (status filter PR) to keep e2e clean during the merge sequence. |
+| #111 | feat(frontend): add status filter to the compliance ledger | Merged | Status-only filter (Compliant/Warning/Delinquent/All dropdown), 113 tests, coverage already good. Merged after #109 fix landed (e2e suite clean). |
+| #110 | feat(frontend): add delete actions for elevators and buildings | Merged | Cascade-delete of building's elevators, confirm/cancel flows, focus restoration on delete. UI polish included. Merged. |
+| #112 | feat: add "Try sample data" button & POST /api/demo-data/seed/ endpoint | Merged | Backend seed command (7 buildings / 27 elevators spanning Delinquent/Warning/Compliant, both CAT1/CAT5), frontend "Try sample data" button in empty state. Backend: 100% coverage. Frontend: coverage gap closed before merge. Merged 2026-07-28. |
+| Timeline tab (also on main) | feat(frontend): add Timeline tab for upcoming due dates | Already merged (2026-07-27) | Included in the suite but already on `main`, merged during Mon 7/27 parallel-track work. |
+
+**All PRs merged in this session:**
+
+- DOB address-lookup (backend endpoint, migrations, frontend form, bug fixes)
+- Status-only filter dropdown on ledger
+- Delete actions for buildings and elevators (cascade + confirm)
+- Sample data seed button and endpoint
+- Timeline tab (already merged 7/27, confirmed on main)
+
+**Real bugs caught and fixed during merge triage:**
+
+1. **E2E test locator ambiguity (PR #109):** `getByLabel(/delinquent/i)` matched both the new status-filter dropdown option and ledger cells displaying Delinquent status. Fixed by scoping the ledger locator to the table role.
+2. **Codecov coverage gaps (PR #107, #112):** Two lines in address-lookup and demo-data code uncovered. Both gaps closed with targeted test cases before merge, maintaining 90%+ gate on both backend and frontend.
+
+**Final verification before merge:**
+
+- Backend: `uv run pytest --cov --cov-fail-under=90` — 89 tests on main baseline, now 89+ with new tests; 100% coverage post-gap-close.
+- Frontend: `npm run test:coverage` — 113 tests at 96%/91% coverage post-gap-close.
+- `npm run test:e2e` — all e2e passing (post-#109 locator fix).
+- `npm run build`, `uv run ruff check .`, `npm run typecheck` — all clean.
+
+**Carry-over to capstone day (2026-07-29):**
+
+- Schiffon's manual visual/accessibility pass (Fri 7/24 outstanding items) still needs her direct sign-off if not already done.
+- Full dress rehearsal scheduled for Wed morning (already done pre-merge); capstone presentation 2026-07-29.

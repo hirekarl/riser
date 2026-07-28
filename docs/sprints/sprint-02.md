@@ -13,10 +13,15 @@ Copied from `docs/prd/Riser-PRD.md` section 3.
 - [x] P1 — Show building name inline in the ledger.
 - [x] P1 — Filter/group ledger by building.
 - [x] P1 — Visual highlight on status change.
-- [ ] P0/P1 (new, non-negotiable) — AI risk-narration briefing (issue #1, Option 3).
-- [ ] P0 (new, **committed 2026-07-25** — elevated from "best-effort," see `docs/sprints/day-by-day-plan.md` 2026-07-25 revision note) — DOB Open Data address-lookup auto-populate. (Stages 1-2 of the pipeline are built/tested ahead of schedule — `backend/apps/compliance/dob.py` — but Stage 3, the endpoint, and frontend wiring are still Mon/Tue 7/27-28 work; see `docs/architecture/integration-contracts.md` §4.) **Status 2026-07-27:** full feature shipped test-first across all five commits (docs contract resolution, backend endpoint + migrations + test coverage, frontend form + review screen + two real-bug fixes found via manual E2E dry-run). Backend: 89 tests, 100% coverage. Frontend: 113 tests, ~96%/91% coverage. PR pending Cornell/Andres review; not yet merged to `main`.
+- [x] P0/P1 — AI risk-narration briefing (issue #1, Option 3). Shipped 2026-07-26; merged to `main` 2026-07-26.
+- [x] P0 — DOB Open Data address-lookup auto-populate (committed 2026-07-25, elevated from "best-effort"). Full feature shipped test-first across five commits covering docs contract resolution, backend endpoint + migrations + full test coverage, frontend form + review screen + two real-bug fixes from manual E2E dry-run against live external services. Merged to `main` 2026-07-27.
 
-(P2 items remain out of scope; pull from Sprint 01 into this sprint if anything didn't land in week one. See `docs/sprints/day-by-day-plan.md` for the priority/cut-order reasoning behind the two new items.)
+**Status 2026-07-28:** The following P2 items also shipped on main (bonus/best-effort items that landed after the committed features):
+
+- [x] P2 — Delete building/elevator. Cascade-deletes a building's elevators; includes delete UI, confirm/cancel flow, and focus-restoration. Merged 2026-07-27.
+- [x] P2 — Filter ledger by status (Compliant/Warning/Delinquent/All dropdown). Merged 2026-07-27.
+- [x] P1 — Timeline tab showing upcoming due dates by date. Merged 2026-07-27.
+- [x] P2 — Sample data button to seed demo buildings/elevators in the empty state. Merged 2026-07-28.
 
 ## Per-person task checklists
 
@@ -71,4 +76,12 @@ Checkbox convention: `[x]` means merged to `main`; code that's complete but stil
 
 ## Notes / carry-over
 
-_(fill in at sprint close)_
+**Sprint 02 closed 2026-07-28.** All committed P0 items shipped (AI narration, DOB address-lookup, ledger core polish). All P2 bonus items also shipped (delete actions, status filter, Timeline tab, sample data button). See `docs/team/status-log.md` for per-session tracking of actual work vs. plan. Coverage: backend 89+ tests at 100%, frontend 113+ tests at 96%/91%. All pre-push and CI checks passing. Ready for final capstone demo 2026-07-29.
+
+Key dependencies resolved during sprint (see `docs/team/status-log.md` for details):
+
+- GeoSearch v2 reachability confirmed 2026-07-22; no Geoservice API key required.
+- DOB Open Data Socrata SODA API confirmed reachable; anonymous access sufficient at demo scale.
+- Address-lookup ambiguous-match handling resolved via picker (e.g., "200 Water St" → 5 BINs across Manhattan/Brooklyn).
+- AI narration Claude model id corrected to `claude-haiku-4-5-20251001` (deprecated `claude-3-5-haiku-latest` fixed 2026-07-26).
+- Two critical integration bugs caught via live E2E dry-run on real external services: null-address fallback after disambiguation, React key collision on multi-address BINs.
