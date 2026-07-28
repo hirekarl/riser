@@ -73,6 +73,14 @@ export function updateElevator(id: number, payload: UpdateElevatorPayload): Prom
   });
 }
 
+export function deleteElevator(id: number): Promise<void> {
+  return request<void>(`elevators/${id}/`, { method: "DELETE" });
+}
+
+export function deleteBuilding(id: number): Promise<void> {
+  return request<void>(`buildings/${id}/`, { method: "DELETE" });
+}
+
 // Backend endpoint not yet implemented (scheduled Sun 2026-07-26 per
 // docs/sprints/day-by-day-plan.md) — added ahead per the pre-agreed contract
 // in docs/architecture/integration-contracts.md §5. A non-200 response

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useId, useState } from "react";
-import { updateElevator } from "../../api/client";
+import { deleteElevator, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import { logError } from "../../lib/logger";
@@ -145,6 +145,35 @@ export function LedgerPage({
   // explicitly clicks Save. This avoids the previous auto-save-on-`onChange`
   // behavior, which risked an accidental unconfirmed edit.
   const [pendingDates, setPendingDates] = useState<Record<number, string>>({});
+
+  // Inline reveal-confirm state for the per-row Delete action, mirroring the
+  // date-input Save/Cancel pattern above: clicking Delete only reveals a
+  // Confirm delete/Cancel pair for that one row (`confirmingDeleteId`); the
+  // actual deleteElevator() call only ever happens from Confirm delete.
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  function handleDeleteRequest(elevatorId: number) {
+    setConfirmingDeleteId(elevatorId);
+  }
+
+  function handleDeleteCancel() {
+    setConfirmingDeleteId(null);
+  }
+
+  async function handleDeleteConfirm(elevatorId: number) {
+    setDeletingId(elevatorId);
+    try {
+      await deleteElevator(elevatorId);
+      setConfirmingDeleteId(null);
+      onElevatorUpdated?.();
+    } catch (err) {
+      logError("Failed to delete elevator", err, { elevatorId });
+      setSaveError("Could not delete the elevator. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   function handleDateInputChange(elevatorId: number, newDate: string) {
     if (!newDate) return;
@@ -295,6 +324,8 @@ export function LedgerPage({
                 const needsRemediation =
                   entry.status === "Warning" || entry.status === "Delinquent";
                 const isExpanded = expandedId === entry.id;
+                const isConfirmingDelete = confirmingDeleteId === entry.id;
+                const isDeleting = deletingId === entry.id;
 
                 return (
                   <Fragment key={entry.id}>
@@ -362,6 +393,37 @@ export function LedgerPage({
                             onClick={() => handleToggleDetails(entry.id)}
                           >
                             {isExpanded ? "Hide details" : "View details"}
+                          </button>
+                        )}
+                        {isConfirmingDelete ? (
+                          <span className={styles.deleteActions}>
+                            <button
+                              type="button"
+                              className={styles.confirmDeleteButton}
+                              aria-label={`Confirm delete ${entry.device_identifier}`}
+                              disabled={isDeleting}
+                              onClick={() => handleDeleteConfirm(entry.id)}
+                            >
+                              {isDeleting ? "Deleting…" : "Confirm delete"}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.cancelDeleteButton}
+                              aria-label={`Cancel deleting ${entry.device_identifier}`}
+                              disabled={isDeleting}
+                              onClick={handleDeleteCancel}
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className={styles.deleteButton}
+                            aria-label={`Delete ${entry.device_identifier}`}
+                            onClick={() => handleDeleteRequest(entry.id)}
+                          >
+                            Delete
                           </button>
                         )}
                       </td>

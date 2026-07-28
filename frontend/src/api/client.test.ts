@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createBuilding,
   createElevator,
+  deleteBuilding,
+  deleteElevator,
   fetchNarration,
   listBuildings,
   listElevators,
@@ -156,6 +158,32 @@ describe("api client", () => {
         body: JSON.stringify({ last_inspection_date: "2026-05-01" }),
       }),
     );
+  });
+
+  it("deleteElevator DELETEs /elevators/:id/ with no body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await deleteElevator(5);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/elevators\/5\/?$/),
+      expect.objectContaining({ method: "DELETE" }),
+    );
+    expect(result).toBeUndefined();
+  });
+
+  it("deleteBuilding DELETEs /buildings/:id/ with no body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await deleteBuilding(7);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/buildings\/7\/?$/),
+      expect.objectContaining({ method: "DELETE" }),
+    );
+    expect(result).toBeUndefined();
   });
 
   it("fetchNarration GETs /ledger/narration/ and returns parsed JSON", async () => {

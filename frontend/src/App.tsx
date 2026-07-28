@@ -5,6 +5,7 @@ import { LedgerPage } from "./features/ledger/LedgerPage";
 import { NarrationPanel } from "./features/narration/NarrationPanel";
 import { AddressLookupForm } from "./features/portfolio/AddressLookupForm";
 import { BuildingForm } from "./features/portfolio/BuildingForm";
+import { BuildingList } from "./features/portfolio/BuildingList";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
 import { TimelinePage } from "./features/timeline/TimelinePage";
@@ -109,6 +110,14 @@ function App() {
     setReloadSignal((n) => n + 1);
   }
 
+  // A deleted building cascade-deletes its elevators server-side, so both
+  // the buildings list itself (dropdowns, the building-management surface)
+  // and the shared ledger need to be refreshed.
+  function handleBuildingDeleted() {
+    setReloadSignal((n) => n + 1);
+    loadBuildings();
+  }
+
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -140,6 +149,8 @@ function App() {
           onEditCancel={handleEditCancel}
         />
       </div>
+
+      <BuildingList buildings={buildings} onDeleted={handleBuildingDeleted} />
 
       <main>
         {/* Placed above the ledger as the page's lead feature, per the v3
