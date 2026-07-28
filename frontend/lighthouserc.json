@@ -1,0 +1,24 @@
+{
+  "ci": {
+    "collect": {
+      "staticDistDir": "./dist",
+      "numberOfRuns": 1
+    },
+    "assert": {
+      "assertions": {
+        "categories:seo": "off",
+        "is-crawlable": "off",
+        "robots-txt": "off",
+        "document-title": "error",
+        "meta-description": "error",
+        "canonical": "error",
+        "image-alt": "error",
+        "link-text": "error",
+        "crawlable-anchors": "error"
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

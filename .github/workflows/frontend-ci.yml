@@ -79,6 +79,11 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: lighthouse ci (seo)
+        if: needs.changes.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npx lhci autorun
+
       - name: install playwright browsers
         if: needs.changes.outputs.frontend == 'true'
         working-directory: frontend
