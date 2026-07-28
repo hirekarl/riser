@@ -80,7 +80,7 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
 
   const isLoading = state.status === "loading";
 
-  async function runLookup(query: { address: string } | { bin: string }) {
+  async function runLookup(query: { address: string } | { bin: string }, knownMatch?: Candidate) {
     setState({ status: "loading" });
     try {
       const response = await lookupBuildingByAddress(query);
@@ -99,11 +99,18 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
         return;
       }
       if (response.match) {
-        setState({
-          status: "review",
-          match: response.match,
-          rows: draftsToRows(response.drafts),
-        });
+        // After a disambiguation re-call (bin-only request), the backend
+        // skips geocoding and can't echo resolved_address/borough — it
+        // returns them as null (see BuildingViewSet.lookup). Use the
+        // candidate the user already picked from the picker in that case;
+        // the empty-string fallback below should never actually trigger,
+        // since every bin-only call passes a knownMatch.
+        const match: Candidate = knownMatch ?? {
+          bin: response.match.bin,
+          resolved_address: response.match.resolved_address ?? "",
+          borough: response.match.borough ?? "",
+        };
+        setState({ status: "review", match, rows: draftsToRows(response.drafts) });
         return;
       }
       // Contract violation guard: reason "null" (success) implies a match is
@@ -124,7 +131,7 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
   }
 
   async function handleChooseMatch(candidate: Candidate) {
-    await runLookup({ bin: candidate.bin });
+    await runLookup({ bin: candidate.bin }, candidate);
   }
 
   function updateRow(key: string, patch: Partial<DraftRow>) {

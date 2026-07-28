@@ -113,7 +113,14 @@ export interface ElevatorDraft {
 }
 
 export interface AddressLookupResponse {
-  match: { bin: string; resolved_address: string; borough: string } | null;
+  /**
+   * `resolved_address`/`borough` are `null` when this came from a bin-only
+   * re-call (post-disambiguation) — the backend skips geocoding on that path
+   * and has no label/borough to echo back. Callers that already know the
+   * picked candidate's label/borough (from the `matches` picker) should
+   * prefer that over trusting these fields in that case.
+   */
+  match: { bin: string; resolved_address: string | null; borough: string | null } | null;
   /**
    * Populated only when `reason` is `"ambiguous_match"` (otherwise `null`) —
    * one entry per candidate BIN the address resolved to. The frontend must
