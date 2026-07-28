@@ -37,14 +37,18 @@ describe("BuildingList", () => {
     expect(screen.getByText("2 Main St")).toBeInTheDocument();
   });
 
-  it("shows a message and no list when there are zero buildings", () => {
+  it("shows explicit, actionable instructions (not just 'no data') when there are zero buildings", () => {
     render(<BuildingList buildings={[]} />);
 
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
     expect(screen.getByText(/no buildings yet/i)).toBeInTheDocument();
+    // Actionable, not just a bare "no data" message: tells the user exactly
+    // which forms (rendered above this component in App.tsx) to use.
+    expect(screen.getByText(/look up an address/i)).toBeInTheDocument();
+    expect(screen.getByText(/add a building/i)).toBeInTheDocument();
   });
 
-  it("reveals Confirm delete/Cancel controls when Delete is clicked, without calling deleteBuilding yet", () => {
+  it("reveals Confirm delete/Cancel controls and a cascade-impact warning when Delete is clicked, without calling deleteBuilding yet", () => {
     const deleteSpy = vi.spyOn(client, "deleteBuilding");
 
     render(<BuildingList buildings={buildings} />);
@@ -53,11 +57,19 @@ describe("BuildingList", () => {
     fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
 
     expect(
-      within(item).getByRole("button", { name: /^confirm delete building tower a$/i }),
+      within(item).getByRole("button", {
+        name: /^confirm delete building tower a and all its elevators$/i,
+      }),
     ).toBeInTheDocument();
     expect(
       within(item).getByRole("button", { name: /^cancel deleting building tower a$/i }),
     ).toBeInTheDocument();
+    // Deleting a building cascades server-side to delete all of its
+    // elevators too (see App.tsx's handleBuildingDeleted) — this must be
+    // stated as visible copy, not left implied, so a sighted user reads the
+    // consequence before committing, not just a screen-reader user via the
+    // aria-label above.
+    expect(within(item).getByText(/also delete(s)? all of its elevators/i)).toBeInTheDocument();
     expect(deleteSpy).not.toHaveBeenCalled();
   });
 
@@ -73,7 +85,9 @@ describe("BuildingList", () => {
     );
 
     expect(
-      within(item).queryByRole("button", { name: /^confirm delete building tower a$/i }),
+      within(item).queryByRole("button", {
+        name: /^confirm delete building tower a and all its elevators$/i,
+      }),
     ).not.toBeInTheDocument();
     expect(
       within(item).getByRole("button", { name: /^delete building tower a$/i }),
@@ -90,7 +104,9 @@ describe("BuildingList", () => {
 
     fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
     fireEvent.click(
-      within(item).getByRole("button", { name: /^confirm delete building tower a$/i }),
+      within(item).getByRole("button", {
+        name: /^confirm delete building tower a and all its elevators$/i,
+      }),
     );
 
     expect(client.deleteBuilding).toHaveBeenCalledWith(1);
@@ -114,7 +130,7 @@ describe("BuildingList", () => {
 
     fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
     const confirmButton = within(item).getByRole("button", {
-      name: /^confirm delete building tower a$/i,
+      name: /^confirm delete building tower a and all its elevators$/i,
     });
     fireEvent.click(confirmButton);
 
@@ -135,14 +151,24 @@ describe("BuildingList", () => {
     expect(results).toHaveNoViolations();
   });
 
-  it("gives the inline Confirm delete/Cancel controls distinguishable aria-labels", () => {
+  it("has no axe accessibility violations while the cascade-warning Confirm delete/Cancel controls are revealed", async () => {
+    const { container } = render(<BuildingList buildings={buildings} />);
+    const item = screen.getByText("Tower A").closest("li") as HTMLElement;
+
+    fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
+
+    const results = await axe(container);
+    expect(results).toHaveNoViolations();
+  });
+
+  it("gives the inline Confirm delete/Cancel controls distinguishable, building-specific aria-labels", () => {
     render(<BuildingList buildings={buildings} />);
     const item = screen.getByText("Tower A").closest("li") as HTMLElement;
 
     fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
 
     const confirmButton = within(item).getByRole("button", {
-      name: "Confirm delete building Tower A",
+      name: "Confirm delete building Tower A and all its elevators",
     });
     const cancelButton = within(item).getByRole("button", {
       name: "Cancel deleting building Tower A",
@@ -150,5 +176,41 @@ describe("BuildingList", () => {
     expect(confirmButton.getAttribute("aria-label")).not.toEqual(
       cancelButton.getAttribute("aria-label"),
     );
+  });
+
+  it("moves focus to the 'Buildings' heading after a successful delete, so keyboard/screen-reader focus isn't lost when the row disappears", async () => {
+    vi.spyOn(client, "deleteBuilding").mockResolvedValue(undefined);
+
+    render(<BuildingList buildings={buildings} />);
+    const item = screen.getByText("Tower A").closest("li") as HTMLElement;
+
+    fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
+    fireEvent.click(
+      within(item).getByRole("button", {
+        name: /^confirm delete building tower a and all its elevators$/i,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Buildings" }));
+    });
+  });
+
+  it("announces which building was deleted via a polite status region", async () => {
+    vi.spyOn(client, "deleteBuilding").mockResolvedValue(undefined);
+
+    render(<BuildingList buildings={buildings} />);
+    const item = screen.getByText("Tower A").closest("li") as HTMLElement;
+
+    fireEvent.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
+    fireEvent.click(
+      within(item).getByRole("button", {
+        name: /^confirm delete building tower a and all its elevators$/i,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(/tower a deleted/i);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { deleteElevator, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -153,6 +153,18 @@ export function LedgerPage({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  // A deleted row's Delete/Confirm/Cancel buttons disappear the moment the
+  // delete succeeds (immediately when confirmingDeleteId is cleared below,
+  // and again shortly after when the parent's refetched `entries` drops the
+  // row entirely) — whichever button had focus at that point would otherwise
+  // be silently removed from the DOM, dropping keyboard/screen-reader focus
+  // to <body> with no context. `captionRef` gives delete a stable, always-
+  // present focus target to land on instead; `deleteAnnouncement` gives
+  // screen-reader users an explicit confirmation of what was deleted, since
+  // the row itself vanishing isn't otherwise announced.
+  const captionRef = useRef<HTMLTableCaptionElement>(null);
+  const [deleteAnnouncement, setDeleteAnnouncement] = useState<string | null>(null);
+
   function handleDeleteRequest(elevatorId: number) {
     setConfirmingDeleteId(elevatorId);
   }
@@ -164,8 +176,13 @@ export function LedgerPage({
   async function handleDeleteConfirm(elevatorId: number) {
     setDeletingId(elevatorId);
     try {
+      const deletedEntry = entries?.find((entry) => entry.id === elevatorId);
       await deleteElevator(elevatorId);
       setConfirmingDeleteId(null);
+      captionRef.current?.focus();
+      setDeleteAnnouncement(
+        deletedEntry ? `${deletedEntry.device_identifier} deleted.` : "Elevator deleted.",
+      );
       onElevatorUpdated?.();
     } catch (err) {
       logError("Failed to delete elevator", err, { elevatorId });
@@ -227,6 +244,12 @@ export function LedgerPage({
 
   return (
     <div className={styles.wrapper}>
+      {/* Always-mounted polite live region (not conditionally rendered) so
+          assistive tech has already registered it by the time a delete
+          updates its text — see the comment on `deleteAnnouncement` above. */}
+      <div role="status" aria-live="polite" className="visually-hidden">
+        {deleteAnnouncement}
+      </div>
       {error && (
         <div className={styles.errorBanner} role="alert">
           {error}
@@ -295,7 +318,11 @@ export function LedgerPage({
       ) : visibleEntries && visibleEntries.length > 0 ? (
         <div className={styles.tableScroll}>
           <table className={styles.table}>
-            <caption>Portfolio compliance ledger, sorted by urgency</caption>
+            {/* tabIndex={-1}: focusable only via captionRef.current.focus()
+                (see handleDeleteConfirm), never added to the tab order. */}
+            <caption ref={captionRef} tabIndex={-1}>
+              Portfolio compliance ledger, sorted by urgency
+            </caption>
             <thead>
               <tr>
                 <th scope="col">Status</th>

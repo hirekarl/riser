@@ -624,6 +624,54 @@ describe("LedgerPage", () => {
     });
   });
 
+  it("moves focus to the table caption after a successful delete, so keyboard/screen-reader focus isn't lost when the row disappears", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    vi.spyOn(client, "deleteElevator").mockResolvedValue(undefined);
+
+    render(<LedgerPage entries={[entry]} />);
+    const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+
+    fireEvent.click(within(row).getByRole("button", { name: /^delete el-1$/i }));
+    fireEvent.click(within(row).getByRole("button", { name: /^confirm delete el-1$/i }));
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        screen.getByText(/portfolio compliance ledger, sorted by urgency/i),
+      );
+    });
+  });
+
+  it("announces which elevator was deleted via a polite status region", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    vi.spyOn(client, "deleteElevator").mockResolvedValue(undefined);
+
+    render(<LedgerPage entries={[entry]} />);
+    const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+
+    fireEvent.click(within(row).getByRole("button", { name: /^delete el-1$/i }));
+    fireEvent.click(within(row).getByRole("button", { name: /^confirm delete el-1$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(/el-1 deleted/i);
+    });
+  });
+
   it("shows a pending/disabled state while deleting, then an error banner when deleting an elevator fails", async () => {
     const entry: LedgerEntry = {
       id: 1,
