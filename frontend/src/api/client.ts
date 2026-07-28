@@ -7,6 +7,7 @@ import type {
   Elevator,
   LedgerEntry,
   NarrationResponse,
+  ResetPortfolioResponse,
   SeedDemoDataResponse,
   UpdateElevatorPayload,
 } from "../types/domain";
@@ -105,6 +106,16 @@ export function fetchNarration(): Promise<NarrationResponse> {
 // GET on this path returns 405; only POST is supported.
 export function seedDemoData(): Promise<SeedDemoDataResponse> {
   return request<SeedDemoDataResponse>("demo-data/seed/", { method: "POST" });
+}
+
+// Backend endpoint being built in parallel — added ahead per the pre-agreed
+// contract shape (see the frontend-design-agent task brief). Unlike
+// seedDemoData() above, this is unconditionally destructive: it wipes the
+// entire portfolio (all buildings and elevators), not just what a given
+// call itself created. GET on this path is expected to 405; only POST is
+// supported.
+export function resetPortfolio(): Promise<ResetPortfolioResponse> {
+  return request<ResetPortfolioResponse>("demo-data/reset/", { method: "POST" });
 }
 
 export function lookupBuildingByAddress(

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listBuildings, listLedger } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { PortfolioReset } from "./components/PortfolioReset";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { NarrationPanel } from "./features/narration/NarrationPanel";
@@ -127,6 +128,14 @@ function App() {
     setReloadSignal((n) => n + 1);
   }
 
+  // Portfolio reset wipes every building (and its cascade-deleted
+  // elevators), so this needs both a ledger refetch and a buildings refetch,
+  // mirroring handleBuildingDeleted above.
+  function handlePortfolioReset() {
+    setReloadSignal((n) => n + 1);
+    loadBuildings();
+  }
+
   return (
     <ThemeProvider>
       <div className={styles.app}>
@@ -139,6 +148,11 @@ function App() {
             <ThemeToggle />
           </div>
           <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
+          {/* Grouped with the other demo/utility controls rather than
+            competing with the primary create-a-building flow below — only
+            rendered once there's actually a portfolio to reset, so it never
+            appears as a no-op affordance on a fresh empty portfolio. */}
+          {buildings.length > 0 && <PortfolioReset onReset={handlePortfolioReset} />}
         </header>
 
         {buildingsError && (

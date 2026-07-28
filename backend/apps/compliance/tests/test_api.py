@@ -644,3 +644,48 @@ class TestDemoDataSeedAPI:
         """GET /api/demo-data/seed/ is not allowed; this is a POST-only endpoint."""
         response = api_client.get("/api/demo-data/seed/")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+@pytest.mark.usefixtures("live_dob_seed_data")
+class TestDemoDataResetAPI:
+    """Tests for ``POST /api/demo-data/reset/``, the deliberately destructive companion."""
+
+    def test_reset_deletes_all_buildings_and_elevators(self, api_client: APIClient) -> None:
+        """Calling the endpoint wipes every building and elevator in the portfolio."""
+        api_client.post("/api/demo-data/seed/", {}, format="json")
+        assert Building.objects.count() > 0
+        assert Elevator.objects.count() > 0
+
+        response = api_client.post("/api/demo-data/reset/", {}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert Building.objects.count() == 0
+        assert Elevator.objects.count() == 0
+
+    def test_reset_returns_counts_of_deleted_rows(self, api_client: APIClient) -> None:
+        """The response reports how many buildings/elevators were deleted."""
+        api_client.post("/api/demo-data/seed/", {}, format="json")
+        expected_buildings = Building.objects.count()
+        expected_elevators = Elevator.objects.count()
+
+        response = api_client.post("/api/demo-data/reset/", {}, format="json")
+
+        assert response.data == {
+            "buildings_deleted": expected_buildings,
+            "elevators_deleted": expected_elevators,
+        }
+
+    def test_reset_is_idempotent_on_empty_portfolio(self, api_client: APIClient) -> None:
+        """Calling reset again on an already-empty portfolio errors nothing, returns zeros."""
+        assert Building.objects.count() == 0
+        assert Elevator.objects.count() == 0
+
+        response = api_client.post("/api/demo-data/reset/", {}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"buildings_deleted": 0, "elevators_deleted": 0}
+
+    def test_reset_get_not_allowed(self, api_client: APIClient) -> None:
+        """GET /api/demo-data/reset/ is not allowed; this is a POST-only endpoint."""
+        response = api_client.get("/api/demo-data/reset/")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

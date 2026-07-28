@@ -643,4 +643,42 @@ describe("App", () => {
 
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("does not render the portfolio reset control when the portfolio is empty", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+    render(<App />);
+
+    await screen.findByRole("form", { name: /add a building/i });
+    expect(screen.queryByRole("button", { name: /reset portfolio/i })).not.toBeInTheDocument();
+  });
+
+  it("renders the portfolio reset control when buildings exist, and wires its onReset into the shared refetch", async () => {
+    const building: Building = {
+      id: 1,
+      name: "Tower A",
+      address: "1 Main St",
+      created_at: "x",
+      updated_at: "x",
+    };
+    vi.spyOn(client, "listBuildings").mockResolvedValue([building]);
+    const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue([]);
+    vi.spyOn(client, "resetPortfolio").mockResolvedValue({
+      buildings_deleted: 1,
+      elevators_deleted: 0,
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const resetButton = await screen.findByRole("button", { name: /reset portfolio/i });
+    await waitFor(() => expect(listLedgerSpy).toHaveBeenCalledTimes(1));
+
+    await user.click(resetButton);
+    await user.type(screen.getByLabelText(/type reset to confirm/i), "RESET");
+    await user.click(screen.getByRole("button", { name: /confirm reset/i }));
+
+    await waitFor(() => expect(listLedgerSpy).toHaveBeenCalledTimes(2));
+  });
 });
