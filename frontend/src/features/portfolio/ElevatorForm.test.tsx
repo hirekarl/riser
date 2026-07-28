@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
@@ -220,6 +220,111 @@ describe("ElevatorForm", () => {
 
       const results = await axe(container);
       expect(results).toHaveNoViolations();
+    });
+
+    it("includes the device identifier in the heading so it's unambiguous which row is being edited", () => {
+      render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevator}
+        />,
+      );
+
+      expect(screen.getByRole("heading", { name: /edit.*EL-7/i })).toBeInTheDocument();
+    });
+  });
+
+  describe("edit mode discoverability (scroll + focus)", () => {
+    const editingElevatorA = {
+      id: 7,
+      device_identifier: "EL-7",
+      inspection_type: "CAT1" as const,
+      last_inspection_date: "2024-01-01",
+    };
+    const editingElevatorB = {
+      id: 9,
+      device_identifier: "EL-9",
+      inspection_type: "CAT5" as const,
+      last_inspection_date: "2024-02-02",
+    };
+
+    beforeEach(() => {
+      Element.prototype.scrollIntoView = vi.fn();
+    });
+
+    it("does not scroll or move focus on initial mount when editingElevator is null", () => {
+      render(<ElevatorForm buildings={buildings} onCreated={vi.fn()} />);
+
+      expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it("scrolls the form into view and focuses the device identifier field when entering edit mode", () => {
+      const { rerender } = render(
+        <ElevatorForm buildings={buildings} onCreated={vi.fn()} editingElevator={null} />,
+      );
+
+      expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+
+      rerender(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevatorA}
+        />,
+      );
+
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ behavior: "smooth" }),
+      );
+      expect(screen.getByLabelText(/device identifier/i)).toHaveFocus();
+    });
+
+    it("re-scrolls and re-focuses when switching to a different elevator while already editing", () => {
+      const { rerender } = render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevatorA}
+        />,
+      );
+
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevatorB}
+        />,
+      );
+
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(2);
+      expect(screen.getByLabelText(/device identifier/i)).toHaveFocus();
+    });
+
+    it("does not re-trigger scroll/focus on unrelated re-renders that don't change which elevator is edited", async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevatorA}
+        />,
+      );
+
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
+
+      await user.type(screen.getByLabelText(/last inspection date/i), "2025-01-01");
+      rerender(
+        <ElevatorForm
+          buildings={buildings}
+          onCreated={vi.fn()}
+          editingElevator={editingElevatorA}
+        />,
+      );
+
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
     });
   });
 });

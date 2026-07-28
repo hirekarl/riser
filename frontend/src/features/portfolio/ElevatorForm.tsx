@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { createElevator, updateElevator } from "../../api/client";
 import { logError } from "../../lib/logger";
@@ -43,6 +43,9 @@ export function ElevatorForm({
 
   const isEditing = editingElevator !== null;
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const deviceInputRef = useRef<HTMLInputElement>(null);
+
   const [building, setBuilding] = useState<number | "">("");
   const [deviceIdentifier, setDeviceIdentifier] = useState("");
   const [inspectionType, setInspectionType] = useState<InspectionType>("CAT1");
@@ -72,6 +75,22 @@ export function ElevatorForm({
     }
     setError(null);
   }
+
+  // The form lives near the top of the page while the ledger table (where
+  // Edit is clicked) is further down and often scrolled out of view. Without
+  // this, clicking Edit appears to silently do nothing. Scroll the form into
+  // view and move focus to the first editable field whenever edit mode is
+  // entered, or the user switches which elevator is being edited (keyed off
+  // the elevator's id so this doesn't re-fire on unrelated re-renders, e.g.
+  // typing into a field). Deliberately does not run on initial mount when
+  // there's no `editingElevator`.
+  useEffect(() => {
+    if (editingElevator) {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      deviceInputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingElevator?.id]);
 
   const hasBuildings = buildings.length > 0;
   // Fall back to the first building whenever the currently selected one is no
@@ -136,11 +155,12 @@ export function ElevatorForm({
 
   return (
     <form
+      ref={formRef}
       className={styles.form}
       onSubmit={handleSubmit}
       aria-label={isEditing ? "Edit an elevator" : "Add an elevator"}
     >
-      <h2>{isEditing ? "Edit an elevator" : "Add an elevator"}</h2>
+      <h2>{editingElevator ? `Edit "${editingElevator.device_identifier}"` : "Add an elevator"}</h2>
       {error && (
         <div className={styles.errorBanner} role="alert">
           {error}
@@ -170,6 +190,7 @@ export function ElevatorForm({
       <div className={styles.field}>
         <label htmlFor={deviceId}>Device identifier</label>
         <input
+          ref={deviceInputRef}
           id={deviceId}
           type="text"
           value={deviceIdentifier}
