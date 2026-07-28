@@ -106,11 +106,45 @@ class TestElevatorAPI:
         assert response.status_code == status.HTTP_201_CREATED
         assert Elevator.objects.filter(device_identifier="EL-999").exists()
 
+    def test_create_elevator_with_dob_device_number(
+        self, api_client: APIClient, building: Building
+    ) -> None:
+        """POST /api/elevators/ accepts and persists an optional dob_device_number."""
+        payload = {
+            "building": building.pk,
+            "device_identifier": "EL-1000",
+            "inspection_type": "CAT1",
+            "last_inspection_date": "2025-06-01",
+            "dob_device_number": "1P766",
+        }
+        response = api_client.post("/api/elevators/", payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["dob_device_number"] == "1P766"
+        created = Elevator.objects.get(device_identifier="EL-1000")
+        assert created.dob_device_number == "1P766"
+
+    def test_create_elevator_without_dob_device_number_is_null(
+        self, api_client: APIClient, building: Building
+    ) -> None:
+        """POST /api/elevators/ without dob_device_number leaves it null (manual entry)."""
+        payload = {
+            "building": building.pk,
+            "device_identifier": "EL-1001",
+            "inspection_type": "CAT1",
+            "last_inspection_date": "2025-06-01",
+        }
+        response = api_client.post("/api/elevators/", payload, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["dob_device_number"] is None
+        created = Elevator.objects.get(device_identifier="EL-1001")
+        assert created.dob_device_number is None
+
     def test_retrieve_elevator(self, api_client: APIClient, elevator: Elevator) -> None:
         """GET /api/elevators/<id>/ returns the requested elevator."""
         response = api_client.get(f"/api/elevators/{elevator.pk}/")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["device_identifier"] == elevator.device_identifier
+        assert "dob_device_number" in response.data
 
     def test_update_elevator(self, api_client: APIClient, elevator: Elevator) -> None:
         """PATCH /api/elevators/<id>/ updates the elevator's last inspection date."""
@@ -236,6 +270,7 @@ class TestLedgerAPI:
             device_identifier="EL-100",
             inspection_type="CAT1",
             last_inspection_date=last_inspection,
+            dob_device_number="1P766",
         )
         response = api_client.get("/api/ledger/")
         assert response.status_code == status.HTTP_200_OK
@@ -243,6 +278,7 @@ class TestLedgerAPI:
         assert row["building_name"] == building.name
         assert row["due_date"] == "2026-06-11"
         assert row["status"] == "Warning"
+        assert row["dob_device_number"] == "1P766"
 
     @time_machine.travel(datetime.date(2026, 6, 1))
     def test_ledger_sort_order_delinquent_warning_compliant(
@@ -572,8 +608,9 @@ class TestBuildingLookupAPI:
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 
+@pytest.mark.usefixtures("live_dob_seed_data")
 class TestDemoDataSeedAPI:
-    """Tests for ``POST /api/demo-data/seed/``."""
+    """Tests for ``POST /api/demo-data/seed/``, against stubbed live DOB lookups."""
 
     def test_seed_returns_201_with_counts(self, api_client: APIClient) -> None:
         """A successful seed returns 201 with buildings/elevators created counts."""

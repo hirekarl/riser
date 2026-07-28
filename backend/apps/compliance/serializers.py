@@ -61,6 +61,7 @@ class ElevatorSerializer(serializers.ModelSerializer[Elevator]):
             "device_identifier",
             "inspection_type",
             "last_inspection_date",
+            "dob_device_number",
             "created_at",
             "updated_at",
         ]
@@ -88,6 +89,7 @@ class LedgerEntrySerializer(serializers.ModelSerializer[Elevator]):
             "device_identifier",
             "inspection_type",
             "last_inspection_date",
+            "dob_device_number",
             "building_name",
             "due_date",
             "status",
