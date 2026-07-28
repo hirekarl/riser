@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from apps.compliance.views import (
     BuildingViewSet,
+    DemoDataResetView,
     DemoDataSeedView,
     ElevatorViewSet,
     LedgerListView,
@@ -19,5 +20,6 @@ urlpatterns = [
     path("ledger/narration/", NarrationView.as_view(), name="ledger-narration"),
     path("ledger/", LedgerListView.as_view(), name="ledger"),
     path("demo-data/seed/", DemoDataSeedView.as_view(), name="demo-data-seed"),
+    path("demo-data/reset/", DemoDataResetView.as_view(), name="demo-data-reset"),
     *router.urls,
 ]

@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.compliance import dob, narration
-from apps.compliance.demo_data import seed_demo_portfolio
+from apps.compliance.demo_data import reset_portfolio, seed_demo_portfolio
 from apps.compliance.models import Building, Elevator
 from apps.compliance.serializers import (
     AddressLookupRequestSerializer,
@@ -376,4 +376,49 @@ class DemoDataSeedView(APIView):
                 "elevators_created": result.elevators_created,
             },
             status=http_status.HTTP_201_CREATED,
+        )
+
+
+class DemoDataResetView(APIView):
+    """Wipe the entire portfolio over HTTP: ``POST /api/demo-data/reset/``.
+
+    The deliberately destructive counterpart to :class:`DemoDataSeedView`.
+    Where that endpoint is intentionally always additive and can never wipe
+    existing data, this endpoint is intentionally *unconditional* — every
+    :class:`~apps.compliance.models.Building` and
+    :class:`~apps.compliance.models.Elevator` row is deleted, no
+    confirmation or filter, every time it is called.
+
+    This is only safe to expose unauthenticated (per this MVP's no-auth
+    stance, ``docs/adr/0002-no-auth-for-mvp.md``) because it is meant
+    exclusively for demo/dev environments that can be reseeded on demand
+    via ``POST /api/demo-data/seed/``. If this application is ever pointed
+    at a production portfolio with real customer data, an unauthenticated
+    endpoint that unconditionally destroys every row is a serious hazard
+    and must not ship as-is — the same caveat the no-auth ADR raises for
+    the rest of this MVP, sharpened to its most dangerous case.
+    """
+
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """Delete every building and elevator in the portfolio.
+
+        Args:
+            request: The incoming DRF request. The body is ignored — there
+                are no reset options exposed over HTTP.
+            *args: Unused positional arguments from the URL dispatcher.
+            **kwargs: Unused keyword arguments from the URL dispatcher.
+
+        Returns:
+            A ``Response`` with ``{"buildings_deleted": int,
+            "elevators_deleted": int}`` and HTTP 200 on success. Safe to
+            call repeatedly; an already-empty portfolio returns zero
+            counts rather than erroring.
+        """
+        result = reset_portfolio()
+        return Response(
+            {
+                "buildings_deleted": result.buildings_deleted,
+                "elevators_deleted": result.elevators_deleted,
+            },
+            status=http_status.HTTP_200_OK,
         )

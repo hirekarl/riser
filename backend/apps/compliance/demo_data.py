@@ -65,6 +65,48 @@ class SeedResult:
     skipped: list[tuple[str, str]] = dataclasses.field(default_factory=list)
 
 
+@dataclasses.dataclass(frozen=True)
+class ResetResult:
+    """The outcome of a demo-portfolio reset run.
+
+    Attributes:
+        buildings_deleted: Number of :class:`~apps.compliance.models.Building`
+            rows deleted by this run.
+        elevators_deleted: Number of :class:`~apps.compliance.models.Elevator`
+            rows deleted by this run.
+    """
+
+    buildings_deleted: int
+    elevators_deleted: int
+
+
+def reset_portfolio() -> ResetResult:
+    """Unconditionally delete every building and elevator in the portfolio.
+
+    The deliberately destructive counterpart to :func:`seed_demo_portfolio`,
+    for resetting a demo environment back to empty. Elevators are deleted
+    before buildings, matching the delete-order already used by
+    :func:`seed_demo_portfolio`'s ``keep_existing=False`` branch and by the
+    ``seed_demo_data`` management command.
+
+    Returns:
+        A :class:`ResetResult` with the number of buildings and elevators
+        deleted by this call. Calling this on an already-empty portfolio
+        is safe and returns zero counts.
+    """
+    with transaction.atomic():
+        _elevators_total, elevator_deletions = Elevator.objects.all().delete()
+        _buildings_total, building_deletions = Building.objects.all().delete()
+
+    elevators_deleted = elevator_deletions.get("compliance.Elevator", 0)
+    buildings_deleted = building_deletions.get("compliance.Building", 0)
+
+    return ResetResult(
+        buildings_deleted=buildings_deleted,
+        elevators_deleted=elevators_deleted,
+    )
+
+
 def _seed_one_building(name: str, address: str) -> tuple[Building, int] | str:
     """Resolve and create one curated building with its real DOB elevators.
 

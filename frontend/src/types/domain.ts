@@ -125,6 +125,16 @@ export interface SeedDemoDataResponse {
   elevators_created: number;
 }
 
+/**
+ * Shape of POST /api/demo-data/reset/ (200 on success). Unconditionally
+ * destructive — wipes the entire portfolio (all buildings and their
+ * elevators). Both counts reflect what this specific call deleted.
+ */
+export interface ResetPortfolioResponse {
+  buildings_deleted: number;
+  elevators_deleted: number;
+}
+
 export interface AddressLookupResponse {
   /**
    * `resolved_address`/`borough` are `null` when this came from a bin-only
