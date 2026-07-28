@@ -7,6 +7,7 @@ import type {
   Elevator,
   LedgerEntry,
   NarrationResponse,
+  SeedDemoDataResponse,
   UpdateElevatorPayload,
 } from "../types/domain";
 
@@ -100,6 +101,12 @@ export function fetchNarration(): Promise<NarrationResponse> {
 // the initial lookup, `{ bin }` for the disambiguation re-call after the
 // user picks a candidate from an `"ambiguous_match"` response. Exactly one
 // of the two is ever present per request, per the contract doc.
+// Always additive, never destructive — see docs/adr/0002-no-auth-for-mvp.md.
+// GET on this path returns 405; only POST is supported.
+export function seedDemoData(): Promise<SeedDemoDataResponse> {
+  return request<SeedDemoDataResponse>("demo-data/seed/", { method: "POST" });
+}
+
 export function lookupBuildingByAddress(
   query: { address: string } | { bin: string },
 ): Promise<AddressLookupResponse> {

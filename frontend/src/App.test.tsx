@@ -566,6 +566,36 @@ describe("App", () => {
     expect(listBuildingsSpy).toHaveBeenCalledTimes(2);
   });
 
+  it("reloads the shared ledger after seeding demo data from the empty state", async () => {
+    const seededEntry: LedgerEntry = {
+      id: 1,
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2026-01-01",
+      building_name: "Tower A",
+      due_date: "2027-01-01",
+      status: "Compliant",
+    };
+
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    const listLedgerSpy = vi
+      .spyOn(client, "listLedger")
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([seededEntry]);
+    vi.spyOn(client, "seedDemoData").mockResolvedValue({
+      buildings_created: 7,
+      elevators_created: 27,
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: /try sample data/i }));
+
+    expect(await screen.findByText("EL-1")).toBeInTheDocument();
+    expect(listLedgerSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("has no axe violations on the Timeline tab once it's populated with upcoming entries, including a due-very-soon row", async () => {
     const dueSoon: LedgerEntry = {
       id: 1,

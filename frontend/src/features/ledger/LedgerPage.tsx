@@ -91,6 +91,14 @@ export interface LedgerPageProps {
    * due_date, and rank are always server-computed, never recalculated here.
    */
   onElevatorUpdated?: () => void;
+  /**
+   * Passed straight through to the empty state's "Try sample data" button
+   * (see `EmptyState`'s `onSeeded` prop) so the parent can trigger the same
+   * ledger refetch it does after any other create/update. Optional (with a
+   * no-op default) purely so existing tests that never render the empty
+   * state don't need to pass it.
+   */
+  onSeeded?: () => void;
 }
 
 export function LedgerPage({
@@ -100,6 +108,7 @@ export function LedgerPage({
   onEditRequest,
   editingElevatorId,
   onElevatorUpdated,
+  onSeeded = () => {},
 }: LedgerPageProps) {
   const filterId = useId();
   const statusFilterId = useId();
@@ -346,7 +355,7 @@ export function LedgerPage({
       )}
 
       {visibleEntries && visibleEntries.length === 0 ? (
-        <EmptyState />
+        <EmptyState onSeeded={onSeeded} />
       ) : visibleEntries && visibleEntries.length > 0 ? (
         <div className={styles.tableScroll}>
           <table className={styles.table}>

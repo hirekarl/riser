@@ -118,6 +118,13 @@ function App() {
     loadBuildings();
   }
 
+  // Demo-data seeding is additive (never destructive, per the backend
+  // contract), so this mirrors the other "something new was created
+  // elsewhere" handlers above rather than needing its own bespoke path.
+  function handleDemoDataSeeded() {
+    setReloadSignal((n) => n + 1);
+  }
+
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -206,6 +213,7 @@ function App() {
                 onEditRequest={handleEditRequest}
                 editingElevatorId={editingElevator?.id}
                 onElevatorUpdated={handleLedgerEntryUpdated}
+                onSeeded={handleDemoDataSeeded}
               />
             </ErrorBoundary>
           )}
