@@ -32,13 +32,13 @@
 .table td {
   text-align: left;
   padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid #d9dde3;
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 
 .table th {
   font-weight: 700;
-  color: #1f2430;
+  color: var(--text);
 }
 
 .errorBanner {
@@ -47,6 +47,17 @@
   border: 1px solid #9c1c12;
   border-radius: 6px;
   padding: 0.75rem 1rem;
+}
+
+/* Desaturated-but-still-red dark pair, same as LedgerPage.module.css's
+   .errorBanner, so the two tabs' error styling stays visually consistent:
+   ~8.0:1 text-on-bg, ~9.0:1 against the page --bg for the border. */
+@media (prefers-color-scheme: dark) {
+  .errorBanner {
+    background-color: #3a1512;
+    color: #ff9c92;
+    border-color: #ff9c92;
+  }
 }
 
 /* Urgency treatment for a row due very soon (<= 7 days): every row already
@@ -69,6 +80,21 @@
   color: #7a5200;
 }
 
+/* Dark-mode counterpart for the Warning palette (#7a5200 / #fff6e0), same
+   pairing StatusBadge.module.css uses for its own .warning dark variant, so
+   "this is a warning" keeps its amber hue instead of collapsing to generic
+   gray: ~9.3:1 text-on-bg, ~12.4:1 against the page --bg for .dueSoon. */
+@media (prefers-color-scheme: dark) {
+  .urgentRow td {
+    background-color: #3a2c05;
+    box-shadow: inset 3px 0 0 0 #ffcf70;
+  }
+
+  .dueSoon {
+    color: #ffcf70;
+  }
+}
+
 /* Empty state: styled like EmptyState.module.css's card (same dashed
    border/centered layout language) without reusing that exact component,
    since this is a different message for a different situation (nothing due
@@ -85,6 +111,18 @@
   background-color: #fafbfc;
 }
 
+/* Dark-mode counterparts: #fafbfc (near-white card surface) would float as a
+   light rectangle on the dark page; #1c1f26 matches --bg-subtle's dark value
+   for a surface that still reads as "a distinct card" without floating.
+   #b7bdc9's dashed border is lightened to clear 3:1 against the dark --bg
+   (~3.4:1) instead of nearly disappearing. */
+@media (prefers-color-scheme: dark) {
+  .emptyState {
+    border-color: #626b7d;
+    background-color: #1c1f26;
+  }
+}
+
 .emptyIcon {
   font-size: 2rem;
   line-height: 1;
@@ -98,4 +136,26 @@
   margin: 0;
   max-width: 48ch;
   color: #4b5261;
+}
+
+/* #4b5261 happens to equal --text-muted's light value, but is given its own
+   explicit dark-mode pair (rather than switching to var(--text-muted))
+   because this file already reuses hardcoded literals elsewhere (.dueSoon,
+   .urgentRow) to keep its status colors self-contained/duplicated rather
+   than shared cross-module — same rationale, same #a7adba dark counterpart
+   as --text-muted's own dark value, ~7.3:1 against --bg-subtle. */
+@media (prefers-color-scheme: dark) {
+  .emptyLede {
+    color: #a7adba;
+  }
+}
+
+/* Secondary annotation for a DOB-sourced elevator's authoritative device
+   number, shown alongside (never in place of) the human-chosen
+   device_identifier label — mirrors LedgerPage.module.css's .dobDeviceNumber
+   (see the module doc comment on `LedgerEntry` in types/domain.ts). */
+.dobDeviceNumber {
+  display: inline-block;
+  margin-left: 0.4rem;
+  color: var(--text-muted);
 }

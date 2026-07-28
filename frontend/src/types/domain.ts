@@ -27,6 +27,7 @@ export interface Elevator {
   device_identifier: string;
   inspection_type: InspectionType;
   last_inspection_date: string;
+  dob_device_number: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +46,7 @@ export interface LedgerEntry {
   device_identifier: string;
   inspection_type: InspectionType;
   last_inspection_date: string;
+  dob_device_number: string | null;
   building_name: string;
   due_date: string;
   status: ComplianceStatus;
@@ -60,6 +62,7 @@ export interface CreateElevatorPayload {
   device_identifier: string;
   inspection_type: InspectionType;
   last_inspection_date: string;
+  dob_device_number: string | null;
 }
 
 export type UpdateElevatorPayload = Partial<

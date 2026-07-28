@@ -422,7 +422,50 @@ describe("AddressLookupForm", () => {
         device_identifier: "1P766",
         inspection_type: "CAT1",
         last_inspection_date: "2026-03-01",
+        dob_device_number: "1P766",
       });
+    });
+
+    it("retains the DOB device number in the saved payload even after the device identifier text is edited", async () => {
+      vi.spyOn(client, "lookupBuildingByAddress").mockResolvedValue(successResponse);
+      const createdBuilding: Building = {
+        id: 9,
+        name: "Tower A",
+        address: "350 5 AVENUE",
+        created_at: "x",
+        updated_at: "x",
+      };
+      vi.spyOn(client, "createBuilding").mockResolvedValue(createdBuilding);
+      const createElevatorSpy = vi.spyOn(client, "createElevator").mockImplementation(
+        (payload) =>
+          Promise.resolve({
+            id: Math.random(),
+            created_at: "x",
+            updated_at: "x",
+            ...payload,
+          }) as Promise<Elevator>,
+      );
+      const user = userEvent.setup();
+
+      render(<AddressLookupForm onSaved={vi.fn()} />);
+      await submitAddress(user);
+      await screen.findByLabelText(/building name/i);
+
+      const deviceInputs = screen.getAllByLabelText(/device identifier/i);
+      await user.clear(deviceInputs[0]);
+      await user.type(deviceInputs[0], "EL-CUSTOM");
+
+      await user.type(screen.getByLabelText(/building name/i), "Tower A");
+      await user.click(screen.getByRole("button", { name: /^save$/i }));
+
+      await waitFor(() =>
+        expect(createElevatorSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            device_identifier: "EL-CUSTOM",
+            dob_device_number: "1P766",
+          }),
+        ),
+      );
     });
 
     it("reflects edits made to a row's fields before saving", async () => {

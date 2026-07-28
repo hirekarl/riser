@@ -48,3 +48,46 @@
   color: #4b5261;
   border-color: #4b5261;
 }
+
+/* Dark-mode pairs for all four badge variants. These pastel-bg/saturated-
+   text combinations are tuned for a light page and read as washed-out,
+   low-contrast rectangles on the dark-mode --bg (#14161b) — e.g. #0b6b2c on
+   #e6f4ea inverts to roughly ~1.3:1 if left as-is against a dark page
+   showing through, nowhere near WCAG AA. Each variant below gets a
+   dark-saturated background (not just var(--bg-subtle), to keep the hue
+   identity readable at a glance) paired with a light, high-contrast
+   foreground in the same hue family, so "green means compliant" / "amber
+   means warning" / "red means delinquent" / "gray means unknown" survives
+   the theme switch. Contrast ratios (text against its own badge
+   background):
+     .compliant  #7fdba0 on #0f2f1c  ~8.7:1
+     .warning    #ffcf70 on #3a2c05  ~9.3:1
+     .delinquent #ff9c92 on #3a1512  ~8.0:1
+     .unknown    #a7adba on #1c1f26  ~7.3:1 (matches --text-muted/--bg-subtle's
+                 own dark-mode values, since "unknown" is intentionally the
+                 one variant with no brand hue to preserve). */
+@media (prefers-color-scheme: dark) {
+  .compliant {
+    background-color: #0f2f1c;
+    color: #7fdba0;
+    border-color: #7fdba0;
+  }
+
+  .warning {
+    background-color: #3a2c05;
+    color: #ffcf70;
+    border-color: #ffcf70;
+  }
+
+  .delinquent {
+    background-color: #3a1512;
+    color: #ff9c92;
+    border-color: #ff9c92;
+  }
+
+  .unknown {
+    background-color: #1c1f26;
+    color: #a7adba;
+    border-color: #a7adba;
+  }
+}

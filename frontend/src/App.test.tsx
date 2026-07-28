@@ -58,6 +58,7 @@ describe("App", () => {
       id: 1,
       building: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-01-01",
       created_at: "x",
@@ -129,6 +130,7 @@ describe("App", () => {
       id: 1,
       building: 9,
       device_identifier: "1P766",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-03-01",
       created_at: "x",
@@ -169,6 +171,7 @@ describe("App", () => {
     const before: LedgerEntry = {
       id: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       building_name: "Tower A",
@@ -178,6 +181,7 @@ describe("App", () => {
     const after: LedgerEntry = {
       ...before,
       device_identifier: "EL-1B",
+      dob_device_number: null,
       last_inspection_date: "2026-07-01",
       due_date: "2027-07-01",
       status: "Compliant",
@@ -186,6 +190,7 @@ describe("App", () => {
       id: 1,
       building: 1,
       device_identifier: "EL-1B",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-07-01",
       created_at: "x",
@@ -227,6 +232,7 @@ describe("App", () => {
     const before: LedgerEntry = {
       id: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       building_name: "Tower A",
@@ -248,6 +254,7 @@ describe("App", () => {
       id: 1,
       building: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-06-01",
       created_at: "x",
@@ -276,6 +283,7 @@ describe("App", () => {
     const entry: LedgerEntry = {
       id: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       building_name: "Tower A",
@@ -304,6 +312,7 @@ describe("App", () => {
     const entryA: LedgerEntry = {
       id: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       building_name: "Tower A",
@@ -313,6 +322,7 @@ describe("App", () => {
     const entryB: LedgerEntry = {
       id: 2,
       device_identifier: "EL-2",
+      dob_device_number: null,
       inspection_type: "CAT5",
       last_inspection_date: "2024-01-01",
       building_name: "Tower B",
@@ -421,6 +431,7 @@ describe("App", () => {
     const entry: LedgerEntry = {
       id: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-01-01",
       building_name: "Tower A",
@@ -463,6 +474,7 @@ describe("App", () => {
     const before: LedgerEntry = {
       id: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       building_name: "Tower A",
@@ -485,6 +497,7 @@ describe("App", () => {
       id: 1,
       building: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-07-01",
       created_at: "x",
@@ -570,6 +583,7 @@ describe("App", () => {
     const seededEntry: LedgerEntry = {
       id: 1,
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-01-01",
       building_name: "Tower A",
@@ -600,6 +614,7 @@ describe("App", () => {
     const dueSoon: LedgerEntry = {
       id: 1,
       device_identifier: "EL-SOON",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2026-01-01",
       building_name: "Tower A",
@@ -609,6 +624,7 @@ describe("App", () => {
     const dueLater: LedgerEntry = {
       id: 2,
       device_identifier: "EL-LATER",
+      dob_device_number: null,
       inspection_type: "CAT5",
       last_inspection_date: "2026-01-01",
       building_name: "Tower A",

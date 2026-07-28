@@ -23,6 +23,7 @@ interface MockElevator {
   device_identifier: string;
   inspection_type: "CAT1" | "CAT5";
   last_inspection_date: string;
+  dob_device_number: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +68,7 @@ async function mockApiWithSeedData(page: Page) {
       device_identifier: "EL-1",
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
+      dob_device_number: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
@@ -82,6 +84,7 @@ async function mockApiWithSeedData(page: Page) {
         d.setDate(d.getDate() + 15);
         return d.toISOString().slice(0, 10);
       })(),
+      dob_device_number: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
@@ -91,6 +94,7 @@ async function mockApiWithSeedData(page: Page) {
       device_identifier: "EL-3",
       inspection_type: "CAT5",
       last_inspection_date: "2024-01-01",
+      dob_device_number: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },

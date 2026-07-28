@@ -21,6 +21,7 @@ function makeEntry(overrides: Partial<LedgerEntry>): LedgerEntry {
     device_identifier: "EL-1",
     inspection_type: "CAT1",
     last_inspection_date: "2020-01-01",
+    dob_device_number: null,
     building_name: "Tower A",
     due_date: isoDateOffsetFromToday(10),
     status: "Warning",
@@ -103,6 +104,25 @@ describe("TimelinePage", () => {
     const rows = screen.getAllByRole("row").slice(1); // drop header row
     const deviceIdsInOrder = rows.map((row) => within(row).getAllByText(/^EL-\w+$/)[0].textContent);
     expect(deviceIdsInOrder).toEqual(["EL-NEAR", "EL-MID", "EL-FAR"]);
+  });
+
+  it("shows a muted DOB device number annotation when present, and omits it when absent", () => {
+    const withDob = makeEntry({
+      id: 1,
+      device_identifier: "EL-DOB",
+      dob_device_number: "1P766",
+    });
+    const withoutDob = makeEntry({
+      id: 2,
+      device_identifier: "EL-NODOB",
+      dob_device_number: null,
+    });
+
+    render(<TimelinePage entries={[withDob, withoutDob]} />);
+
+    expect(screen.getByText("(DOB #1P766)")).toBeInTheDocument();
+    const noDobRow = screen.getByText("EL-NODOB").closest("tr") as HTMLElement;
+    expect(within(noDobRow).queryByText(/DOB #/)).not.toBeInTheDocument();
   });
 
   it("shows a clear, actionable empty-state message when nothing is due in the next 90 days", () => {

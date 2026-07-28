@@ -21,6 +21,7 @@ interface MockElevator {
   device_identifier: string;
   inspection_type: "CAT1" | "CAT5";
   last_inspection_date: string;
+  dob_device_number: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -52,6 +53,7 @@ async function mockApiWithSeedData(page: Page) {
       device_identifier: "EL-SOON",
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
+      dob_device_number: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
@@ -61,6 +63,7 @@ async function mockApiWithSeedData(page: Page) {
       device_identifier: "EL-LATER",
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
+      dob_device_number: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listBuildings, listLedger } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { NarrationPanel } from "./features/narration/NarrationPanel";
 import { AddressLookupForm } from "./features/portfolio/AddressLookupForm";
@@ -10,6 +11,7 @@ import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
 import { TimelinePage } from "./features/timeline/TimelinePage";
 import { logError } from "./lib/logger";
+import { ThemeProvider } from "./lib/theme";
 import type { Building, LedgerEntry } from "./types/domain";
 import styles from "./App.module.css";
 
@@ -126,114 +128,119 @@ function App() {
   }
 
   return (
-    <div className={styles.app}>
-      <header className={styles.header}>
-        <h1>
-          <span className={styles.wordmarkRust}>RI</span>
-          <span className={styles.wordmarkNavy}>SER</span>
-        </h1>
-        <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
-      </header>
+    <ThemeProvider>
+      <div className={styles.app}>
+        <header className={styles.header}>
+          <div className={styles.headerRow}>
+            <h1>
+              <span className={styles.wordmarkRust}>RI</span>
+              <span className={styles.wordmarkNavy}>SER</span>
+            </h1>
+            <ThemeToggle />
+          </div>
+          <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
+        </header>
 
-      {buildingsError && (
-        <div className={styles.errorBanner} role="alert">
-          {buildingsError}
-          <button type="button" onClick={() => loadBuildings()}>
-            Retry
-          </button>
+        {buildingsError && (
+          <div className={styles.errorBanner} role="alert">
+            {buildingsError}
+            <button type="button" onClick={() => loadBuildings()}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        <AddressLookupForm onSaved={handleAddressLookupSaved} />
+
+        <div className={styles.formsRow}>
+          <BuildingForm onCreated={handleBuildingCreated} />
+          <ElevatorForm
+            buildings={buildings}
+            onCreated={handleElevatorCreated}
+            editingElevator={editingElevator}
+            onUpdated={handleElevatorUpdated}
+            onEditCancel={handleEditCancel}
+          />
         </div>
-      )}
 
-      <AddressLookupForm onSaved={handleAddressLookupSaved} />
+        <BuildingList buildings={buildings} onDeleted={handleBuildingDeleted} />
 
-      <div className={styles.formsRow}>
-        <BuildingForm onCreated={handleBuildingCreated} />
-        <ElevatorForm
-          buildings={buildings}
-          onCreated={handleElevatorCreated}
-          editingElevator={editingElevator}
-          onUpdated={handleElevatorUpdated}
-          onEditCancel={handleEditCancel}
-        />
-      </div>
-
-      <BuildingList buildings={buildings} onDeleted={handleBuildingDeleted} />
-
-      <main>
-        {/* Placed above the ledger as the page's lead feature, per the v3
+        <main>
+          {/* Placed above the ledger as the page's lead feature, per the v3
             design pass (docs/design/) — matches the "AI Executive
             Briefing" position in the reference mockup. */}
-        <NarrationPanel />
+          <NarrationPanel />
 
-        <div role="tablist" aria-label="Ledger views" className={styles.tabList}>
-          <button
-            type="button"
-            role="tab"
-            id="ledger-tab"
-            aria-selected={activeTab === "ledger"}
-            aria-controls="ledger-panel"
-            className={styles.tab}
-            onClick={() => setActiveTab("ledger")}
-          >
-            Ledger
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="timeline-tab"
-            aria-selected={activeTab === "timeline"}
-            aria-controls="timeline-panel"
-            className={styles.tab}
-            onClick={() => setActiveTab("timeline")}
-          >
-            Timeline
-          </button>
-        </div>
+          <div role="tablist" aria-label="Ledger views" className={styles.tabList}>
+            <button
+              type="button"
+              role="tab"
+              id="ledger-tab"
+              aria-selected={activeTab === "ledger"}
+              aria-controls="ledger-panel"
+              className={styles.tab}
+              onClick={() => setActiveTab("ledger")}
+            >
+              Ledger
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="timeline-tab"
+              aria-selected={activeTab === "timeline"}
+              aria-controls="timeline-panel"
+              className={styles.tab}
+              onClick={() => setActiveTab("timeline")}
+            >
+              Timeline
+            </button>
+          </div>
 
-        <div
-          role="tabpanel"
-          id="ledger-panel"
-          aria-labelledby="ledger-tab"
-          hidden={activeTab !== "ledger"}
-        >
-          <h2 className="visually-hidden">Portfolio ledger</h2>
-          {/* Only the active tab's page component is mounted — besides
+          <div
+            role="tabpanel"
+            id="ledger-panel"
+            aria-labelledby="ledger-tab"
+            hidden={activeTab !== "ledger"}
+          >
+            <h2 className="visually-hidden">Portfolio ledger</h2>
+            {/* Only the active tab's page component is mounted — besides
               avoiding pointless work for the hidden tab, this also
               sidesteps the same LedgerEntry data being findable twice
               (once per view) if both were mounted simultaneously. Both
               `<div role="tabpanel">` wrappers stay in the DOM regardless,
               toggled via `hidden`, so `aria-controls` on each tab always
               points at a real element. */}
-          {activeTab === "ledger" && (
-            <ErrorBoundary>
-              <LedgerPage
-                entries={entries}
-                error={entriesError}
-                buildings={buildings}
-                onEditRequest={handleEditRequest}
-                editingElevatorId={editingElevator?.id}
-                onElevatorUpdated={handleLedgerEntryUpdated}
-                onSeeded={handleDemoDataSeeded}
-              />
-            </ErrorBoundary>
-          )}
-        </div>
+            {activeTab === "ledger" && (
+              <ErrorBoundary>
+                <LedgerPage
+                  entries={entries}
+                  error={entriesError}
+                  buildings={buildings}
+                  onEditRequest={handleEditRequest}
+                  editingElevatorId={editingElevator?.id}
+                  onElevatorUpdated={handleLedgerEntryUpdated}
+                  onSeeded={handleDemoDataSeeded}
+                />
+              </ErrorBoundary>
+            )}
+          </div>
 
-        <div
-          role="tabpanel"
-          id="timeline-panel"
-          aria-labelledby="timeline-tab"
-          hidden={activeTab !== "timeline"}
-        >
-          <h2 className="visually-hidden">Upcoming compliance due dates</h2>
-          {activeTab === "timeline" && (
-            <ErrorBoundary>
-              <TimelinePage entries={entries} error={entriesError} />
-            </ErrorBoundary>
-          )}
-        </div>
-      </main>
-    </div>
+          <div
+            role="tabpanel"
+            id="timeline-panel"
+            aria-labelledby="timeline-tab"
+            hidden={activeTab !== "timeline"}
+          >
+            <h2 className="visually-hidden">Upcoming compliance due dates</h2>
+            {activeTab === "timeline" && (
+              <ErrorBoundary>
+                <TimelinePage entries={entries} error={entriesError} />
+              </ErrorBoundary>
+            )}
+          </div>
+        </main>
+      </div>
+    </ThemeProvider>
   );
 }
 

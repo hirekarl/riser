@@ -20,6 +20,7 @@ interface MockElevator {
   device_identifier: string;
   inspection_type: "CAT1" | "CAT5";
   last_inspection_date: string;
+  dob_device_number: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,9 +83,11 @@ async function mockApi(page: Page) {
         device_identifier: string;
         inspection_type: "CAT1" | "CAT5";
         last_inspection_date: string;
+        dob_device_number?: string | null;
       };
       const elevator: MockElevator = {
         id: nextElevatorId++,
+        dob_device_number: null,
         ...payload,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",

@@ -34,6 +34,7 @@ const mixedStatusEntries: LedgerEntry[] = [
     id: 3,
     building_name: "Tower A",
     device_identifier: "EL-3",
+    dob_device_number: null,
     inspection_type: "CAT1",
     last_inspection_date: "2020-01-01",
     due_date: "2021-01-01",
@@ -43,6 +44,7 @@ const mixedStatusEntries: LedgerEntry[] = [
     id: 1,
     building_name: "Tower A",
     device_identifier: "EL-1",
+    dob_device_number: null,
     inspection_type: "CAT1",
     last_inspection_date: "2025-07-01",
     due_date: WARNING_DUE_DATE,
@@ -52,6 +54,7 @@ const mixedStatusEntries: LedgerEntry[] = [
     id: 2,
     building_name: "Tower B",
     device_identifier: "EL-2",
+    dob_device_number: null,
     inspection_type: "CAT5",
     last_inspection_date: "2024-01-01",
     due_date: "2029-01-01",
@@ -78,6 +81,18 @@ describe("LedgerPage", () => {
 
     expect(screen.getAllByText("Tower A").length).toBeGreaterThan(0);
     expect(screen.getByText("Tower B")).toBeInTheDocument();
+  });
+
+  it("shows a muted DOB device number annotation when present, and omits it when absent", () => {
+    const entries: LedgerEntry[] = [
+      { ...mixedStatusEntries[0], id: 10, device_identifier: "EL-DOB", dob_device_number: "1P766" },
+      { ...mixedStatusEntries[1], id: 11, device_identifier: "EL-NODOB", dob_device_number: null },
+    ];
+    render(<LedgerPage entries={entries} />);
+
+    expect(screen.getByText("(DOB #1P766)")).toBeInTheDocument();
+    const noDobRow = screen.getByText("EL-NODOB").closest("tr") as HTMLElement;
+    expect(within(noDobRow).queryByText(/DOB #/)).not.toBeInTheDocument();
   });
 
   it("shows a polished empty state with clear instructions when there are zero elevators", () => {
@@ -164,6 +179,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -193,6 +209,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -202,6 +219,7 @@ describe("LedgerPage", () => {
       id: entry.id,
       building: 1,
       device_identifier: entry.device_identifier,
+      dob_device_number: entry.dob_device_number,
       inspection_type: entry.inspection_type,
       last_inspection_date: "2026-07-01",
       created_at: "x",
@@ -225,6 +243,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -234,6 +253,7 @@ describe("LedgerPage", () => {
       id: 2,
       building_name: "Tower B",
       device_identifier: "EL-2",
+      dob_device_number: null,
       inspection_type: "CAT5",
       last_inspection_date: "2024-01-01",
       due_date: "2029-01-01",
@@ -272,6 +292,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -304,6 +325,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -340,6 +362,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -377,6 +400,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -401,6 +425,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -588,6 +613,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -612,6 +638,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -637,6 +664,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -662,6 +690,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -687,6 +716,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -710,6 +740,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
@@ -746,6 +777,7 @@ describe("LedgerPage", () => {
       id: 1,
       building_name: "Tower A",
       device_identifier: "EL-1",
+      dob_device_number: null,
       inspection_type: "CAT1",
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
