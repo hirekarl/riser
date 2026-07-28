@@ -311,6 +311,46 @@ describe("AddressLookupForm", () => {
       }
     });
 
+    it("shows a no-devices-on-file note but still allows saving the building when the match has zero drafts", async () => {
+      const zeroDraftsResponse: AddressLookupResponse = {
+        ...successResponse,
+        drafts: [],
+      };
+      vi.spyOn(client, "lookupBuildingByAddress").mockResolvedValue(zeroDraftsResponse);
+      const createdBuilding: Building = {
+        id: 9,
+        name: "Tower A",
+        address: "350 5 AVENUE",
+        created_at: "x",
+        updated_at: "x",
+      };
+      const createBuildingSpy = vi
+        .spyOn(client, "createBuilding")
+        .mockResolvedValue(createdBuilding);
+      const createElevatorSpy = vi.spyOn(client, "createElevator");
+      const onSaved = vi.fn();
+      const user = userEvent.setup();
+
+      render(<AddressLookupForm onSaved={onSaved} />);
+      await submitAddress(user);
+      await screen.findByLabelText(/building name/i);
+
+      expect(
+        screen.getByText(/no elevator devices were found on file for this building/i),
+      ).toBeInTheDocument();
+      expect(screen.queryAllByLabelText(/device identifier/i)).toHaveLength(0);
+
+      await user.type(screen.getByLabelText(/building name/i), "Tower A");
+      await user.click(screen.getByRole("button", { name: /^save$/i }));
+
+      await waitFor(() => expect(onSaved).toHaveBeenCalledWith(createdBuilding));
+      expect(createBuildingSpy).toHaveBeenCalledWith({
+        name: "Tower A",
+        address: "350 5 AVENUE",
+      });
+      expect(createElevatorSpy).not.toHaveBeenCalled();
+    });
+
     it("disables Save until a building name is entered", async () => {
       vi.spyOn(client, "lookupBuildingByAddress").mockResolvedValue(successResponse);
       const user = userEvent.setup();
