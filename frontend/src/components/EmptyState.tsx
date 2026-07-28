@@ -1,4 +1,17 @@
+import { useState } from "react";
+import { seedDemoData } from "../api/client";
+import { logError } from "../lib/logger";
 import styles from "./EmptyState.module.css";
+
+export interface EmptyStateProps {
+  /**
+   * Called after "Try sample data" successfully seeds demo buildings/
+   * elevators via POST /api/demo-data/seed/, so a parent (e.g. `App`) can
+   * trigger a ledger refetch the same way it does after any other
+   * create/update (see `reloadSignal` in App.tsx).
+   */
+  onSeeded: () => void;
+}
 
 /**
  * Polished first-run empty state for the ledger. Nests inside `LedgerPage`,
@@ -10,9 +23,28 @@ import styles from "./EmptyState.module.css";
  * points at the address-lookup fast start as the primary path, with the
  * manual "Add a building" / "Add an elevator" forms as the fallback for
  * addresses DOB doesn't resolve. Both are rendered above the ledger in
- * App.tsx (AddressLookupForm, then BuildingForm/ElevatorForm).
+ * App.tsx (AddressLookupForm, then BuildingForm/ElevatorForm). "Try sample
+ * data" is a third, even-faster path for a first look at the app without
+ * needing a real building on hand.
  */
-export function EmptyState() {
+export function EmptyState({ onSeeded }: EmptyStateProps) {
+  const [seeding, setSeeding] = useState(false);
+  const [seedError, setSeedError] = useState<string | null>(null);
+
+  async function handleSeedClick() {
+    setSeeding(true);
+    setSeedError(null);
+    try {
+      await seedDemoData();
+      onSeeded();
+    } catch (err) {
+      logError("Failed to seed demo data", err);
+      setSeedError("Could not load sample data. Please try again.");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   return (
     <div className={styles.emptyState}>
       <span className={styles.icon} aria-hidden="true">
@@ -39,6 +71,19 @@ export function EmptyState() {
           inspection type, and its last inspection date.
         </li>
       </ol>
+      {seedError && (
+        <div className={styles.errorBanner} role="alert">
+          {seedError}
+        </div>
+      )}
+      <button
+        type="button"
+        className={styles.primaryButton}
+        disabled={seeding}
+        onClick={handleSeedClick}
+      >
+        {seeding ? "Adding sample data…" : "Try sample data"}
+      </button>
     </div>
   );
 }

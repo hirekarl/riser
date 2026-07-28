@@ -41,3 +41,36 @@
 .steps strong {
   color: #1f2430;
 }
+
+/* Matches the .primaryButton visual language in
+   ../features/portfolio/forms.module.css (same rust fill/contrast rationale
+   — see that file's comment) so the single committing action here reads
+   consistently with "Add building"/"Add elevator" elsewhere in the app. */
+.primaryButton {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #8f5525;
+  border-radius: 6px;
+  background-color: #8f5525;
+  color: #fff9f1;
+  cursor: pointer;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background-color: #7a4720;
+  border-color: #7a4720;
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.errorBanner {
+  background-color: #fdecea;
+  color: #9c1c12;
+  border: 1px solid #9c1c12;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+}

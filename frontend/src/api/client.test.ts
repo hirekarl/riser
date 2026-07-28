@@ -9,6 +9,7 @@ import {
   listElevators,
   listLedger,
   lookupBuildingByAddress,
+  seedDemoData,
   updateElevator,
 } from "./client";
 import type {
@@ -18,6 +19,7 @@ import type {
   CreateElevatorPayload,
   LedgerEntry,
   NarrationResponse,
+  SeedDemoDataResponse,
 } from "../types/domain";
 
 function mockFetchOnce(body: unknown, init?: { ok?: boolean; status?: number }) {
@@ -273,6 +275,19 @@ describe("api client", () => {
   it("throws a descriptive error when the response is not ok", async () => {
     mockFetchOnce({ detail: "boom" }, { ok: false, status: 500 });
     await expect(listBuildings()).rejects.toThrow(/500/);
+  });
+
+  it("seedDemoData POSTs to /demo-data/seed/ and returns the created counts", async () => {
+    const response: SeedDemoDataResponse = { buildings_created: 7, elevators_created: 27 };
+    const fetchMock = mockFetchOnce(response, { status: 201 });
+
+    const result = await seedDemoData();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/demo-data\/seed\/?$/),
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(result).toEqual(response);
   });
 
   it("returns undefined for a 204 No Content response", async () => {

@@ -112,6 +112,16 @@ export interface ElevatorDraft {
   last_inspection_date: string;
 }
 
+/**
+ * Shape of POST /api/demo-data/seed/ (201 on success). Always additive —
+ * never destructive/replacing — per ADR-0002 (no-auth MVP). Both counts
+ * reflect what this specific call created, not portfolio-wide totals.
+ */
+export interface SeedDemoDataResponse {
+  buildings_created: number;
+  elevators_created: number;
+}
+
 export interface AddressLookupResponse {
   /**
    * `resolved_address`/`borough` are `null` when this came from a bin-only

@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { axe } from "vitest-axe";
 import { LedgerPage } from "./LedgerPage";
 import * as client from "../../api/client";
 import * as logger from "../../lib/logger";
-import type { Building, LedgerEntry } from "../../types/domain";
+import type { Building, LedgerEntry, SeedDemoDataResponse } from "../../types/domain";
 
 const buildings: Building[] = [
   {
@@ -85,6 +86,19 @@ describe("LedgerPage", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByText(/no elevators/i)).toBeInTheDocument();
     expect(screen.getByText(/look up your first building by address/i)).toBeInTheDocument();
+  });
+
+  it("threads onSeeded through to the empty state's sample-data button", async () => {
+    const response: SeedDemoDataResponse = { buildings_created: 7, elevators_created: 27 };
+    vi.spyOn(client, "seedDemoData").mockResolvedValue(response);
+    const onSeeded = vi.fn();
+    const user = userEvent.setup();
+
+    render(<LedgerPage entries={[]} onSeeded={onSeeded} />);
+
+    await user.click(screen.getByRole("button", { name: /try sample data/i }));
+
+    await waitFor(() => expect(onSeeded).toHaveBeenCalled());
   });
 
   it("has no axe accessibility violations in a populated state", async () => {
