@@ -138,11 +138,29 @@
   font-size: 0.9rem;
 }
 
+/* Matches the "drop box" treatment from the v3 design pass
+   (docs/design/riser-executive-dashboard.html's .select-navy) — same
+   navy-tinted field + custom chevron as the portfolio forms' selects
+   (frontend/src/features/portfolio/forms.module.css), so filter controls
+   and add-elevator controls read as the same visual language. */
 .filterRow select {
   font: inherit;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid #7a8091;
-  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.4375rem 2rem 0.4375rem 0.625rem;
+  background-color: #edf0f4;
+  color: #1c3a63;
+  border: 1px solid #c9d2de;
+  border-radius: 9px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%23566274' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+}
+
+.filterRow select:focus {
+  outline: 2px solid #8f5525;
+  outline-offset: 1px;
 }
 
 /* Marks the row whose elevator is currently the target of the (parent-owned)
