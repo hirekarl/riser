@@ -46,9 +46,10 @@ export function PortfolioReset({ onReset }: PortfolioResetProps) {
   }
 
   async function handleConfirm() {
-    // Guards against a second activation landing while a request is already
-    // in flight, same rationale as EmptyState's handleSeedClick guard.
-    if (resetting || confirmationText !== CONFIRMATION_STRING) return;
+    // No in-flight/text-mismatch guard needed here (unlike EmptyState's
+    // handleSeedClick): the confirm button uses a native `disabled`
+    // attribute tied to the same isConfirmEnabled check, which already
+    // makes this handler unreachable in either of those states.
     setResetting(true);
     setResetError(null);
     try {

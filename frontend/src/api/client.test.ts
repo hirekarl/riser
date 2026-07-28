@@ -9,6 +9,7 @@ import {
   listElevators,
   listLedger,
   lookupBuildingByAddress,
+  resetPortfolio,
   seedDemoData,
   updateElevator,
 } from "./client";
@@ -19,6 +20,7 @@ import type {
   CreateElevatorPayload,
   LedgerEntry,
   NarrationResponse,
+  ResetPortfolioResponse,
   SeedDemoDataResponse,
 } from "../types/domain";
 
@@ -287,6 +289,19 @@ describe("api client", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringMatching(/\/demo-data\/seed\/?$/),
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(result).toEqual(response);
+  });
+
+  it("resetPortfolio POSTs to /demo-data/reset/ and returns the deleted counts", async () => {
+    const response: ResetPortfolioResponse = { buildings_deleted: 6, elevators_deleted: 40 };
+    const fetchMock = mockFetchOnce(response);
+
+    const result = await resetPortfolio();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/demo-data\/reset\/?$/),
       expect.objectContaining({ method: "POST" }),
     );
     expect(result).toEqual(response);
