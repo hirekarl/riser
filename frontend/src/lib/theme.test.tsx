@@ -120,6 +120,23 @@ describe("ThemeProvider / useTheme", () => {
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 
+  it("falls back to 'system' when localStorage.getItem throws", () => {
+    const getItemSpy = vi.spyOn(window.localStorage.__proto__, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked in this context", "SecurityError");
+    });
+
+    render(
+      <ThemeProvider>
+        <TestConsumer />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByTestId("theme-value")).toHaveTextContent("system");
+    expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
+
+    getItemSpy.mockRestore();
+  });
+
   it("throws a helpful error when useTheme is used outside a ThemeProvider", () => {
     // Suppress the expected React error-boundary console noise for this case.
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
