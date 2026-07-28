@@ -255,12 +255,25 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
             Matched {state.match.resolved_address}, {state.match.borough}.
           </p>
           <div className={styles.field}>
-            <label htmlFor={nameId}>Building name</label>
+            <label htmlFor={nameId}>
+              Building name
+              {/* aria-hidden: a bare "*" glyph is a sighted-user-only cue —
+                  screen readers already announce required-ness via the
+                  input's `required`/aria-required attributes, and some
+                  screen readers skip or mispronounce a lone asterisk, so it
+                  shouldn't also be read aloud here. */}
+              <span className={styles.requiredMarker} aria-hidden="true">
+                {" "}
+                *
+              </span>
+              <span className="visually-hidden"> (required)</span>
+            </label>
             <input
               id={nameId}
               type="text"
               value={buildingName}
               required
+              aria-required="true"
               onChange={(event) => setBuildingName(event.target.value)}
             />
           </div>

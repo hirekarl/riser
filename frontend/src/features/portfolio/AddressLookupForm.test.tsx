@@ -364,6 +364,32 @@ describe("AddressLookupForm", () => {
       expect(screen.getByRole("button", { name: /^save$/i })).toBeEnabled();
     });
 
+    it("visibly and programmatically marks Building name as required", async () => {
+      // Regression test: this field is genuinely `required` and blocks Save,
+      // but nothing indicated that to the user (confirmed live — a matched
+      // building with real pulled elevators, Save silently inert until this
+      // one field is filled in). Assert both the native/ARIA plumbing and a
+      // human-visible marker, not just the native attribute alone.
+      vi.spyOn(client, "lookupBuildingByAddress").mockResolvedValue(successResponse);
+      const user = userEvent.setup();
+
+      render(<AddressLookupForm onSaved={vi.fn()} />);
+      await submitAddress(user);
+
+      const nameInput = await screen.findByLabelText(/building name/i);
+      expect(nameInput).toBeRequired();
+      expect(nameInput).toHaveAttribute("aria-required", "true");
+
+      const label = (nameInput as HTMLInputElement).labels?.[0];
+      expect(label).toBeDefined();
+      // Sighted-user cue: a visible asterisk glyph in the label.
+      expect(label).toHaveTextContent("*");
+      // Screen-reader cue: an explicit "(required)" that isn't just a bare
+      // "*" (which some screen readers skip or mispronounce), available via
+      // the accessible name even though it's visually hidden.
+      expect(label).toHaveTextContent(/\(required\)/i);
+    });
+
     it("has no axe accessibility violations in the review state", async () => {
       vi.spyOn(client, "lookupBuildingByAddress").mockResolvedValue(successResponse);
       const user = userEvent.setup();
