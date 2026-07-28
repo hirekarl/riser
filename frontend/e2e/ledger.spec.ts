@@ -206,11 +206,12 @@ test("full add building -> add elevator -> status color -> edit date -> status u
 
   // Empty state renders with clear instructions.
   await expect(page.getByText(/no elevators yet/i)).toBeVisible();
-  await expect(page.getByText(/add your first building/i)).toBeVisible();
+  await expect(page.getByText(/look up your first building by address/i)).toBeVisible();
 
   // Add a building.
-  await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  const buildingForm = page.getByRole("form", { name: /^add a building$/i });
+  await buildingForm.getByLabel(/building name/i).fill("Tower A");
+  await buildingForm.getByLabel(/address/i).fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
@@ -255,8 +256,9 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
   await page.goto("/");
 
   // Add a building.
-  await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  const buildingForm = page.getByRole("form", { name: /^add a building$/i });
+  await buildingForm.getByLabel(/building name/i).fill("Tower A");
+  await buildingForm.getByLabel(/address/i).fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
@@ -335,8 +337,9 @@ test("visually marks the row currently open in the Edit form, distinct from othe
   await mockApi(page);
   await page.goto("/");
 
-  await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  const buildingForm = page.getByRole("form", { name: /^add a building$/i });
+  await buildingForm.getByLabel(/building name/i).fill("Tower A");
+  await buildingForm.getByLabel(/address/i).fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
@@ -398,8 +401,9 @@ test("ledger table does not cause horizontal page overflow on a narrow (phone-wi
   await page.goto("/");
 
   // Add a building.
-  await page.getByLabel(/building name/i).fill("Tower A");
-  await page.getByLabel(/address/i).fill("1 Main St");
+  const buildingForm = page.getByRole("form", { name: /^add a building$/i });
+  await buildingForm.getByLabel(/building name/i).fill("Tower A");
+  await buildingForm.getByLabel(/address/i).fill("1 Main St");
   await page.getByRole("button", { name: /add building/i }).click();
 
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
