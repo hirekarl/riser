@@ -25,9 +25,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.75rem;
   padding: 0.5rem 0;
   border-bottom: 1px solid #d9dde3;
+}
+
+/* Applied in addition to .item while this row's delete confirmation (with
+   its cascade-impact warning paragraph) is revealed, so a longer row can
+   wrap onto a second line without the warning/buttons squeezing vertically
+   against .itemInfo. */
+.itemConfirming {
+  align-items: flex-start;
 }
 
 .itemInfo {
@@ -61,6 +70,91 @@
 
 .deleteButton:hover {
   background: #f0f1f3;
+}
+
+/* Groups the cascade-impact warning paragraph with the Confirm delete/Cancel
+   pair so they wrap together as a unit (see .itemConfirming above). */
+.confirmDeleteGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex: 1 1 260px;
+}
+
+/* Deleting a building cascade-deletes all of its elevators server-side (see
+   App.tsx's handleBuildingDeleted) — this states that consequence as
+   visible copy, not just an aria-label, so a sighted user reads it before
+   confirming too. Reuses the same amber "warning" palette already validated
+   in StatusBadge.module.css's .warning (#7a5200 on #fff6e0, ~6.4:1 contrast,
+   comfortably clearing WCAG AA's 4.5:1) rather than inventing a new color. */
+.deleteWarning {
+  align-self: stretch;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  background-color: #fff6e0;
+  color: #7a5200;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Confirm delete/Cancel: intentionally matches LedgerPage.module.css's
+   .confirmDeleteButton/.cancelDeleteButton exactly (colors, spacing,
+   hover/focus-visible), not this file's own .deleteButton or
+   forms.module.css's .primaryButton/.secondaryButton — reusing the rust
+   "primary submit" color here would visually conflate a destructive,
+   cascading delete with a routine form-submit action. Colors are duplicated
+   rather than imported cross-module, same rationale as LedgerPage's copy of
+   this pair. */
+.confirmDeleteButton,
+.cancelDeleteButton {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.confirmDeleteButton {
+  font-weight: 700;
+  border: 1px solid #1f2430;
+  background-color: #1f2430;
+  color: #fff;
+}
+
+.confirmDeleteButton:hover:not(:disabled) {
+  background-color: #333a4a;
+  border-color: #333a4a;
+}
+
+.cancelDeleteButton {
+  border: 1px solid #4b5261;
+  background-color: transparent;
+  color: #1f2430;
+}
+
+.cancelDeleteButton:hover:not(:disabled) {
+  background-color: #f0f1f3;
+}
+
+.confirmDeleteButton:disabled,
+.cancelDeleteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hint {
+  color: #4b5261;
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .errorBanner {

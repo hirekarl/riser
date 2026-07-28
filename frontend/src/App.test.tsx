@@ -555,7 +555,9 @@ describe("App", () => {
     const item = within(buildingList).getByText("Tower A").closest("li") as HTMLElement;
     await user.click(within(item).getByRole("button", { name: /^delete building tower a$/i }));
     await user.click(
-      within(item).getByRole("button", { name: /^confirm delete building tower a$/i }),
+      within(item).getByRole("button", {
+        name: /^confirm delete building tower a and all its elevators$/i,
+      }),
     );
 
     await waitFor(() => {
