@@ -6,6 +6,14 @@ import * as matchers from "vitest-axe/matchers";
 
 expect.extend(matchers);
 
+// jsdom doesn't implement `Element.prototype.scrollIntoView`. Provide a
+// no-op stub so components that call it (e.g. to scroll a form into view)
+// don't crash; tests that need to assert on scroll behavior can
+// `vi.spyOn(Element.prototype, "scrollIntoView")` themselves.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 // jsdom doesn't implement `window.matchMedia`. Provide a baseline stub (OS
 // preference defaults to "not dark") so code that reads
 // `prefers-color-scheme` doesn't crash; individual tests that need to
