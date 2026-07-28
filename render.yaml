@@ -13,6 +13,17 @@
 # unsuffixed name. ALLOWED_HOSTS/VITE_API_BASE_URL below reflect the actual
 # assigned hostname — if this service is ever deleted and recreated, verify
 # the assigned hostname again before relying on it.
+#
+# INCIDENT (2026-07-28): riser-backend's Auto-Deploy silently stopped
+# firing for ~22h/36+ commits despite green CI the whole time and an
+# identically-configured riser-frontend deploying normally — Render's
+# Events tab showed zero attempts (not even a skipped/filtered one) between
+# the last successful auto-deploy and several "Triggered by you via CLI"
+# manual deploys, ruling out checksPass/build-filter logic as the cause.
+# Fixed by toggling riser-backend's Auto-Deploy setting off then back on
+# in the dashboard (Settings tab) to reset what looked like a dropped
+# webhook subscription. If this recurs, that's the first thing to retry
+# before assuming render.yaml itself is misconfigured.
 
 services:
   - type: web
