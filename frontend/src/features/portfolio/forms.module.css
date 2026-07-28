@@ -34,11 +34,9 @@
 /* #7a8091 -> #9aa4b8 dark-mode lightening, same as LedgerPage.module.css's
    .filterRow select/.dateInput: ~7.2:1 against --bg, ~6.6:1 against
    --bg-subtle. */
-@media (prefers-color-scheme: dark) {
-  .field input,
-  .field select {
-    border-color: #9aa4b8;
-  }
+:root[data-theme="dark"] .field input,
+:root[data-theme="dark"] .field select {
+  border-color: #9aa4b8;
 }
 
 .actions {
@@ -96,10 +94,8 @@
 
 /* Dark-mode hover overlay for the mostly-transparent secondary/cancel
    button, matching LedgerPage.module.css's equivalent buttons. */
-@media (prefers-color-scheme: dark) {
-  .secondaryButton:hover:not(:disabled) {
-    background-color: #262b35;
-  }
+:root[data-theme="dark"] .secondaryButton:hover:not(:disabled) {
+  background-color: #262b35;
 }
 
 .primaryButton:disabled,
@@ -118,12 +114,10 @@
 
 /* Same red dark pair used by every other .errorBanner in the app: ~8.0:1
    text-on-bg, ~9.0:1 against the page --bg for the border. */
-@media (prefers-color-scheme: dark) {
-  .errorBanner {
-    background-color: #3a1512;
-    color: #ff9c92;
-    border-color: #ff9c92;
-  }
+:root[data-theme="dark"] .errorBanner {
+  background-color: #3a1512;
+  color: #ff9c92;
+  border-color: #ff9c92;
 }
 
 .hint {

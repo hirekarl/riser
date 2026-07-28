@@ -2,14 +2,16 @@ import { useTheme } from "../lib/theme";
 import styles from "./ThemeToggle.module.css";
 
 /**
- * A simple two-state light/dark toggle. `"system"` (the implicit starting
- * state, before the user has made an explicit choice) is treated as "not
- * dark" for display purposes — clicking always flips to the opposite of
- * dark, landing on an explicit "light" or "dark" choice from then on.
+ * A simple two-state light/dark toggle. The displayed state reflects
+ * `resolvedTheme` — what's actually currently rendered — rather than the raw
+ * `theme` preference, so it's accurate even before the user has made an
+ * explicit choice (i.e. while still following the OS's `prefers-color-scheme`).
+ * Clicking always flips to the opposite of whatever's currently resolved,
+ * landing on an explicit "light" or "dark" choice from then on.
  */
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  const isDark = theme === "dark";
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const label = isDark ? "Switch to light mode" : "Switch to dark mode";
 
   function handleClick() {

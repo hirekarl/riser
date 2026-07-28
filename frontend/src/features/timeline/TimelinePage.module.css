@@ -52,12 +52,10 @@
 /* Desaturated-but-still-red dark pair, same as LedgerPage.module.css's
    .errorBanner, so the two tabs' error styling stays visually consistent:
    ~8.0:1 text-on-bg, ~9.0:1 against the page --bg for the border. */
-@media (prefers-color-scheme: dark) {
-  .errorBanner {
-    background-color: #3a1512;
-    color: #ff9c92;
-    border-color: #ff9c92;
-  }
+:root[data-theme="dark"] .errorBanner {
+  background-color: #3a1512;
+  color: #ff9c92;
+  border-color: #ff9c92;
 }
 
 /* Urgency treatment for a row due very soon (<= 7 days): every row already
@@ -84,15 +82,13 @@
    pairing StatusBadge.module.css uses for its own .warning dark variant, so
    "this is a warning" keeps its amber hue instead of collapsing to generic
    gray: ~9.3:1 text-on-bg, ~12.4:1 against the page --bg for .dueSoon. */
-@media (prefers-color-scheme: dark) {
-  .urgentRow td {
-    background-color: #3a2c05;
-    box-shadow: inset 3px 0 0 0 #ffcf70;
-  }
+:root[data-theme="dark"] .urgentRow td {
+  background-color: #3a2c05;
+  box-shadow: inset 3px 0 0 0 #ffcf70;
+}
 
-  .dueSoon {
-    color: #ffcf70;
-  }
+:root[data-theme="dark"] .dueSoon {
+  color: #ffcf70;
 }
 
 /* Empty state: styled like EmptyState.module.css's card (same dashed
@@ -116,11 +112,9 @@
    for a surface that still reads as "a distinct card" without floating.
    #b7bdc9's dashed border is lightened to clear 3:1 against the dark --bg
    (~3.4:1) instead of nearly disappearing. */
-@media (prefers-color-scheme: dark) {
-  .emptyState {
-    border-color: #626b7d;
-    background-color: #1c1f26;
-  }
+:root[data-theme="dark"] .emptyState {
+  border-color: #626b7d;
+  background-color: #1c1f26;
 }
 
 .emptyIcon {
@@ -144,10 +138,8 @@
    .urgentRow) to keep its status colors self-contained/duplicated rather
    than shared cross-module — same rationale, same #a7adba dark counterpart
    as --text-muted's own dark value, ~7.3:1 against --bg-subtle. */
-@media (prefers-color-scheme: dark) {
-  .emptyLede {
-    color: #a7adba;
-  }
+:root[data-theme="dark"] .emptyLede {
+  color: #a7adba;
 }
 
 /* Secondary annotation for a DOB-sourced elevator's authoritative device
