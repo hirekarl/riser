@@ -63,14 +63,8 @@ describe("LedgerPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders ledger rows in the exact order the API returns, without re-sorting client-side", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
-
-    render(<LedgerPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByRole("row")).toHaveLength(mixedStatusEntries.length + 1); // +1 header row
-    });
+  it("renders ledger rows in the exact order given, without re-sorting client-side", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
 
     const rows = screen.getAllByRole("row").slice(1); // drop header
     const deviceIdsInOrder = rows.map((row) => within(row).getAllByText(/^EL-\d$/)[0].textContent);
@@ -78,50 +72,30 @@ describe("LedgerPage", () => {
     expect(deviceIdsInOrder).toEqual(["EL-3", "EL-1", "EL-2"]);
   });
 
-  it("shows the building name inline for each elevator", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("shows the building name inline for each elevator", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
 
-    render(<LedgerPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText("Tower A").length).toBeGreaterThan(0);
-    });
+    expect(screen.getAllByText("Tower A").length).toBeGreaterThan(0);
     expect(screen.getByText("Tower B")).toBeInTheDocument();
   });
 
-  it("shows a polished empty state with clear instructions when there are zero elevators", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+  it("shows a polished empty state with clear instructions when there are zero elevators", () => {
+    render(<LedgerPage entries={[]} />);
 
-    render(<LedgerPage />);
-
-    await waitFor(() => {
-      expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    });
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByText(/no elevators/i)).toBeInTheDocument();
     expect(screen.getByText(/look up your first building by address/i)).toBeInTheDocument();
   });
 
   it("has no axe accessibility violations in a populated state", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
-
-    const { container } = render(<LedgerPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
-    });
+    const { container } = render(<LedgerPage entries={mixedStatusEntries} />);
 
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("includes a collapsed status-meaning legend that explains all three statuses once expanded", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
-
-    const { container } = render(<LedgerPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
-    });
+  it("includes a collapsed status-meaning legend that explains all three statuses once expanded", () => {
+    const { container } = render(<LedgerPage entries={mixedStatusEntries} />);
 
     const details = container.querySelector("details");
     expect(details).not.toBeNull();
@@ -140,26 +114,19 @@ describe("LedgerPage", () => {
     expect(legendText).toMatch(/already passed/i);
   });
 
-  it("shows a loading indicator before the ledger resolves", () => {
-    vi.spyOn(client, "listLedger").mockReturnValue(new Promise(() => {}));
-
-    render(<LedgerPage />);
+  it("shows a loading indicator while entries have not yet arrived from the parent", () => {
+    render(<LedgerPage entries={null} />);
 
     expect(screen.getByRole("status")).toHaveTextContent(/loading/i);
   });
 
-  it("shows an error banner when the ledger fails to load", async () => {
-    const error = new Error("network down");
-    vi.spyOn(client, "listLedger").mockRejectedValue(error);
-    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
+  it("shows an error banner when the parent reports a ledger-load error", () => {
+    render(<LedgerPage entries={null} error="Could not load the ledger. Please try again." />);
 
-    render(<LedgerPage />);
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(/could not load the ledger/i);
-    expect(logErrorSpy).toHaveBeenCalledWith("Failed to load ledger", error);
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not load the ledger/i);
   });
 
-  it("does not call updateElevator until Save is clicked", async () => {
+  it("does not call updateElevator until Save is clicked", () => {
     const entry: LedgerEntry = {
       id: 1,
       building_name: "Tower A",
@@ -169,11 +136,10 @@ describe("LedgerPage", () => {
       due_date: "2021-01-01",
       status: "Delinquent",
     };
-    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
     const updateSpy = vi.spyOn(client, "updateElevator");
 
-    render(<LedgerPage />);
-    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    render(<LedgerPage entries={[entry]} />);
+    const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
 
@@ -189,7 +155,86 @@ describe("LedgerPage", () => {
     expect(updateSpy).toHaveBeenCalledWith(1, { last_inspection_date: "2026-07-01" });
   });
 
-  it("recalculates status/due-date/rank immediately after Save is clicked", async () => {
+  it("calls onElevatorUpdated after a successful inline Save, so the parent can refetch the ledger", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    vi.spyOn(client, "updateElevator").mockResolvedValue({
+      id: entry.id,
+      building: 1,
+      device_identifier: entry.device_identifier,
+      inspection_type: entry.inspection_type,
+      last_inspection_date: "2026-07-01",
+      created_at: "x",
+      updated_at: "x",
+    });
+    const onElevatorUpdated = vi.fn();
+
+    render(<LedgerPage entries={[entry]} onElevatorUpdated={onElevatorUpdated} />);
+    const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
+    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    const row = dateInput.closest("tr") as HTMLElement;
+    fireEvent.click(within(row).getByRole("button", { name: /^save inspection date for el-1$/i }));
+
+    await waitFor(() => {
+      expect(onElevatorUpdated).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("highlights only the row whose status changed after the entries prop is updated by the parent", async () => {
+    const changing: LedgerEntry = {
+      id: 1,
+      building_name: "Tower A",
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const unchanged: LedgerEntry = {
+      id: 2,
+      building_name: "Tower B",
+      device_identifier: "EL-2",
+      inspection_type: "CAT5",
+      last_inspection_date: "2024-01-01",
+      due_date: "2029-01-01",
+      status: "Compliant",
+    };
+    const changingAfter: LedgerEntry = {
+      ...changing,
+      last_inspection_date: "2026-07-01",
+      due_date: "2027-07-01",
+      status: "Compliant",
+    };
+
+    const { rerender } = render(<LedgerPage entries={[changing, unchanged]} />);
+
+    // Simulates the parent refetching after a save resolves elsewhere
+    // (e.g. via onElevatorUpdated) and passing down fresh entries.
+    rerender(<LedgerPage entries={[changingAfter, unchanged]} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("EL-1").closest("tr")?.className).toMatch(/highlighting/);
+    });
+    expect(screen.getByText("EL-2").closest("tr")?.className).not.toMatch(/highlighting/);
+  });
+
+  it("does not highlight any row on the initial render", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
+
+    const dataRows = screen.getAllByRole("row").slice(1);
+    for (const row of dataRows) {
+      expect(row.className).not.toMatch(/highlighting/);
+    }
+  });
+
+  it("clears the highlight after the animation duration elapses", async () => {
     const before: LedgerEntry = {
       id: 1,
       building_name: "Tower A",
@@ -206,37 +251,22 @@ describe("LedgerPage", () => {
       status: "Compliant",
     };
 
-    vi.spyOn(client, "listLedger").mockResolvedValueOnce([before]).mockResolvedValueOnce([after]);
-    const updateSpy = vi.spyOn(client, "updateElevator").mockResolvedValue({
-      id: before.id,
-      building: 1,
-      device_identifier: before.device_identifier,
-      inspection_type: before.inspection_type,
-      last_inspection_date: "2026-07-01",
-      created_at: "x",
-      updated_at: "x",
+    const { rerender } = render(<LedgerPage entries={[before]} />);
+    rerender(<LedgerPage entries={[after]} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("EL-1").closest("tr")?.className).toMatch(/highlighting/);
     });
 
-    render(<LedgerPage />);
+    await waitFor(
+      () => {
+        expect(screen.getByText("EL-1").closest("tr")?.className).not.toMatch(/highlighting/);
+      },
+      { timeout: 3000 },
+    );
+  }, 5000);
 
-    // Scoped to the table (rather than screen-wide): the status-meaning
-    // legend above the table also renders "Delinquent"/"Compliant" as
-    // example labels, so an unscoped query would be ambiguous.
-    const table = await screen.findByRole("table");
-    expect(within(table).getByText(/delinquent/i)).toBeInTheDocument();
-
-    const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
-    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
-    const row = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(within(row).getByRole("button", { name: /^save inspection date for el-1$/i }));
-
-    expect(updateSpy).toHaveBeenCalledWith(1, { last_inspection_date: "2026-07-01" });
-    expect(await within(table).findByText(/compliant/i)).toBeInTheDocument();
-    expect(within(table).queryByText(/delinquent/i)).not.toBeInTheDocument();
-    expect(within(table).getByText("2027-07-01")).toBeInTheDocument();
-  });
-
-  it("reverts to the original value and makes no network call when Cancel is clicked", async () => {
+  it("reverts to the original value and makes no network call when Cancel is clicked", () => {
     const entry: LedgerEntry = {
       id: 1,
       building_name: "Tower A",
@@ -246,11 +276,10 @@ describe("LedgerPage", () => {
       due_date: "2021-01-01",
       status: "Delinquent",
     };
-    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
     const updateSpy = vi.spyOn(client, "updateElevator");
 
-    render(<LedgerPage />);
-    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    render(<LedgerPage entries={[entry]} />);
+    const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
     expect(dateInput).toHaveValue("2026-07-01");
@@ -283,7 +312,6 @@ describe("LedgerPage", () => {
       due_date: "2021-01-01",
       status: "Delinquent",
     };
-    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
     const error = new Error("boom");
     const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
     let rejectUpdate!: (err: Error) => void;
@@ -293,8 +321,8 @@ describe("LedgerPage", () => {
       }),
     );
 
-    render(<LedgerPage />);
-    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    render(<LedgerPage entries={[entry]} />);
+    const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
     const row = dateInput.closest("tr") as HTMLElement;
@@ -311,7 +339,7 @@ describe("LedgerPage", () => {
     });
   });
 
-  it("ignores an empty date-input change", async () => {
+  it("ignores an empty date-input change", () => {
     const entry: LedgerEntry = {
       id: 1,
       building_name: "Tower A",
@@ -321,11 +349,10 @@ describe("LedgerPage", () => {
       due_date: "2021-01-01",
       status: "Delinquent",
     };
-    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
     const updateSpy = vi.spyOn(client, "updateElevator");
 
-    render(<LedgerPage />);
-    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    render(<LedgerPage entries={[entry]} />);
+    const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "" } });
 
@@ -346,10 +373,9 @@ describe("LedgerPage", () => {
       due_date: "2021-01-01",
       status: "Delinquent",
     };
-    vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
 
-    render(<LedgerPage />);
-    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    render(<LedgerPage entries={[entry]} />);
+    const dateInput = screen.getByLabelText(/last inspection date for el-1/i);
 
     fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
     const row = dateInput.closest("tr") as HTMLElement;
@@ -370,13 +396,12 @@ describe("LedgerPage", () => {
     expect(results).toHaveNoViolations();
   });
 
-  it("renders an accessible Edit button per row and calls onEditRequest with that row's entry", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("renders an accessible Edit button per row and calls onEditRequest with that row's entry", () => {
     const onEditRequest = vi.fn();
 
-    render(<LedgerPage onEditRequest={onEditRequest} />);
+    render(<LedgerPage entries={mixedStatusEntries} onEditRequest={onEditRequest} />);
 
-    const el1Cell = await screen.findByText("EL-1");
+    const el1Cell = screen.getByText("EL-1");
     const row = el1Cell.closest("tr");
     expect(row).not.toBeNull();
 
@@ -389,14 +414,12 @@ describe("LedgerPage", () => {
     );
   });
 
-  it("shows a 'View details' button for Warning/Delinquent rows but not for Compliant rows", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("shows a 'View details' button for Warning/Delinquent rows but not for Compliant rows", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
 
-    render(<LedgerPage />);
-
-    const delinquentCell = await screen.findByText("EL-3"); // Delinquent
-    const warningCell = await screen.findByText("EL-1"); // Warning
-    const compliantCell = await screen.findByText("EL-2"); // Compliant
+    const delinquentCell = screen.getByText("EL-3"); // Delinquent
+    const warningCell = screen.getByText("EL-1"); // Warning
+    const compliantCell = screen.getByText("EL-2"); // Compliant
 
     expect(
       within(delinquentCell.closest("tr") as HTMLElement).getByRole("button", {
@@ -415,12 +438,10 @@ describe("LedgerPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows Warning-specific remediation copy (distinct from Delinquent's) when a Warning row's details are expanded", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("shows Warning-specific remediation copy (distinct from Delinquent's) when a Warning row's details are expanded", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
 
-    render(<LedgerPage />);
-
-    const warningCell = await screen.findByText("EL-1"); // Warning, due_date is WARNING_DUE_DATE (5 days out)
+    const warningCell = screen.getByText("EL-1"); // Warning, due_date is WARNING_DUE_DATE (5 days out)
     const viewDetailsButton = within(warningCell.closest("tr") as HTMLElement).getByRole("button", {
       name: /view details for el-1/i,
     });
@@ -438,12 +459,10 @@ describe("LedgerPage", () => {
     expect(within(detailPanel).getByText(/schedule the inspection now/i)).toBeInTheDocument();
   });
 
-  it("expands a plain-language remediation panel (what's wrong / next step / where to go) when View details is clicked, and collapses on a second click", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("expands a plain-language remediation panel (what's wrong / next step / where to go) when View details is clicked, and collapses on a second click", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
 
-    render(<LedgerPage />);
-
-    const delinquentCell = await screen.findByText("EL-3");
+    const delinquentCell = screen.getByText("EL-3");
     const viewDetailsButton = within(delinquentCell.closest("tr") as HTMLElement).getByRole(
       "button",
       { name: /view details for el-3/i },
@@ -473,151 +492,68 @@ describe("LedgerPage", () => {
   });
 
   it("has no axe accessibility violations with a remediation panel expanded", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+    const { container } = render(<LedgerPage entries={mixedStatusEntries} />);
 
-    const { container } = render(<LedgerPage />);
-
-    const delinquentCell = await screen.findByText("EL-3");
+    const delinquentCell = screen.getByText("EL-3");
     fireEvent.click(
       within(delinquentCell.closest("tr") as HTMLElement).getByRole("button", {
         name: /view details for el-3/i,
       }),
     );
-    await screen.findByText(/what's wrong/i);
+    screen.getByText(/what's wrong/i);
 
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 
-  it("does not show a building filter when no buildings are given", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("does not show a building filter when no buildings are given", () => {
+    render(<LedgerPage entries={mixedStatusEntries} />);
 
-    render(<LedgerPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
-    });
     expect(screen.queryByLabelText(/filter by building/i)).not.toBeInTheDocument();
   });
 
-  it("shows a building filter with an 'All buildings' option plus one per building", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("shows a building filter with an 'All buildings' option plus one per building", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
 
-    render(<LedgerPage buildings={buildings} />);
-
-    const select = await screen.findByLabelText(/filter by building/i);
+    const select = screen.getByLabelText(/filter by building/i);
     const options = within(select).getAllByRole("option");
     expect(options.map((o) => o.textContent)).toEqual(["All buildings", "Tower A", "Tower B"]);
   });
 
-  it("refetches the ledger scoped to the selected building", async () => {
-    const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("filters the displayed rows to the selected building without triggering a new fetch", () => {
+    const listLedgerSpy = vi.spyOn(client, "listLedger");
 
-    render(<LedgerPage buildings={buildings} />);
-    const select = await screen.findByLabelText(/filter by building/i);
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+    const select = screen.getByLabelText(/filter by building/i);
 
-    expect(listLedgerSpy).toHaveBeenLastCalledWith(undefined);
+    fireEvent.change(select, { target: { value: "2" } }); // Tower B
 
-    fireEvent.change(select, { target: { value: "2" } });
-
-    await waitFor(() => {
-      expect(listLedgerSpy).toHaveBeenLastCalledWith(2);
-    });
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
+    // Filtering is now a purely client-side operation over the entries the
+    // parent already fetched — it must never issue its own request.
+    expect(listLedgerSpy).not.toHaveBeenCalled();
   });
 
-  it("refetches the unfiltered ledger when switching back to 'All buildings'", async () => {
-    const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
-
-    render(<LedgerPage buildings={buildings} />);
-    const select = await screen.findByLabelText(/filter by building/i);
+  it("shows the unfiltered ledger again when switching back to 'All buildings'", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+    const select = screen.getByLabelText(/filter by building/i);
 
     fireEvent.change(select, { target: { value: "2" } });
-    await waitFor(() => {
-      expect(listLedgerSpy).toHaveBeenLastCalledWith(2);
-    });
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
 
     fireEvent.change(select, { target: { value: "" } });
-    await waitFor(() => {
-      expect(listLedgerSpy).toHaveBeenLastCalledWith(undefined);
-    });
+
+    expect(screen.getByText("EL-1")).toBeInTheDocument();
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.getByText("EL-3")).toBeInTheDocument();
   });
 
-  it("does not highlight any row on the initial load", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
+  it("disables the inline date input and marks the row for whichever entry is the current edit target", () => {
+    const { rerender } = render(<LedgerPage entries={mixedStatusEntries} editingElevatorId={1} />);
 
-    render(<LedgerPage />);
-
-    await waitFor(() => {
-      expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
-    });
-    const dataRows = screen.getAllByRole("row").slice(1);
-    for (const row of dataRows) {
-      expect(row.className).not.toMatch(/highlighting/);
-    }
-  });
-
-  it("highlights only the row whose status changed after an edit", async () => {
-    const changing: LedgerEntry = {
-      id: 1,
-      building_name: "Tower A",
-      device_identifier: "EL-1",
-      inspection_type: "CAT1",
-      last_inspection_date: "2020-01-01",
-      due_date: "2021-01-01",
-      status: "Delinquent",
-    };
-    const unchanged: LedgerEntry = {
-      id: 2,
-      building_name: "Tower B",
-      device_identifier: "EL-2",
-      inspection_type: "CAT5",
-      last_inspection_date: "2024-01-01",
-      due_date: "2029-01-01",
-      status: "Compliant",
-    };
-    const changingAfter: LedgerEntry = {
-      ...changing,
-      last_inspection_date: "2026-07-01",
-      due_date: "2027-07-01",
-      status: "Compliant",
-    };
-
-    vi.spyOn(client, "listLedger")
-      .mockResolvedValueOnce([changing, unchanged])
-      .mockResolvedValueOnce([changingAfter, unchanged]);
-    vi.spyOn(client, "updateElevator").mockResolvedValue({
-      id: changing.id,
-      building: 1,
-      device_identifier: changing.device_identifier,
-      inspection_type: changing.inspection_type,
-      last_inspection_date: "2026-07-01",
-      created_at: "x",
-      updated_at: "x",
-    });
-
-    render(<LedgerPage />);
-    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
-
-    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
-    const editedRow = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(
-      within(editedRow).getByRole("button", { name: /^save inspection date for el-1$/i }),
-    );
-
-    await screen.findByText("2027-07-01"); // due date unique to the post-edit fetch
-    const changedRow = screen.getByText("EL-1").closest("tr");
-    const unchangedRow = screen.getByText("EL-2").closest("tr");
-
-    expect(changedRow?.className).toMatch(/highlighting/);
-    expect(unchangedRow?.className).not.toMatch(/highlighting/);
-  });
-
-  it("disables the inline date input and marks the row for whichever entry is the current edit target", async () => {
-    vi.spyOn(client, "listLedger").mockResolvedValue(mixedStatusEntries);
-
-    const { rerender } = render(<LedgerPage editingElevatorId={1} />);
-
-    const editedRowInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    const editedRowInput = screen.getByLabelText(/last inspection date for el-1/i);
     expect(editedRowInput).toBeDisabled();
     expect(editedRowInput.closest("tr")?.className).toMatch(/editingRow/);
 
@@ -625,61 +561,11 @@ describe("LedgerPage", () => {
     expect(otherRowInput).not.toBeDisabled();
     expect(otherRowInput.closest("tr")?.className).not.toMatch(/editingRow/);
 
-    rerender(<LedgerPage editingElevatorId={undefined} />);
+    rerender(<LedgerPage entries={mixedStatusEntries} editingElevatorId={undefined} />);
 
-    await waitFor(() => {
-      expect(screen.getByLabelText(/last inspection date for el-1/i)).not.toBeDisabled();
-    });
+    expect(screen.getByLabelText(/last inspection date for el-1/i)).not.toBeDisabled();
     expect(
       screen.getByLabelText(/last inspection date for el-1/i).closest("tr")?.className,
     ).not.toMatch(/editingRow/);
   });
-
-  it("clears the highlight after the animation duration elapses", async () => {
-    const before: LedgerEntry = {
-      id: 1,
-      building_name: "Tower A",
-      device_identifier: "EL-1",
-      inspection_type: "CAT1",
-      last_inspection_date: "2020-01-01",
-      due_date: "2021-01-01",
-      status: "Delinquent",
-    };
-    const after: LedgerEntry = {
-      ...before,
-      last_inspection_date: "2026-07-01",
-      due_date: "2027-07-01",
-      status: "Compliant",
-    };
-
-    vi.spyOn(client, "listLedger").mockResolvedValueOnce([before]).mockResolvedValueOnce([after]);
-    vi.spyOn(client, "updateElevator").mockResolvedValue({
-      id: before.id,
-      building: 1,
-      device_identifier: before.device_identifier,
-      inspection_type: before.inspection_type,
-      last_inspection_date: "2026-07-01",
-      created_at: "x",
-      updated_at: "x",
-    });
-
-    render(<LedgerPage />);
-    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
-
-    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
-    const editedRow = dateInput.closest("tr") as HTMLElement;
-    fireEvent.click(
-      within(editedRow).getByRole("button", { name: /^save inspection date for el-1$/i }),
-    );
-
-    await screen.findByText("2027-07-01");
-    expect(screen.getByText("EL-1").closest("tr")?.className).toMatch(/highlighting/);
-
-    await waitFor(
-      () => {
-        expect(screen.getByText("EL-1").closest("tr")?.className).not.toMatch(/highlighting/);
-      },
-      { timeout: 3000 },
-    );
-  }, 5000);
 });

@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useId, useRef, useState } from "react";
-import { listLedger, updateElevator } from "../../api/client";
+import { Fragment, useEffect, useId, useState } from "react";
+import { updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { StatusBadge } from "../../components/StatusBadge";
 import { logError } from "../../lib/logger";
@@ -51,11 +51,17 @@ function getRemediationCopy(entry: LedgerEntry): {
 
 export interface LedgerPageProps {
   /**
-   * Bump this value (e.g. from a parent that just created a building/elevator)
-   * to force the ledger to refetch. Purely a dependency-array trigger; the
-   * component always trusts the server's sort order and never re-sorts locally.
+   * Ledger entries fetched once by the parent (`App`) via `listLedger()` and
+   * shared with `TimelinePage`, so the two views don't each issue their own
+   * request. `null` while the parent's initial fetch is still in flight.
    */
-  reloadSignal?: number;
+  entries: LedgerEntry[] | null;
+  /**
+   * Ledger-fetch error surfaced by the parent, if the shared `listLedger()`
+   * call failed. Distinct from the inline-Save error this component still
+   * tracks locally.
+   */
+  error?: string | null;
   /**
    * Buildings available to filter the ledger by. The filter control only
    * renders when this is non-empty.
@@ -74,69 +80,65 @@ export interface LedgerPageProps {
    * two surfaces at once (see the stale-overwrite race this prevents).
    */
   editingElevatorId?: number;
+  /**
+   * Called after an inline Save successfully persists a new
+   * `last_inspection_date`, so the parent can refetch the ledger — status,
+   * due_date, and rank are always server-computed, never recalculated here.
+   */
+  onElevatorUpdated?: () => void;
 }
 
 export function LedgerPage({
-  reloadSignal,
+  entries,
+  error = null,
   buildings = [],
   onEditRequest,
   editingElevatorId,
+  onElevatorUpdated,
 }: LedgerPageProps) {
   const filterId = useId();
-  const [entries, setEntries] = useState<LedgerEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
-  const [updateVersion, setUpdateVersion] = useState(0);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
-  const previousStatusesRef = useRef<Map<number, string> | null>(null);
-  const highlightTimeoutRef = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
-    let ignore = false;
-
-    listLedger(selectedBuildingId)
-      .then((data) => {
-        if (ignore) return;
-
-        const previousStatuses = previousStatusesRef.current;
-        if (previousStatuses) {
-          const changed = new Set<number>();
-          for (const entry of data) {
-            const previousStatus = previousStatuses.get(entry.id);
-            if (previousStatus !== undefined && previousStatus !== entry.status) {
-              changed.add(entry.id);
-            }
-          }
-          if (changed.size > 0) {
-            window.clearTimeout(highlightTimeoutRef.current);
-            setJustChangedIds(changed);
-            highlightTimeoutRef.current = window.setTimeout(() => {
-              setJustChangedIds(new Set());
-            }, HIGHLIGHT_DURATION_MS);
-          }
+  // Tracks status changes across successive `entries` props (e.g. after an
+  // inline Save triggers a parent refetch) to briefly highlight the row(s)
+  // whose status just changed. Computed directly in the render body — React's
+  // documented "adjust state based on a prop change" pattern
+  // (https://react.dev/learn/you-might-not-need-an-effect) — rather than in a
+  // useEffect, since this only ever needs to react to the `entries` prop
+  // itself changing, not synchronize with anything external.
+  const [previousEntries, setPreviousEntries] = useState(entries);
+  if (entries !== previousEntries) {
+    if (entries !== null && previousEntries !== null) {
+      const previousStatuses = new Map(previousEntries.map((entry) => [entry.id, entry.status]));
+      const changed = new Set<number>();
+      for (const entry of entries) {
+        const previousStatus = previousStatuses.get(entry.id);
+        if (previousStatus !== undefined && previousStatus !== entry.status) {
+          changed.add(entry.id);
         }
-        previousStatusesRef.current = new Map(data.map((entry) => [entry.id, entry.status]));
+      }
+      if (changed.size > 0) {
+        setJustChangedIds(changed);
+      }
+    }
+    setPreviousEntries(entries);
+  }
 
-        setEntries(data);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (ignore) return;
-        logError("Failed to load ledger", err);
-        setError("Could not load the ledger. Please try again.");
-      });
-
-    return () => {
-      ignore = true;
-    };
-    // reloadSignal/updateVersion are intentional refetch triggers, not consumed directly.
-  }, [reloadSignal, updateVersion, selectedBuildingId]);
-
+  // Clearing the highlight after a delay is a genuine side effect (a timer,
+  // an external API), so it stays in a useEffect — this only ever calls
+  // setState from the timeout callback, never synchronously in the effect
+  // body itself.
   useEffect(() => {
-    return () => window.clearTimeout(highlightTimeoutRef.current);
-  }, []);
+    if (justChangedIds.size === 0) return;
+    const timeoutId = window.setTimeout(() => {
+      setJustChangedIds(new Set());
+    }, HIGHLIGHT_DURATION_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [justChangedIds]);
 
   // Per-row pending edits for the inline date input: typing/selecting a new
   // date only updates this local state (keyed by elevator id) until the user
@@ -172,10 +174,10 @@ export function LedgerPage({
         delete next[elevatorId];
         return next;
       });
-      setUpdateVersion((n) => n + 1);
+      onElevatorUpdated?.();
     } catch (err) {
       logError("Failed to update elevator inspection date", err, { elevatorId });
-      setError("Could not update the inspection date. Please try again.");
+      setSaveError("Could not update the inspection date. Please try again.");
     } finally {
       setPendingId(null);
     }
@@ -185,11 +187,25 @@ export function LedgerPage({
     return <p role="status">Loading portfolio ledger…</p>;
   }
 
+  // LedgerEntry (see types/domain.ts) deliberately omits the building's
+  // numeric id, exposing only `building_name` — so the filter matches by
+  // name rather than id. This only ever filters the already server-sorted
+  // `entries` down to a subset (order preserved); it never re-sorts them.
+  const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId);
+  const visibleEntries = selectedBuilding
+    ? (entries ?? []).filter((entry) => entry.building_name === selectedBuilding.name)
+    : entries;
+
   return (
     <div className={styles.wrapper}>
       {error && (
         <div className={styles.errorBanner} role="alert">
           {error}
+        </div>
+      )}
+      {saveError && (
+        <div className={styles.errorBanner} role="alert">
+          {saveError}
         </div>
       )}
 
@@ -245,9 +261,9 @@ export function LedgerPage({
         </div>
       )}
 
-      {entries && entries.length === 0 ? (
+      {visibleEntries && visibleEntries.length === 0 ? (
         <EmptyState />
-      ) : entries && entries.length > 0 ? (
+      ) : visibleEntries && visibleEntries.length > 0 ? (
         <div className={styles.tableScroll}>
           <table className={styles.table}>
             <caption>Portfolio compliance ledger, sorted by urgency</caption>
@@ -263,7 +279,7 @@ export function LedgerPage({
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => {
+              {visibleEntries.map((entry) => {
                 const isEditingRow = editingElevatorId === entry.id;
                 const rowClassName =
                   [
