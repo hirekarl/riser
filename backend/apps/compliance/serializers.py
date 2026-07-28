@@ -79,6 +79,7 @@ class LedgerEntrySerializer(serializers.ModelSerializer[Elevator]):
     building_name = serializers.CharField(source="building.name", read_only=True)
     due_date = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    has_open_violation = serializers.SerializerMethodField()
 
     class Meta:
         """Serializer configuration for LedgerEntrySerializer."""
@@ -93,6 +94,7 @@ class LedgerEntrySerializer(serializers.ModelSerializer[Elevator]):
             "building_name",
             "due_date",
             "status",
+            "has_open_violation",
         ]
         read_only_fields = fields
 
@@ -119,3 +121,25 @@ class LedgerEntrySerializer(serializers.ModelSerializer[Elevator]):
         """
         due_date = calculate_due_date(obj.inspection_type, obj.last_inspection_date)
         return calculate_status(due_date).value
+
+    def get_has_open_violation(self, obj: Elevator) -> bool:
+        """Return whether this elevator has an open DOB safety violation on file.
+
+        Reads from the ``open_violation_device_numbers`` set the view
+        passes in via serializer context (see
+        ``apps.compliance.views.LedgerListView``), rather than issuing a
+        lookup per row. An elevator with no ``dob_device_number`` (never
+        matched to a DOB device) is always ``False`` — there is nothing to
+        join against.
+
+        Args:
+            obj: The elevator instance being serialized.
+
+        Returns:
+            ``True`` if this elevator's ``dob_device_number`` is present in
+            the context's ``open_violation_device_numbers`` set.
+        """
+        if not obj.dob_device_number:
+            return False
+        open_device_numbers = self.context.get("open_violation_device_numbers", set())
+        return obj.dob_device_number in open_device_numbers

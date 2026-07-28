@@ -1,6 +1,7 @@
 """Tests for the compliance app's DRF API: buildings, elevators, and the ledger."""
 
 import datetime
+import decimal
 import logging
 
 import pytest
@@ -9,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.compliance import dob, narration
+from apps.compliance import dob, narration, violations
 from apps.compliance.models import Building, Elevator
 
 pytestmark = pytest.mark.django_db
@@ -280,6 +281,63 @@ class TestLedgerAPI:
         assert row["status"] == "Warning"
         assert row["dob_device_number"] == "1P766"
 
+    def test_ledger_flags_open_violation_by_device_number(
+        self, api_client: APIClient, building: Building, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A row whose dob_device_number has an open DOB violation is flagged True."""
+        with_violation = Elevator.objects.create(
+            building=building,
+            device_identifier="HAS-VIOLATION",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+            dob_device_number="1P766",
+        )
+        without_violation = Elevator.objects.create(
+            building=building,
+            device_identifier="NO-VIOLATION",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+            dob_device_number="1P767",
+        )
+        no_dob_number = Elevator.objects.create(
+            building=building,
+            device_identifier="NO-DOB-NUMBER",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+        )
+        monkeypatch.setattr(
+            violations, "fetch_open_device_numbers", lambda device_numbers: {"1P766"}
+        )
+
+        response = api_client.get("/api/ledger/")
+
+        rows_by_id = {row["id"]: row for row in response.data}
+        assert rows_by_id[with_violation.pk]["has_open_violation"] is True
+        assert rows_by_id[without_violation.pk]["has_open_violation"] is False
+        assert rows_by_id[no_dob_number.pk]["has_open_violation"] is False
+
+    def test_ledger_violations_upstream_failure_degrades_to_false(
+        self, api_client: APIClient, building: Building, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A failed violations lookup still returns 200, with has_open_violation=False."""
+        Elevator.objects.create(
+            building=building,
+            device_identifier="EL-100",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+            dob_device_number="1P766",
+        )
+
+        def boom(device_numbers: list[str]) -> set[str]:
+            raise violations.ViolationsLookupError("Socrata timed out")
+
+        monkeypatch.setattr(violations, "fetch_open_device_numbers", boom)
+
+        response = api_client.get("/api/ledger/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert all(row["has_open_violation"] is False for row in response.data)
+
     @time_machine.travel(datetime.date(2026, 6, 1))
     def test_ledger_sort_order_delinquent_warning_compliant(
         self, api_client: APIClient, building: Building
@@ -348,13 +406,156 @@ class TestNarrationAPI:
     ) -> None:
         """A non-empty ledger's narration comes from generate_narration's return value."""
         canned = "3 elevators are Delinquent, 2 enter Warning this week."
-        monkeypatch.setattr(narration, "generate_narration", lambda entries: canned)
+        monkeypatch.setattr(
+            narration, "generate_narration", lambda entries, building_fine_exposures=None: canned
+        )
 
         response = api_client.get("/api/ledger/narration/")
 
         assert response.status_code == status.HTTP_200_OK
         assert canned in response.data["narration"]
         datetime.datetime.fromisoformat(response.data["generated_at"])
+
+    def test_narration_input_carries_has_open_violation(
+        self,
+        api_client: APIClient,
+        elevator: Elevator,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The entries passed to generate_narration flag open violations (issue #120)."""
+        elevator.dob_device_number = "1P766"
+        elevator.save(update_fields=["dob_device_number"])
+        monkeypatch.setattr(
+            violations, "fetch_open_device_numbers", lambda device_numbers: {"1P766"}
+        )
+        seen_entries: list[dict[str, object]] = []
+
+        def fake_generate_narration(
+            entries: list[dict[str, object]],
+            building_fine_exposures: list[dict[str, object]] | None = None,
+        ) -> str:
+            seen_entries.extend(entries)
+            return "briefing"
+
+        monkeypatch.setattr(narration, "generate_narration", fake_generate_narration)
+
+        response = api_client.get("/api/ledger/narration/")
+
+        assert response.status_code == status.HTTP_200_OK
+        row = next(e for e in seen_entries if e.get("id") == elevator.pk)
+        assert row["has_open_violation"] is True
+
+    def test_narration_input_carries_building_fine_exposure(
+        self,
+        api_client: APIClient,
+        building: Building,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """generate_narration receives building-level fine exposure for binned buildings."""
+        building.bin = "1001026"
+        building.save(update_fields=["bin"])
+        Elevator.objects.create(
+            building=building,
+            device_identifier="EL-100",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+        )
+        monkeypatch.setattr(
+            violations,
+            "fetch_building_fine_exposures",
+            lambda bins: {
+                "1001026": violations.FineExposure(
+                    bin="1001026",
+                    total_balance_due=decimal.Decimal("3150.50"),
+                    open_violation_count=2,
+                )
+            },
+        )
+        seen: dict[str, object] = {}
+
+        def fake_generate_narration(
+            entries: list[dict[str, object]],
+            building_fine_exposures: list[dict[str, object]] | None = None,
+        ) -> str:
+            seen["building_fine_exposures"] = building_fine_exposures
+            return "briefing"
+
+        monkeypatch.setattr(narration, "generate_narration", fake_generate_narration)
+
+        response = api_client.get("/api/ledger/narration/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert seen["building_fine_exposures"] == [
+            {
+                "building_name": building.name,
+                "total_exposure": "3150.50",
+                "open_violation_count": 2,
+            }
+        ]
+
+    def test_narration_omits_fine_exposure_for_buildings_without_a_bin(
+        self,
+        api_client: APIClient,
+        elevator: Elevator,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A building with no BIN contributes nothing to building_fine_exposures."""
+
+        def boom(bins: list[str]) -> dict[str, violations.FineExposure]:
+            raise AssertionError("should not be called when no building has a bin")
+
+        monkeypatch.setattr(violations, "fetch_building_fine_exposures", boom)
+        seen: dict[str, object] = {}
+
+        def fake_generate_narration(
+            entries: list[dict[str, object]],
+            building_fine_exposures: list[dict[str, object]] | None = None,
+        ) -> str:
+            seen["building_fine_exposures"] = building_fine_exposures
+            return "briefing"
+
+        monkeypatch.setattr(narration, "generate_narration", fake_generate_narration)
+
+        response = api_client.get("/api/ledger/narration/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert seen["building_fine_exposures"] == []
+
+    def test_narration_fine_exposure_upstream_failure_degrades_to_empty(
+        self,
+        api_client: APIClient,
+        building: Building,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A failed batched fine-exposure lookup doesn't break narration generation."""
+        building.bin = "1001026"
+        building.save(update_fields=["bin"])
+        Elevator.objects.create(
+            building=building,
+            device_identifier="EL-100",
+            inspection_type="CAT1",
+            last_inspection_date=datetime.date(2024, 1, 1),
+        )
+
+        def boom(bins: list[str]) -> dict[str, violations.FineExposure]:
+            raise violations.ViolationsLookupError("Socrata timed out")
+
+        monkeypatch.setattr(violations, "fetch_building_fine_exposures", boom)
+        seen: dict[str, object] = {}
+
+        def fake_generate_narration(
+            entries: list[dict[str, object]],
+            building_fine_exposures: list[dict[str, object]] | None = None,
+        ) -> str:
+            seen["building_fine_exposures"] = building_fine_exposures
+            return "briefing"
+
+        monkeypatch.setattr(narration, "generate_narration", fake_generate_narration)
+
+        response = api_client.get("/api/ledger/narration/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert seen["building_fine_exposures"] == []
 
     def test_claude_unavailable_returns_503(
         self,
@@ -364,7 +565,7 @@ class TestNarrationAPI:
     ) -> None:
         """A NarrationUnavailableError from generate_narration surfaces as a bespoke 503."""
 
-        def boom(entries: object) -> str:
+        def boom(entries: object, building_fine_exposures: object = None) -> str:
             raise narration.NarrationUnavailableError("Claude timed out")
 
         monkeypatch.setattr(narration, "generate_narration", boom)
@@ -605,6 +806,105 @@ class TestBuildingLookupAPI:
     def test_lookup_get_not_allowed(self, api_client: APIClient) -> None:
         """GET /api/buildings/lookup/ is not allowed; this is a POST-only action."""
         response = api_client.get("/api/buildings/lookup/")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+class TestBuildingFineExposureAPI:
+    """Tests for ``GET /api/buildings/fine-exposure/`` (issue #120, batched)."""
+
+    def test_empty_portfolio_returns_empty_list(self, api_client: APIClient) -> None:
+        """No buildings at all yields an empty list, no lookup attempted."""
+        response = api_client.get("/api/buildings/fine-exposure/")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == []
+
+    def test_building_with_no_bin_gets_reason(
+        self, api_client: APIClient, building: Building
+    ) -> None:
+        """A building that's never been DOB-matched has no BIN to query by."""
+        response = api_client.get("/api/buildings/fine-exposure/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == [
+            {
+                "building": building.pk,
+                "bin": None,
+                "total_exposure": None,
+                "open_violation_count": None,
+                "reason": "no_bin_on_file",
+            }
+        ]
+
+    def test_one_batched_call_covers_every_building_with_a_bin(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Multiple buildings' exposure is resolved via a single batched lookup."""
+        with_bin_a = Building.objects.create(name="Tower A", address="1 A St", bin="1001026")
+        with_bin_b = Building.objects.create(name="Tower B", address="2 B St", bin="2000094")
+        no_bin = Building.objects.create(name="Tower C", address="3 C St")
+
+        seen: dict[str, list[str]] = {}
+
+        def fake(bins: list[str]) -> dict[str, violations.FineExposure]:
+            seen["bins"] = bins
+            return {
+                "1001026": violations.FineExposure(
+                    bin="1001026",
+                    total_balance_due=decimal.Decimal("3150.50"),
+                    open_violation_count=2,
+                ),
+                "2000094": violations.FineExposure(
+                    bin="2000094", total_balance_due=decimal.Decimal("0"), open_violation_count=0
+                ),
+            }
+
+        monkeypatch.setattr(violations, "fetch_building_fine_exposures", fake)
+
+        response = api_client.get("/api/buildings/fine-exposure/")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert sorted(seen["bins"]) == ["1001026", "2000094"]
+        rows_by_building = {row["building"]: row for row in response.data}
+        assert rows_by_building[with_bin_a.pk] == {
+            "building": with_bin_a.pk,
+            "bin": "1001026",
+            "total_exposure": "3150.50",
+            "open_violation_count": 2,
+            "reason": None,
+        }
+        assert rows_by_building[with_bin_b.pk]["total_exposure"] == "0"
+        assert rows_by_building[no_bin.pk]["reason"] == "no_bin_on_file"
+
+    def test_upstream_failure_returns_200_with_reason_for_binned_buildings(
+        self, api_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A failed batched ECB lookup is a clean 200/reason outcome, not a 500."""
+        with_bin = Building.objects.create(name="Tower A", address="1 A St", bin="1001026")
+        no_bin = Building.objects.create(name="Tower C", address="3 C St")
+
+        def boom(bins: list[str]) -> dict[str, violations.FineExposure]:
+            raise violations.ViolationsLookupError("Socrata timed out")
+
+        monkeypatch.setattr(violations, "fetch_building_fine_exposures", boom)
+
+        response = api_client.get("/api/buildings/fine-exposure/")
+
+        assert response.status_code == status.HTTP_200_OK
+        rows_by_building = {row["building"]: row for row in response.data}
+        assert rows_by_building[with_bin.pk] == {
+            "building": with_bin.pk,
+            "bin": "1001026",
+            "total_exposure": None,
+            "open_violation_count": None,
+            "reason": "upstream_unavailable",
+        }
+        # A no-bin building was never looked up, so it keeps its own reason
+        # rather than being conflated with the upstream failure.
+        assert rows_by_building[no_bin.pk]["reason"] == "no_bin_on_file"
+
+    def test_fine_exposure_post_not_allowed(self, api_client: APIClient) -> None:
+        """POST is not allowed; this is a GET-only action."""
+        response = api_client.post("/api/buildings/fine-exposure/", {}, format="json")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 

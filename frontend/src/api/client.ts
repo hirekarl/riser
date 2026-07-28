@@ -2,6 +2,7 @@ import type {
   AddressLookupRequest,
   AddressLookupResponse,
   Building,
+  BuildingFineExposure,
   CreateBuildingPayload,
   CreateElevatorPayload,
   Elevator,
@@ -126,4 +127,14 @@ export function lookupBuildingByAddress(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+// Always-visible, portfolio-wide (issue #120) — one batched request covers
+// every building's fine exposure, fetched once alongside buildings/ledger
+// rather than on a per-building button click. Per-row "no_bin_on_file"/
+// "upstream_unavailable" are expected HTTP 200 outcomes carried in each
+// entry's `reason` field, not thrown errors; only a genuinely unexpected
+// failure (e.g. the request itself failing) rejects this promise.
+export function fetchPortfolioFineExposure(): Promise<BuildingFineExposure[]> {
+  return request<BuildingFineExposure[]>("buildings/fine-exposure/", { method: "GET" });
 }

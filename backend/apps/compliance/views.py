@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.compliance import dob, narration
+from apps.compliance import dob, narration, violations
 from apps.compliance.demo_data import reset_portfolio, seed_demo_portfolio
 from apps.compliance.models import Building, Elevator
 from apps.compliance.serializers import (
@@ -53,6 +53,74 @@ def _sort_by_urgency(elevators: Sequence[Elevator]) -> list[Elevator]:
         return (rank, due_date.isoformat())
 
     return sorted(elevators, key=sort_key)
+
+
+def _fetch_open_violation_device_numbers(elevators: Sequence[Elevator]) -> set[str]:
+    """Batch-resolve which of ``elevators`` have an open DOB safety violation.
+
+    Shared by :class:`LedgerListView` and :class:`NarrationView` (issue
+    #120) so both the ledger table and the AI briefing agree on which
+    elevators are flagged, from a single external lookup rather than one
+    per caller. Fails open: an upstream failure is logged and treated as
+    "no known open violations" rather than breaking the caller.
+
+    Args:
+        elevators: The elevators to check, typically the full sorted
+            ledger for this request.
+
+    Returns:
+        The subset of device numbers (from elevators that have a
+        ``dob_device_number``) with an open violation on file. Empty if
+        the lookup fails or no elevator carries a DOB device number.
+    """
+    device_numbers = [e.dob_device_number for e in elevators if e.dob_device_number]
+    try:
+        return violations.fetch_open_device_numbers(device_numbers)
+    except violations.ViolationsLookupError:
+        logger.exception("Violations lookup failed; treating as no open violations")
+        return set()
+
+
+def _fetch_building_fine_exposures_for_narration(
+    elevators: Sequence[Elevator],
+) -> list[dict[str, Any]]:
+    """Batch-resolve fine exposure for every building represented in ``elevators``.
+
+    Feeds the AI narration (issue #120 follow-up) the same dollar figures
+    shown elsewhere in the app, via one batched Socrata call across every
+    distinct building's BIN. Fails closed (an empty list) on either no
+    buildings having a BIN or an upstream failure — narration generation
+    must never be blocked by this being unavailable, since it's additive
+    context, not the core input.
+
+    Args:
+        elevators: The elevators to derive distinct buildings from,
+            typically the full ledger for this request.
+
+    Returns:
+        One dict per building that has a BIN, each with ``building_name``,
+        ``total_exposure`` (a decimal string), and ``open_violation_count``.
+        Buildings without a BIN are omitted rather than reported as zero,
+        since "zero" and "never checked" are different claims.
+    """
+    buildings = {elevator.building for elevator in elevators}
+    bins = [building.bin for building in buildings if building.bin]
+    if not bins:
+        return []
+    try:
+        exposures = violations.fetch_building_fine_exposures(bins)
+    except violations.ViolationsLookupError:
+        logger.exception("Building fine-exposure lookup failed for narration")
+        return []
+    return [
+        {
+            "building_name": building.name,
+            "total_exposure": str(exposures[building.bin].total_balance_due),
+            "open_violation_count": exposures[building.bin].open_violation_count,
+        }
+        for building in buildings
+        if building.bin
+    ]
 
 
 def _parse_building_id_param(request: Request) -> int | None:
@@ -119,6 +187,54 @@ _UPSTREAM_UNAVAILABLE_RESPONSE: dict[str, Any] = {
     "drafts": [],
     "reason": "upstream_unavailable",
 }
+
+
+def _fine_exposure_dict(
+    building: Building,
+    exposures: dict[str, violations.FineExposure],
+    upstream_failed: bool,
+) -> dict[str, Any]:
+    """Shape one building's fine-exposure row for the batched endpoint (issue #120).
+
+    Args:
+        building: The building this row is for.
+        exposures: BIN-keyed results from
+            :func:`apps.compliance.violations.fetch_building_fine_exposures`
+            (empty if the batched call was never made or failed).
+        upstream_failed: Whether the batched Socrata call itself raised
+            :class:`~apps.compliance.violations.ViolationsLookupError`.
+
+    Returns:
+        A dict with ``building``, ``bin``, ``total_exposure``,
+        ``open_violation_count``, and ``reason`` — ``reason`` is
+        ``"no_bin_on_file"`` when ``building.bin`` is unset,
+        ``"upstream_unavailable"`` when it is set but the batched lookup
+        failed, otherwise ``None`` with the real figures filled in.
+    """
+    if not building.bin:
+        return {
+            "building": building.pk,
+            "bin": None,
+            "total_exposure": None,
+            "open_violation_count": None,
+            "reason": "no_bin_on_file",
+        }
+    if upstream_failed:
+        return {
+            "building": building.pk,
+            "bin": building.bin,
+            "total_exposure": None,
+            "open_violation_count": None,
+            "reason": "upstream_unavailable",
+        }
+    exposure = exposures[building.bin]
+    return {
+        "building": building.pk,
+        "bin": exposure.bin,
+        "total_exposure": str(exposure.total_balance_due),
+        "open_violation_count": exposure.open_violation_count,
+        "reason": None,
+    }
 
 
 class BuildingViewSet(viewsets.ModelViewSet[Building]):
@@ -224,6 +340,53 @@ class BuildingViewSet(viewsets.ModelViewSet[Building]):
             }
         )
 
+    @action(detail=False, methods=["get"], url_path="fine-exposure")
+    def fine_exposure(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """Return every building's total outstanding ECB fine exposure (issue #120).
+
+        ``GET /api/buildings/fine-exposure/`` — always-visible, portfolio-
+        wide dollar figures from the DOB ECB Violations feed, resolved via
+        a single batched Socrata call
+        (:func:`apps.compliance.violations.fetch_building_fine_exposures`)
+        rather than one request per building. This is deliberately
+        building-level, not per-elevator: that feed only joins by BIN, not
+        by device number, so it cannot be attributed to a specific
+        elevator when a building has more than one (see the issue's
+        "join-key gap" writeup).
+
+        A building with no BIN on file yet gets ``"no_bin_on_file"``; if
+        the batched Socrata call itself fails, every building that does
+        have a BIN gets ``"upstream_unavailable"`` (a building with no
+        BIN keeps ``"no_bin_on_file"`` regardless — there was never a
+        lookup to fail for it). Always HTTP 200.
+
+        Args:
+            request: The incoming DRF request.
+            *args: Unused positional arguments from the URL dispatcher.
+            **kwargs: Unused keyword arguments from the URL dispatcher.
+
+        Returns:
+            A ``Response`` wrapping a list of ``{"building", "bin",
+            "total_exposure", "open_violation_count", "reason"}``, one
+            entry per building in the portfolio.
+        """
+        buildings = list(Building.objects.all())
+        bins = [building.bin for building in buildings if building.bin]
+
+        upstream_failed = False
+        exposures: dict[str, violations.FineExposure] = {}
+        if bins:
+            try:
+                exposures = violations.fetch_building_fine_exposures(bins)
+            except violations.ViolationsLookupError:
+                logger.exception("Portfolio fine-exposure lookup failed")
+                upstream_failed = True
+
+        results = [
+            _fine_exposure_dict(building, exposures, upstream_failed) for building in buildings
+        ]
+        return Response(results)
+
 
 class ElevatorViewSet(viewsets.ModelViewSet[Elevator]):
     """CRUD API for :class:`Elevator` records.
@@ -299,8 +462,20 @@ class LedgerListView(generics.ListAPIView[Elevator]):
 
         Returns:
             A ``Response`` wrapping the serialized, urgency-sorted ledger.
+            Each row's ``has_open_violation`` (issue #120) is resolved via
+            a single batched DOB violations lookup across every row's
+            ``dob_device_number``, rather than one lookup per row.
         """
-        serializer = self.get_serializer(self._sorted_elevators(), many=True)
+        elevators = self._sorted_elevators()
+        open_device_numbers = _fetch_open_violation_device_numbers(elevators)
+        serializer = self.get_serializer(
+            elevators,
+            many=True,
+            context={
+                **self.get_serializer_context(),
+                "open_violation_device_numbers": open_device_numbers,
+            },
+        )
         return Response(serializer.data)
 
 
@@ -309,9 +484,11 @@ class NarrationView(APIView):
 
     Read-only and on-demand, over the whole portfolio (no ``?building=``
     scoping). Reuses the same urgency-sorted, serialized ledger rows that
-    :class:`LedgerListView` produces as the structured input to
+    :class:`LedgerListView` produces — including each row's
+    ``has_open_violation`` flag (issue #120) from the same batched DOB
+    violations lookup — as the structured input to
     :func:`apps.compliance.narration.generate_narration`, rather than
-    recomputing due dates/statuses here.
+    recomputing due dates/statuses/violations here.
     """
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
@@ -328,9 +505,15 @@ class NarrationView(APIView):
             (503) if the underlying Claude API call failed or timed out.
         """
         elevators = _sort_by_urgency(list(Elevator.objects.select_related("building").all()))
-        entries = LedgerEntrySerializer(elevators, many=True).data
+        open_device_numbers = _fetch_open_violation_device_numbers(elevators)
+        building_fine_exposures = _fetch_building_fine_exposures_for_narration(elevators)
+        entries = LedgerEntrySerializer(
+            elevators,
+            many=True,
+            context={"open_violation_device_numbers": open_device_numbers},
+        ).data
         try:
-            text = narration.generate_narration(list(entries))
+            text = narration.generate_narration(list(entries), building_fine_exposures)
         except narration.NarrationUnavailableError:
             logger.exception("Narration generation failed")
             return Response(

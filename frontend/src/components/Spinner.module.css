@@ -1,0 +1,25 @@
+.spinner {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  vertical-align: -0.15em;
+  margin-right: 0.4em;
+  border: 0.15em solid var(--text-muted);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Static ring instead of a spin — same reduced-motion treatment as
+   LedgerPage.module.css's status-change highlight. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

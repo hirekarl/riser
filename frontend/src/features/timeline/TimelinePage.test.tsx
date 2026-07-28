@@ -25,6 +25,7 @@ function makeEntry(overrides: Partial<LedgerEntry>): LedgerEntry {
     building_name: "Tower A",
     due_date: isoDateOffsetFromToday(10),
     status: "Warning",
+    has_open_violation: false,
     ...overrides,
   };
 }

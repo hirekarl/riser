@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 import { deleteElevator, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
+import { Spinner } from "../../components/Spinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { logError } from "../../lib/logger";
 import type { Building, ComplianceStatus, LedgerEntry } from "../../types/domain";
@@ -27,6 +28,7 @@ function getRemediationCopy(entry: LedgerEntry): {
   whatsWrong: string;
   nextStep: string;
   whereToGo: string;
+  openViolationNote: string | null;
 } {
   // entry.due_date is a date-only string, which Date parses as UTC midnight;
   // normalize "now" to a UTC-midnight Date built from the local calendar date
@@ -51,7 +53,16 @@ function getRemediationCopy(entry: LedgerEntry): {
   const whereToGo =
     "Contact your building's licensed elevator inspection agency to schedule or confirm filing, or NYC DOB's elevator unit (311) for questions about a specific violation.";
 
-  return { whatsWrong, nextStep, whereToGo };
+  // has_open_violation (issue #120) is a device-level flag only — no dollar
+  // figure attached to it, since the DOB ECB Violations feed only joins by
+  // BIN, not by device number (see docs/architecture/integration-contracts.md
+  // §6). The building-level dollar total lives in the separate, on-demand
+  // fine-exposure widget, not here.
+  const openViolationNote = entry.has_open_violation
+    ? "This elevator has an open DOB safety violation on file, in addition to its compliance status above."
+    : null;
+
+  return { whatsWrong, nextStep, whereToGo, openViolationNote };
 }
 
 export interface LedgerPageProps {
@@ -246,7 +257,11 @@ export function LedgerPage({
   }
 
   if (entries === null && !error) {
-    return <p role="status">Loading portfolio ledger…</p>;
+    return (
+      <p role="status">
+        <Spinner /> Loading portfolio ledger…
+      </p>
+    );
   }
 
   // LedgerEntry (see types/domain.ts) deliberately omits the building's
@@ -400,6 +415,11 @@ export function LedgerPage({
                     <tr className={rowClassName}>
                       <td>
                         <StatusBadge status={entry.status} />
+                        {entry.has_open_violation && (
+                          <span className={styles.violationBadge}>
+                            <span aria-hidden="true">⚠</span> Open violation
+                          </span>
+                        )}
                       </td>
                       <td>{entry.building_name}</td>
                       <td>
@@ -507,13 +527,20 @@ export function LedgerPage({
                       <tr>
                         <td colSpan={7} className={styles.detailCell}>
                           {(() => {
-                            const { whatsWrong, nextStep, whereToGo } = getRemediationCopy(entry);
+                            const { whatsWrong, nextStep, whereToGo, openViolationNote } =
+                              getRemediationCopy(entry);
                             return (
                               <dl className={styles.detailPanel}>
                                 <div>
                                   <dt>What&apos;s wrong</dt>
                                   <dd>{whatsWrong}</dd>
                                 </div>
+                                {openViolationNote && (
+                                  <div>
+                                    <dt>Open DOB safety violation</dt>
+                                    <dd>{openViolationNote}</dd>
+                                  </div>
+                                )}
                                 <div>
                                   <dt>Next step</dt>
                                   <dd>{nextStep}</dd>

@@ -39,6 +39,7 @@ const mixedStatusEntries: LedgerEntry[] = [
     last_inspection_date: "2020-01-01",
     due_date: "2021-01-01",
     status: "Delinquent",
+    has_open_violation: false,
   },
   {
     id: 1,
@@ -49,6 +50,7 @@ const mixedStatusEntries: LedgerEntry[] = [
     last_inspection_date: "2025-07-01",
     due_date: WARNING_DUE_DATE,
     status: "Warning",
+    has_open_violation: false,
   },
   {
     id: 2,
@@ -59,6 +61,7 @@ const mixedStatusEntries: LedgerEntry[] = [
     last_inspection_date: "2024-01-01",
     due_date: "2029-01-01",
     status: "Compliant",
+    has_open_violation: false,
   },
 ];
 
@@ -184,6 +187,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const updateSpy = vi.spyOn(client, "updateElevator");
 
@@ -214,6 +218,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     vi.spyOn(client, "updateElevator").mockResolvedValue({
       id: entry.id,
@@ -248,6 +253,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const unchanged: LedgerEntry = {
       id: 2,
@@ -258,12 +264,14 @@ describe("LedgerPage", () => {
       last_inspection_date: "2024-01-01",
       due_date: "2029-01-01",
       status: "Compliant",
+      has_open_violation: false,
     };
     const changingAfter: LedgerEntry = {
       ...changing,
       last_inspection_date: "2026-07-01",
       due_date: "2027-07-01",
       status: "Compliant",
+      has_open_violation: false,
     };
 
     const { rerender } = render(<LedgerPage entries={[changing, unchanged]} />);
@@ -297,12 +305,14 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const after: LedgerEntry = {
       ...before,
       last_inspection_date: "2026-07-01",
       due_date: "2027-07-01",
       status: "Compliant",
+      has_open_violation: false,
     };
 
     const { rerender } = render(<LedgerPage entries={[before]} />);
@@ -330,6 +340,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const updateSpy = vi.spyOn(client, "updateElevator");
 
@@ -367,6 +378,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const error = new Error("boom");
     const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
@@ -405,6 +417,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const updateSpy = vi.spyOn(client, "updateElevator");
 
@@ -430,6 +443,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
 
     render(<LedgerPage entries={[entry]} />);
@@ -564,6 +578,29 @@ describe("LedgerPage", () => {
     expect(results).toHaveNoViolations();
   });
 
+  it("shows an open-violation badge on a row whose has_open_violation is true", () => {
+    const entries: LedgerEntry[] = [
+      { ...mixedStatusEntries[0], has_open_violation: true },
+      { ...mixedStatusEntries[1], has_open_violation: false },
+    ];
+    render(<LedgerPage entries={entries} />);
+
+    const violationRow = screen.getByText("EL-3").closest("tr") as HTMLElement;
+    expect(within(violationRow).getByText(/open violation/i)).toBeInTheDocument();
+
+    const cleanRow = screen.getByText("EL-1").closest("tr") as HTMLElement;
+    expect(within(cleanRow).queryByText(/open violation/i)).not.toBeInTheDocument();
+  });
+
+  it("mentions the open violation in the expanded remediation panel", () => {
+    const entries: LedgerEntry[] = [{ ...mixedStatusEntries[0], has_open_violation: true }];
+    render(<LedgerPage entries={entries} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /view details for el-3/i }));
+
+    expect(screen.getByText("Open DOB safety violation")).toBeInTheDocument();
+  });
+
   it("does not show a building filter when no buildings are given", () => {
     render(<LedgerPage entries={mixedStatusEntries} />);
 
@@ -618,6 +655,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const deleteSpy = vi.spyOn(client, "deleteElevator");
 
@@ -643,6 +681,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const deleteSpy = vi.spyOn(client, "deleteElevator");
 
@@ -669,6 +708,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     vi.spyOn(client, "deleteElevator").mockResolvedValue(undefined);
     const onElevatorUpdated = vi.fn();
@@ -695,6 +735,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     vi.spyOn(client, "deleteElevator").mockResolvedValue(undefined);
 
@@ -721,6 +762,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     vi.spyOn(client, "deleteElevator").mockResolvedValue(undefined);
 
@@ -745,6 +787,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
     const error = new Error("boom");
     const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
@@ -782,6 +825,7 @@ describe("LedgerPage", () => {
       last_inspection_date: "2020-01-01",
       due_date: "2021-01-01",
       status: "Delinquent",
+      has_open_violation: false,
     };
 
     render(<LedgerPage entries={[entry]} />);

@@ -44,10 +44,21 @@ _SYSTEM_PROMPT = (
     "You are a compliance risk briefing assistant for a commercial property "
     "manager overseeing elevator inspections in New York City. Given a list "
     "of elevators with their current compliance status, due date, building "
-    "name, and device identifier, write a short (2-4 sentence) prioritized "
-    "briefing highlighting the most urgent items first. Be direct and "
-    "specific, naming buildings and device identifiers where useful. Do not "
-    "use markdown formatting."
+    "name, device identifier, and whether they have an open DOB safety "
+    "violation on file (has_open_violation), write a short (2-4 sentence) "
+    "prioritized briefing highlighting the most urgent items first. Call "
+    "out elevators with has_open_violation true explicitly — an open "
+    "violation on a Warning/Delinquent elevator carries real fine exposure "
+    "and should be flagged with more urgency than a same-status elevator "
+    "without one. You may also receive a separate list of buildings with "
+    "their total outstanding DOB fine exposure in dollars and open "
+    "violation count (building_fine_exposure) — when a building in that "
+    "list has a nonzero total_exposure, cite the actual dollar figure for "
+    "that building in the briefing rather than speaking only in general "
+    "terms. Only cite a dollar figure for a building that appears in "
+    "building_fine_exposure; never estimate or invent one. Be direct and "
+    "specific, naming buildings and device identifiers where useful. Do "
+    "not use markdown formatting."
 )
 
 
@@ -55,7 +66,9 @@ class NarrationUnavailableError(RuntimeError):
     """Raised when the Claude API call underlying narration fails or times out."""
 
 
-def _call_claude(entries: list[dict[str, Any]]) -> str:
+def _call_claude(
+    entries: list[dict[str, Any]], building_fine_exposures: list[dict[str, Any]]
+) -> str:
     """Call the Anthropic Messages API to narrate the given ledger entries.
 
     This is the sole network boundary for narration generation, isolated
@@ -64,7 +77,10 @@ def _call_claude(entries: list[dict[str, Any]]) -> str:
     Args:
         entries: Ledger rows (as produced by ``LedgerEntrySerializer``),
             each expected to carry ``device_identifier``, ``building_name``,
-            ``due_date``, and ``status``.
+            ``due_date``, ``status``, and ``has_open_violation``.
+        building_fine_exposures: Building-level dollar exposure rows (issue
+            #120 follow-up), each expected to carry ``building_name``,
+            ``total_exposure``, and ``open_violation_count``. May be empty.
 
     Returns:
         The generated narration text.
@@ -78,24 +94,31 @@ def _call_claude(entries: list[dict[str, Any]]) -> str:
         api_key=os.environ.get("ANTHROPIC_API_KEY"),
         timeout=NARRATION_TIMEOUT_SECONDS,
     )
+    payload = {"elevators": entries, "building_fine_exposure": building_fine_exposures}
     message = client.messages.create(
         model=NARRATION_MODEL,
         max_tokens=NARRATION_MAX_TOKENS,
         temperature=NARRATION_TEMPERATURE,
         system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": str(entries)}],
+        messages=[{"role": "user", "content": str(payload)}],
     )
     return "".join(
         block.text for block in message.content if isinstance(block, anthropic.types.TextBlock)
     )
 
 
-def generate_narration(entries: list[dict[str, Any]]) -> str:
+def generate_narration(
+    entries: list[dict[str, Any]],
+    building_fine_exposures: list[dict[str, Any]] | None = None,
+) -> str:
     """Generate a prioritized risk narration for the given ledger entries.
 
     Args:
         entries: Ledger rows (as produced by ``LedgerEntrySerializer``).
             An empty list short-circuits locally and never calls Claude.
+        building_fine_exposures: Building-level dollar exposure rows (issue
+            #120 follow-up), for buildings represented in ``entries``.
+            Defaults to an empty list when omitted.
 
     Returns:
         The narration text: a fixed string for an empty portfolio, or
@@ -108,6 +131,6 @@ def generate_narration(entries: list[dict[str, Any]]) -> str:
     if not entries:
         return EMPTY_PORTFOLIO_NARRATION
     try:
-        return _call_claude(entries)
+        return _call_claude(entries, building_fine_exposures or [])
     except Exception as exc:
         raise NarrationUnavailableError(f"Claude narration call failed: {exc}") from exc

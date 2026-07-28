@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { fetchNarration } from "../../api/client";
+import { Spinner } from "../../components/Spinner";
 import { logError } from "../../lib/logger";
 import { useIsMounted } from "./useIsMounted";
 import styles from "./NarrationPanel.module.css";
@@ -75,7 +76,7 @@ export function NarrationPanel() {
           so screen readers don't hear "generating" twice (issue #80). */}
       {isLoading && (
         <p role="status" className={styles.loading}>
-          Generating briefing…
+          <Spinner /> Generating briefing…
         </p>
       )}
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { listBuildings, listLedger } from "./api/client";
+import { fetchPortfolioFineExposure, listBuildings, listLedger } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PortfolioReset } from "./components/PortfolioReset";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -13,7 +13,7 @@ import type { EditableElevator } from "./features/portfolio/ElevatorForm";
 import { TimelinePage } from "./features/timeline/TimelinePage";
 import { logError } from "./lib/logger";
 import { ThemeProvider } from "./lib/theme";
-import type { Building, LedgerEntry } from "./types/domain";
+import type { Building, BuildingFineExposure, LedgerEntry } from "./types/domain";
 import styles from "./App.module.css";
 
 type Tab = "ledger" | "timeline";
@@ -23,6 +23,8 @@ function App() {
   const [buildingsError, setBuildingsError] = useState<string | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[] | null>(null);
   const [entriesError, setEntriesError] = useState<string | null>(null);
+  const [fineExposures, setFineExposures] = useState<BuildingFineExposure[] | null>(null);
+  const [fineExposuresError, setFineExposuresError] = useState<string | null>(null);
   const [reloadSignal, setReloadSignal] = useState(0);
   const [editingElevator, setEditingElevator] = useState<EditableElevator | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("ledger");
@@ -62,6 +64,31 @@ function App() {
         if (ignore) return;
         logError("Failed to load ledger", error);
         setEntriesError("Could not load the ledger. Please try again.");
+      });
+
+    return () => {
+      ignore = true;
+    };
+    // reloadSignal is an intentional refetch trigger, not consumed directly.
+  }, [reloadSignal]);
+
+  useEffect(() => {
+    // Always-visible, portfolio-wide fine exposure (issue #120) — fetched
+    // once per reloadSignal alongside the ledger, via a single batched
+    // request, rather than on a per-building click. Mirrors the ledger
+    // effect above exactly (same ignore-flag cleanup, same refetch trigger).
+    let ignore = false;
+
+    fetchPortfolioFineExposure()
+      .then((data) => {
+        if (ignore) return;
+        setFineExposures(data);
+        setFineExposuresError(null);
+      })
+      .catch((error: unknown) => {
+        if (ignore) return;
+        logError("Failed to load building fine exposure", error);
+        setFineExposuresError("Could not load fine exposure. Please try again.");
       });
 
     return () => {
@@ -177,7 +204,12 @@ function App() {
           />
         </div>
 
-        <BuildingList buildings={buildings} onDeleted={handleBuildingDeleted} />
+        <BuildingList
+          buildings={buildings}
+          fineExposures={fineExposures}
+          fineExposuresError={fineExposuresError}
+          onDeleted={handleBuildingDeleted}
+        />
 
         <main>
           {/* Placed above the ledger as the page's lead feature, per the v3

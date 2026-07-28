@@ -5,6 +5,7 @@ import {
   deleteBuilding,
   deleteElevator,
   fetchNarration,
+  fetchPortfolioFineExposure,
   listBuildings,
   listElevators,
   listLedger,
@@ -16,6 +17,7 @@ import {
 import type {
   AddressLookupResponse,
   Building,
+  BuildingFineExposure,
   CreateBuildingPayload,
   CreateElevatorPayload,
   LedgerEntry,
@@ -92,6 +94,7 @@ describe("api client", () => {
         dob_device_number: null,
         due_date: "2021-01-01",
         status: "Delinquent",
+        has_open_violation: false,
       },
     ];
     mockFetchOnce(entries);
@@ -211,6 +214,27 @@ describe("api client", () => {
   it("fetchNarration throws when the narration service is unavailable", async () => {
     mockFetchOnce({ error: "narration_unavailable" }, { ok: false, status: 503 });
     await expect(fetchNarration()).rejects.toThrow(/503/);
+  });
+
+  it("fetchPortfolioFineExposure GETs /buildings/fine-exposure/ and returns parsed JSON", async () => {
+    const exposures: BuildingFineExposure[] = [
+      {
+        building: 1,
+        bin: "1001026",
+        total_exposure: "3150.50",
+        open_violation_count: 2,
+        reason: null,
+      },
+    ];
+    const fetchMock = mockFetchOnce(exposures);
+
+    const result = await fetchPortfolioFineExposure();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/buildings\/fine-exposure\/?$/),
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(result).toEqual(exposures);
   });
 
   it("lookupBuildingByAddress POSTs the address as JSON to /buildings/lookup/", async () => {

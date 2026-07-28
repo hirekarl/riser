@@ -441,3 +441,28 @@
   margin-left: 0.4rem;
   color: var(--text-muted);
 }
+
+/* Open-violation indicator (issue #120), shown alongside StatusBadge. Deep
+   red text on a light red chip mirrors .errorBanner's palette (~8:1+
+   contrast) rather than inventing a new hue, and pairs an icon with the
+   text label so this never relies on color alone (WCAG 1.4.1), matching
+   StatusBadge's own icon+text convention. */
+.violationBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background-color: #fdecea;
+  color: #9c1c12;
+  border: 1px solid #9c1c12;
+}
+
+:root[data-theme="dark"] .violationBadge {
+  background-color: #3a1512;
+  color: #ff9c92;
+  border-color: #ff9c92;
+}

@@ -1,3 +1,4 @@
+import { Spinner } from "../../components/Spinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { LedgerEntry } from "../../types/domain";
 import styles from "./TimelinePage.module.css";
@@ -46,7 +47,11 @@ export function TimelinePage({ entries, error }: TimelinePageProps) {
   }
 
   if (entries === null) {
-    return <p role="status">Loading upcoming due dates…</p>;
+    return (
+      <p role="status">
+        <Spinner /> Loading upcoming due dates…
+      </p>
+    );
   }
 
   // entry.due_date is a date-only string, which Date parses as UTC midnight;
