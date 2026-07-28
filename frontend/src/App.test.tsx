@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import App from "./App";
 import * as client from "./api/client";
 import * as logger from "./lib/logger";
-import type { Building, Elevator, LedgerEntry } from "./types/domain";
+import type { AddressLookupResponse, Building, Elevator, LedgerEntry } from "./types/domain";
 
 describe("App", () => {
   afterEach(() => {
@@ -101,6 +101,67 @@ describe("App", () => {
     await user.click(within(elevatorForm).getByRole("button", { name: /add elevator/i }));
 
     expect(await screen.findByText("EL-1")).toBeInTheDocument();
+  });
+
+  it("wires the address lookup form's onSaved into the same building/reload state as handleBuildingCreated", async () => {
+    const lookupResponse: AddressLookupResponse = {
+      match: { bin: "1001686", resolved_address: "350 5 AVENUE", borough: "MANHATTAN" },
+      matches: null,
+      drafts: [
+        {
+          dob_device_number: "1P766",
+          device_status: "Active",
+          inspection_type: "CAT1",
+          last_inspection_date: "2026-03-01",
+        },
+      ],
+      reason: null,
+    };
+    const building: Building = {
+      id: 9,
+      name: "Tower A",
+      address: "350 5 AVENUE",
+      created_at: "x",
+      updated_at: "x",
+    };
+    const elevator: Elevator = {
+      id: 1,
+      building: 9,
+      device_identifier: "1P766",
+      inspection_type: "CAT1",
+      last_inspection_date: "2026-03-01",
+      created_at: "x",
+      updated_at: "x",
+    };
+
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue([]);
+    vi.spyOn(client, "lookupBuildingByAddress").mockResolvedValue(lookupResponse);
+    vi.spyOn(client, "createBuilding").mockResolvedValue(building);
+    vi.spyOn(client, "createElevator").mockResolvedValue(elevator);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const lookupForm = await screen.findByRole("form", { name: /look up building by address/i });
+    await user.type(within(lookupForm).getByLabelText(/street address/i), "350 5th Ave");
+    await user.click(within(lookupForm).getByRole("button", { name: /look up address/i }));
+
+    const reviewForm = await screen.findByRole("form", { name: /review and save building/i });
+    await user.type(within(reviewForm).getByLabelText(/building name/i), "Tower A");
+    expect(listLedgerSpy).toHaveBeenCalledTimes(1);
+
+    await user.click(within(reviewForm).getByRole("button", { name: /^save$/i }));
+
+    // handleAddressLookupSaved appends the returned building to `buildings`
+    // (same as handleBuildingCreated) — reflected in the elevator form's
+    // building dropdown, which is otherwise empty.
+    const elevatorForm = await screen.findByRole("form", { name: /add an elevator/i });
+    expect(within(elevatorForm).getByRole("option", { name: "Tower A" })).toBeInTheDocument();
+
+    // ...and it also bumps reloadSignal, triggering the same ledger refetch
+    // path as handleBuildingCreated/handleElevatorCreated.
+    await waitFor(() => expect(listLedgerSpy).toHaveBeenCalledTimes(2));
   });
 
   it("edits an elevator from the ledger's Edit button, saves via updateElevator, and returns to create mode", async () => {
