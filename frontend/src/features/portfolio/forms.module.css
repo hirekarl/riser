@@ -124,3 +124,21 @@
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
+/* Visible required-field marker for AddressLookupForm's review-screen
+   "Building name" field — the one field confirmed live to leave Save
+   silently disabled with no visible explanation. Reuses the same red
+   already established by this file's .errorBanner rather than adding a new
+   color to the rust/navy theme: #9c1c12 is ~8.1:1 against the white/--bg
+   page background, #ff9c92 is ~9.0:1 against the dark --bg pair, both well
+   past WCAG AA's 4.5:1 minimum for text. Paired with a visually-hidden
+   "(required)" (see .visually-hidden in index.css) so screen readers get an
+   explicit spoken cue too, not just the asterisk glyph alone. */
+.requiredMarker {
+  color: #9c1c12;
+  font-weight: 700;
+}
+
+:root[data-theme="dark"] .requiredMarker {
+  color: #ff9c92;
+}
