@@ -521,4 +521,36 @@ describe("App", () => {
     await user.click(screen.getByRole("tab", { name: /^timeline$/i }));
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("has no axe violations on the Timeline tab once it's populated with upcoming entries, including a due-very-soon row", async () => {
+    const dueSoon: LedgerEntry = {
+      id: 1,
+      device_identifier: "EL-SOON",
+      inspection_type: "CAT1",
+      last_inspection_date: "2026-01-01",
+      building_name: "Tower A",
+      due_date: new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10),
+      status: "Warning",
+    };
+    const dueLater: LedgerEntry = {
+      id: 2,
+      device_identifier: "EL-LATER",
+      inspection_type: "CAT5",
+      last_inspection_date: "2026-01-01",
+      building_name: "Tower A",
+      due_date: new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10),
+      status: "Compliant",
+    };
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([dueSoon, dueLater]);
+
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    await user.click(await screen.findByRole("tab", { name: /^timeline$/i }));
+    expect(await screen.findByText("EL-SOON")).toBeInTheDocument();
+    expect(screen.getByText("EL-LATER")).toBeInTheDocument();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });

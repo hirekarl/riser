@@ -1,0 +1,101 @@
+/* Timeline gets its own CSS module rather than continuing to borrow
+   LedgerPage's wholesale (see the removed comment in TimelinePage.tsx) — the
+   table/wrapper/error-banner rules below are deliberately kept visually
+   identical to LedgerPage.module.css's equivalents (same duplicated-rather-
+   than-shared-import approach LedgerPage.module.css itself already uses for
+   its button colors, so each module stays self-contained) so the two tabs
+   read as one coherent app rather than two bolted-together views. */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table caption {
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid #d9dde3;
+  vertical-align: middle;
+}
+
+.table th {
+  font-weight: 700;
+  color: #1f2430;
+}
+
+.errorBanner {
+  background-color: #fdecea;
+  color: #9c1c12;
+  border: 1px solid #9c1c12;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+/* Urgency treatment for a row due very soon (<= 7 days): every row already
+   carries a StatusBadge (color + icon + text, per WCAG 1.4.1), so this is a
+   *supplementary* cue layered on top of that, reusing StatusBadge's own
+   "Warning" palette (#7a5200 / #fff6e0 — already verified for AA contrast in
+   StatusBadge.module.css) rather than inventing a fourth status color. The
+   left accent border mirrors the same visual convention LedgerPage.module.css
+   uses for .highlighting/.editingRow. */
+.urgentRow td {
+  background-color: #fff6e0;
+  box-shadow: inset 3px 0 0 0 #7a5200;
+}
+
+/* Finer-grained emphasis on just the numeric cell, so a user scanning only
+   the rightmost column still gets an at-a-glance read on relative urgency
+   within the Warning band, without relying on the row highlight alone. */
+.dueSoon {
+  font-weight: 700;
+  color: #7a5200;
+}
+
+/* Empty state: styled like EmptyState.module.css's card (same dashed
+   border/centered layout language) without reusing that exact component,
+   since this is a different message for a different situation (nothing due
+   soon vs. no elevators tracked at all). */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  border: 2px dashed #b7bdc9;
+  border-radius: 12px;
+  background-color: #fafbfc;
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.emptyHeading {
+  margin: 0;
+}
+
+.emptyLede {
+  margin: 0;
+  max-width: 48ch;
+  color: #4b5261;
+}

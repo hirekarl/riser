@@ -105,9 +105,86 @@ describe("TimelinePage", () => {
     expect(deviceIdsInOrder).toEqual(["EL-NEAR", "EL-MID", "EL-FAR"]);
   });
 
-  it("shows a clear empty-state message when nothing is due in the next 90 days", () => {
+  it("shows a clear, actionable empty-state message when nothing is due in the next 90 days", () => {
     render(<TimelinePage entries={[]} />);
     expect(screen.getByText(/nothing is due in the next 90 days/i)).toBeInTheDocument();
+    // Actionable, not just "no data" — points the user at what to do next
+    // (per the ui-ux-specialist-agent's empty-state copy standard).
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
+      /nothing due in the next 90 days/i,
+    );
+    expect(screen.getByText(/ledger tab/i)).toBeInTheDocument();
+  });
+
+  it("shows a status badge for each entry, using its already-computed status rather than recomputing one client-side", () => {
+    const warningEntry = makeEntry({
+      id: 1,
+      device_identifier: "EL-WARN",
+      due_date: isoDateOffsetFromToday(5),
+      status: "Warning",
+    });
+    const compliantEntry = makeEntry({
+      id: 2,
+      device_identifier: "EL-OK",
+      due_date: isoDateOffsetFromToday(60),
+      status: "Compliant",
+    });
+    render(<TimelinePage entries={[warningEntry, compliantEntry]} />);
+
+    const warnRow = screen.getByText("EL-WARN").closest("tr") as HTMLElement;
+    const okRow = screen.getByText("EL-OK").closest("tr") as HTMLElement;
+    expect(within(warnRow).getByText(/warning/i)).toBeInTheDocument();
+    expect(within(okRow).getByText(/compliant/i)).toBeInTheDocument();
+  });
+
+  it("gives a row due very soon (within 7 days) a distinct urgent visual treatment that a later row doesn't get", () => {
+    const soonEntry = makeEntry({
+      id: 1,
+      device_identifier: "EL-SOON",
+      due_date: isoDateOffsetFromToday(3),
+      status: "Warning",
+    });
+    const laterEntry = makeEntry({
+      id: 2,
+      device_identifier: "EL-LATER",
+      due_date: isoDateOffsetFromToday(40),
+      status: "Compliant",
+    });
+    render(<TimelinePage entries={[soonEntry, laterEntry]} />);
+
+    const soonRow = screen.getByText("EL-SOON").closest("tr");
+    const laterRow = screen.getByText("EL-LATER").closest("tr");
+    expect(soonRow?.className).toMatch(/urgentRow/);
+    expect(laterRow?.className).not.toMatch(/urgentRow/);
+  });
+
+  it("formats the days-until-due cell in plain language rather than a bare number", () => {
+    const today = makeEntry({
+      id: 1,
+      device_identifier: "EL-TODAY",
+      due_date: isoDateOffsetFromToday(0),
+    });
+    const oneDay = makeEntry({
+      id: 2,
+      device_identifier: "EL-ONE",
+      due_date: isoDateOffsetFromToday(1),
+    });
+    const manyDays = makeEntry({
+      id: 3,
+      device_identifier: "EL-MANY",
+      due_date: isoDateOffsetFromToday(12),
+    });
+    render(<TimelinePage entries={[today, oneDay, manyDays]} />);
+
+    expect(
+      within(screen.getByText("EL-TODAY").closest("tr") as HTMLElement).getByText(/due today/i),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByText("EL-ONE").closest("tr") as HTMLElement).getByText(/^1 day$/i),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByText("EL-MANY").closest("tr") as HTMLElement).getByText(/^12 days$/i),
+    ).toBeInTheDocument();
   });
 
   it("has no axe violations in a populated state", async () => {
