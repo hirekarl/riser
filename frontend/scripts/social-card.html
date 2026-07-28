@@ -1,0 +1,82 @@
+<!--
+  Source fixture for frontend/public/social-card.png (the OG/Twitter card
+  image referenced in frontend/index.html). To regenerate after editing this
+  file, use the Playwright MCP browser tools:
+    1. browser_navigate to this file's file:// URL
+    2. browser_resize to width 1200, height 630
+    3. browser_take_screenshot (type png, viewport-sized) -> save as
+       frontend/public/social-card.png
+  Placeholder card (issue #93) — brand colors/glyph only, no illustration yet.
+-->
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 1200px;
+        height: 630px;
+        background: #ffffff;
+        font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+      }
+      .card {
+        width: 1200px;
+        height: 630px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+      }
+      .badge {
+        width: 180px;
+        height: 180px;
+        border-radius: 40px;
+        background: #b4805a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .wordmark {
+        font-size: 104px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        margin: 0;
+      }
+      .rust {
+        color: #b4805a;
+      }
+      .navy {
+        color: #1c3a63;
+      }
+      .tagline {
+        font-size: 34px;
+        color: #4b5261;
+        max-width: 840px;
+        text-align: center;
+        line-height: 1.4;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">
+        <svg width="110" height="110" viewBox="0 0 26 26" fill="none">
+          <path
+            d="M13 5.5v15M13 5.5 8.5 10M13 5.5 17.5 10M13 20.5 8.5 16M13 20.5 17.5 16"
+            stroke="#FBF7EE"
+            stroke-width="2.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+      <h1 class="wordmark"><span class="rust">RI</span><span class="navy">SER</span></h1>
+      <p class="tagline">NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
+    </div>
+  </body>
+</html>
