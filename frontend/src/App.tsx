@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { listBuildings } from "./api/client";
+import { listBuildings, listLedger } from "./api/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LedgerPage } from "./features/ledger/LedgerPage";
 import { NarrationPanel } from "./features/narration/NarrationPanel";
@@ -7,15 +7,21 @@ import { AddressLookupForm } from "./features/portfolio/AddressLookupForm";
 import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
+import { TimelinePage } from "./features/timeline/TimelinePage";
 import { logError } from "./lib/logger";
 import type { Building, LedgerEntry } from "./types/domain";
 import styles from "./App.module.css";
 
+type Tab = "ledger" | "timeline";
+
 function App() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [buildingsError, setBuildingsError] = useState<string | null>(null);
+  const [entries, setEntries] = useState<LedgerEntry[] | null>(null);
+  const [entriesError, setEntriesError] = useState<string | null>(null);
   const [reloadSignal, setReloadSignal] = useState(0);
   const [editingElevator, setEditingElevator] = useState<EditableElevator | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("ledger");
 
   const loadBuildings = useCallback(() => {
     return listBuildings()
@@ -35,6 +41,30 @@ function App() {
     // Building creation updates `buildings` locally (below) using the API
     // response directly, so this never needs to re-run on its own.
   }, [loadBuildings]);
+
+  useEffect(() => {
+    // Owned here (rather than inside LedgerPage) so both LedgerPage and
+    // TimelinePage share a single `listLedger()` call/refetch trigger
+    // instead of each independently fetching the same data.
+    let ignore = false;
+
+    listLedger()
+      .then((data) => {
+        if (ignore) return;
+        setEntries(data);
+        setEntriesError(null);
+      })
+      .catch((error: unknown) => {
+        if (ignore) return;
+        logError("Failed to load ledger", error);
+        setEntriesError("Could not load the ledger. Please try again.");
+      });
+
+    return () => {
+      ignore = true;
+    };
+    // reloadSignal is an intentional refetch trigger, not consumed directly.
+  }, [reloadSignal]);
 
   function handleBuildingCreated(building: Building) {
     setBuildings((current) => [...current, building]);
@@ -69,6 +99,14 @@ function App() {
 
   function handleEditCancel() {
     setEditingElevator(null);
+  }
+
+  // Distinct from handleElevatorUpdated: an inline Save in the ledger table
+  // itself (not the Edit form) has no open edit-form target to clear, so
+  // this must not touch `editingElevator` — otherwise it would close an
+  // unrelated in-progress Edit form for a different row.
+  function handleLedgerEntryUpdated() {
+    setReloadSignal((n) => n + 1);
   }
 
   return (
@@ -108,15 +146,73 @@ function App() {
             design pass (docs/design/) — matches the "AI Executive
             Briefing" position in the reference mockup. */}
         <NarrationPanel />
-        <h2 className="visually-hidden">Portfolio ledger</h2>
-        <ErrorBoundary>
-          <LedgerPage
-            reloadSignal={reloadSignal}
-            buildings={buildings}
-            onEditRequest={handleEditRequest}
-            editingElevatorId={editingElevator?.id}
-          />
-        </ErrorBoundary>
+
+        <div role="tablist" aria-label="Ledger views" className={styles.tabList}>
+          <button
+            type="button"
+            role="tab"
+            id="ledger-tab"
+            aria-selected={activeTab === "ledger"}
+            aria-controls="ledger-panel"
+            className={styles.tab}
+            onClick={() => setActiveTab("ledger")}
+          >
+            Ledger
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="timeline-tab"
+            aria-selected={activeTab === "timeline"}
+            aria-controls="timeline-panel"
+            className={styles.tab}
+            onClick={() => setActiveTab("timeline")}
+          >
+            Timeline
+          </button>
+        </div>
+
+        <div
+          role="tabpanel"
+          id="ledger-panel"
+          aria-labelledby="ledger-tab"
+          hidden={activeTab !== "ledger"}
+        >
+          <h2 className="visually-hidden">Portfolio ledger</h2>
+          {/* Only the active tab's page component is mounted — besides
+              avoiding pointless work for the hidden tab, this also
+              sidesteps the same LedgerEntry data being findable twice
+              (once per view) if both were mounted simultaneously. Both
+              `<div role="tabpanel">` wrappers stay in the DOM regardless,
+              toggled via `hidden`, so `aria-controls` on each tab always
+              points at a real element. */}
+          {activeTab === "ledger" && (
+            <ErrorBoundary>
+              <LedgerPage
+                entries={entries}
+                error={entriesError}
+                buildings={buildings}
+                onEditRequest={handleEditRequest}
+                editingElevatorId={editingElevator?.id}
+                onElevatorUpdated={handleLedgerEntryUpdated}
+              />
+            </ErrorBoundary>
+          )}
+        </div>
+
+        <div
+          role="tabpanel"
+          id="timeline-panel"
+          aria-labelledby="timeline-tab"
+          hidden={activeTab !== "timeline"}
+        >
+          <h2 className="visually-hidden">Upcoming compliance due dates</h2>
+          {activeTab === "timeline" && (
+            <ErrorBoundary>
+              <TimelinePage entries={entries} error={entriesError} />
+            </ErrorBoundary>
+          )}
+        </div>
       </main>
     </div>
   );

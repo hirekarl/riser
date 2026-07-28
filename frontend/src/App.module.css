@@ -36,6 +36,31 @@
   gap: 1.5rem;
 }
 
+/* Minimal, structural-only tab switcher — visual/interaction polish
+   (color, focus ring styling, spacing refinement) is left to the
+   ui-ux-specialist-agent pass. */
+.tabList {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: none;
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  border-color: var(--border);
+  background: var(--bg-subtle);
+}
+
 .errorBanner {
   display: flex;
   align-items: center;

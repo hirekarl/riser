@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe } from "vitest-axe";
 import App from "./App";
 import * as client from "./api/client";
 import * as logger from "./lib/logger";
@@ -349,5 +350,175 @@ describe("App", () => {
     // No API call was made for row A's discarded edits.
     expect(updateSpy).not.toHaveBeenCalled();
     expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows the Ledger tab's content by default, with the Timeline tab's content hidden", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+    const { container } = render(<App />);
+
+    const ledgerTab = await screen.findByRole("tab", { name: /^ledger$/i });
+    const timelineTab = screen.getByRole("tab", { name: /^timeline$/i });
+
+    expect(ledgerTab).toHaveAttribute("aria-selected", "true");
+    expect(timelineTab).toHaveAttribute("aria-selected", "false");
+
+    const ledgerPanel = container.querySelector("#ledger-panel") as HTMLElement;
+    const timelinePanel = container.querySelector("#timeline-panel") as HTMLElement;
+    expect(ledgerPanel).not.toHaveAttribute("hidden");
+    expect(timelinePanel).toHaveAttribute("hidden");
+  });
+
+  it("switches to the Timeline tab's content and back when its tab button is clicked", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    const ledgerTab = await screen.findByRole("tab", { name: /^ledger$/i });
+    const timelineTab = screen.getByRole("tab", { name: /^timeline$/i });
+    const ledgerPanel = container.querySelector("#ledger-panel") as HTMLElement;
+    const timelinePanel = container.querySelector("#timeline-panel") as HTMLElement;
+
+    await user.click(timelineTab);
+
+    expect(timelineTab).toHaveAttribute("aria-selected", "true");
+    expect(ledgerTab).toHaveAttribute("aria-selected", "false");
+    expect(timelinePanel).not.toHaveAttribute("hidden");
+    expect(ledgerPanel).toHaveAttribute("hidden");
+
+    await user.click(ledgerTab);
+
+    expect(ledgerTab).toHaveAttribute("aria-selected", "true");
+    expect(timelineTab).toHaveAttribute("aria-selected", "false");
+    expect(ledgerPanel).not.toHaveAttribute("hidden");
+    expect(timelinePanel).toHaveAttribute("hidden");
+  });
+
+  it("is keyboard-operable: a tab button can be focused via Tab and activated via Enter/Space, being a real <button>", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    const timelineTab = await screen.findByRole("tab", { name: /^timeline$/i });
+    timelineTab.focus();
+    expect(timelineTab).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    expect(timelineTab).toHaveAttribute("aria-selected", "true");
+
+    const ledgerTab = screen.getByRole("tab", { name: /^ledger$/i });
+    ledgerTab.focus();
+    await user.keyboard(" ");
+    expect(ledgerTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("shows the Timeline tab's upcoming-due-dates view driven by the same ledger entries as the Ledger tab", async () => {
+    const entry: LedgerEntry = {
+      id: 1,
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2026-01-01",
+      building_name: "Tower A",
+      due_date: new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10),
+      status: "Warning",
+    };
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    const listLedgerSpy = vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByText("EL-1"); // ledger tab, active by default
+
+    await user.click(screen.getByRole("tab", { name: /^timeline$/i }));
+
+    expect(await screen.findByText("EL-1")).toBeInTheDocument();
+    // A single shared fetch backs both views — the Timeline tab must not
+    // trigger its own independent listLedger() call.
+    expect(listLedgerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows an error banner on both tabs when the shared ledger fetch fails", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    const ledgerError = new Error("network down");
+    vi.spyOn(client, "listLedger").mockRejectedValue(ledgerError);
+    const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not load the ledger/i);
+    expect(logErrorSpy).toHaveBeenCalledWith("Failed to load ledger", ledgerError);
+
+    await user.click(screen.getByRole("tab", { name: /^timeline$/i }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not load the ledger/i);
+  });
+
+  it("refetches the shared ledger after an inline Save in the Ledger tab, without disturbing an unrelated open Edit form", async () => {
+    const before: LedgerEntry = {
+      id: 1,
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2020-01-01",
+      building_name: "Tower A",
+      due_date: "2021-01-01",
+      status: "Delinquent",
+    };
+    const after: LedgerEntry = {
+      ...before,
+      last_inspection_date: "2026-07-01",
+      due_date: "2027-07-01",
+      status: "Compliant",
+    };
+
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    const listLedgerSpy = vi
+      .spyOn(client, "listLedger")
+      .mockResolvedValueOnce([before])
+      .mockResolvedValueOnce([after]);
+    vi.spyOn(client, "updateElevator").mockResolvedValue({
+      id: 1,
+      building: 1,
+      device_identifier: "EL-1",
+      inspection_type: "CAT1",
+      last_inspection_date: "2026-07-01",
+      created_at: "x",
+      updated_at: "x",
+    });
+
+    render(<App />);
+    const dateInput = await screen.findByLabelText(/last inspection date for el-1/i);
+    const row = dateInput.closest("tr") as HTMLElement;
+
+    fireEvent.change(dateInput, { target: { value: "2026-07-01" } });
+    const saveButton = within(row).getByRole("button", {
+      name: /^save inspection date for el-1$/i,
+    });
+    fireEvent.click(saveButton);
+
+    expect(await screen.findByText("2027-07-01")).toBeInTheDocument();
+    expect(listLedgerSpy).toHaveBeenCalledTimes(2);
+    // No Edit form was open, so nothing about handleElevatorUpdated's
+    // editingElevator reset should have been touched/needed here.
+    expect(screen.queryByRole("form", { name: /edit an elevator/i })).not.toBeInTheDocument();
+  });
+
+  it("has no axe violations on the Ledger tab panel or the Timeline tab panel", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    await screen.findByRole("tab", { name: /^ledger$/i });
+    expect(await axe(container)).toHaveNoViolations();
+
+    await user.click(screen.getByRole("tab", { name: /^timeline$/i }));
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
