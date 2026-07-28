@@ -221,8 +221,12 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
             This address matches more than one building. Choose the correct one:
           </p>
           <ul className={styles.field}>
-            {state.matches.map((candidate) => (
-              <li key={candidate.bin}>
+            {state.matches.map((candidate, index) => (
+              // A single BIN can appear more than once with different labels
+              // (e.g. multiple street addresses/entrances on one tax lot —
+              // confirmed live for "200 Water St"), so `bin` alone isn't a
+              // safe React key here.
+              <li key={`${candidate.bin}-${candidate.resolved_address}-${index}`}>
                 <button
                   type="button"
                   className={styles.secondaryButton}
