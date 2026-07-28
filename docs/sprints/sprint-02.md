@@ -14,14 +14,14 @@ Copied from `docs/prd/Riser-PRD.md` section 3.
 - [x] P1 — Filter/group ledger by building.
 - [x] P1 — Visual highlight on status change.
 - [x] P0/P1 — AI risk-narration briefing (issue #1, Option 3). Shipped 2026-07-26; merged to `main` 2026-07-26.
-- [x] P0 — DOB Open Data address-lookup auto-populate (committed 2026-07-25, elevated from "best-effort"). Full feature shipped test-first across five commits covering docs contract resolution, backend endpoint + migrations + full test coverage, frontend form + review screen + two real-bug fixes from manual E2E dry-run against live external services. Merged to `main` 2026-07-27.
+- [x] P0 — DOB Open Data address-lookup auto-populate (committed 2026-07-25, elevated from "best-effort"). Feature work done test-first across five commits Mon 2026-07-27 (docs contract resolution, backend endpoint + migrations + full test coverage, frontend form + review screen + two real-bug fixes from manual E2E dry-run against live external services); merged to `main` 2026-07-28 as part of the PR triage/merge session (see `docs/team/status-log.md`).
 
-**Status 2026-07-28:** The following P2 items also shipped on main (bonus/best-effort items that landed after the committed features):
+**Status 2026-07-28:** The following items were also merged to `main` today, as part of the same triage/merge session (feature work itself was done Mon 2026-07-27, per the day-by-day plan's parallel-tracks note):
 
-- [x] P2 — Delete building/elevator. Cascade-deletes a building's elevators; includes delete UI, confirm/cancel flow, and focus-restoration. Merged 2026-07-27.
-- [x] P2 — Filter ledger by status (Compliant/Warning/Delinquent/All dropdown). Merged 2026-07-27.
-- [x] P1 — Timeline tab showing upcoming due dates by date. Merged 2026-07-27.
-- [x] P2 — Sample data button to seed demo buildings/elevators in the empty state. Merged 2026-07-28.
+- [x] P2 — Delete building/elevator. Cascade-deletes a building's elevators; includes delete UI, confirm/cancel flow, and focus-restoration. Merged 2026-07-28.
+- [x] P2 — Filter ledger by status (Compliant/Warning/Delinquent/All dropdown). Merged 2026-07-28; a real Playwright e2e bug (the new dropdown's "Delinquent" option collided with an existing, unscoped locator) was found and fixed as part of the merge session.
+- [x] P1 — Timeline tab showing upcoming due dates by date. Merged 2026-07-28.
+- [x] P2 — Sample data button to seed demo buildings/elevators in the empty state. Merged 2026-07-28; closed a minor codecov coverage gap as part of the merge session.
 
 ## Per-person task checklists
 

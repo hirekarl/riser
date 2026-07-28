@@ -175,39 +175,27 @@ Three concurrent threads running tonight, ahead of the 7/28 full dress rehearsal
 
 ## 2026-07-28 (Tue) — Final integration polish and PR merge session
 
-All six PRs triaged and merged to `main` in dependency order, with one superseded PR closed. Karl (with Claude Code) ran the merge triage solo, reviewing each branch against `main`, fixing a real e2e test locator ambiguity introduced by the status-filter dropdown, and closing codecov coverage gaps in two PRs before merge. Final state: all P0 and P2 items shipped, 90%+ coverage maintained on both backend and frontend, ready for Wed 2026-07-29 capstone presentation.
+Six open PRs triaged and merged to `main` in dependency order (they formed a stack, not six independent changes), with one superseded PR closed. Karl (with Claude Code) ran the triage and merge solo, using the repo's documented admin-bypass policy to clear the review requirement on each PR — CI was never bypassed; every PR had to show real green required checks (`backend-ci`, `frontend-ci`, `Commit Lint`) before merging.
 
 | PR # | Title | Status | Notes |
 | --- | --- | --- | --- |
-| #106 | Add address-lookup form shell (earlier PR) | Closed as superseded | Closed in favor of #107 (which includes the full address-lookup feature including backend endpoint, migrations, frontend form, review screen, and bug fixes). |
-| #107 | feat(backend+frontend): DOB address-lookup (full E2E, 2026-07-27 pickup) | Merged | Backend: 89 tests at 100% coverage. Frontend: address-lookup form + review screen, 113 tests at ~96%/91% coverage. Two critical bugs caught via live E2E: (1) null-address fallback after disambiguation; (2) React key collision on multi-address BINs (e.g., "200 Water St"). Both fixed. Coverage gap (1 line) closed with test before merge. Merged 2026-07-28. |
-| #109 | Fix e2e test ambiguity from status-filter dropdown | Merged | Playwright's `getByLabel(/delinquent/i)` was matching both the status filter dropdown option and the ledger table cell displaying "Delinquent" status. Scoped the ledger locator to `getByRole('table')` to disambiguate. Real bug caught by pre-merge e2e run, not a pre-existing issue. Merged before #111 (status filter PR) to keep e2e clean during the merge sequence. |
-| #111 | feat(frontend): add status filter to the compliance ledger | Merged | Status-only filter (Compliant/Warning/Delinquent/All dropdown), 113 tests, coverage already good. Merged after #109 fix landed (e2e suite clean). |
-| #110 | feat(frontend): add delete actions for elevators and buildings | Merged | Cascade-delete of building's elevators, confirm/cancel flows, focus restoration on delete. UI polish included. Merged. |
-| #112 | feat: add "Try sample data" button & POST /api/demo-data/seed/ endpoint | Merged | Backend seed command (7 buildings / 27 elevators spanning Delinquent/Warning/Compliant, both CAT1/CAT5), frontend "Try sample data" button in empty state. Backend: 100% coverage. Frontend: coverage gap closed before merge. Merged 2026-07-28. |
-| Timeline tab (also on main) | feat(frontend): add Timeline tab for upcoming due dates | Already merged (2026-07-27) | Included in the suite but already on `main`, merged during Mon 7/27 parallel-track work. |
+| #106 | Add address-lookup form shell | Closed as superseded | Independently built a second `AddressLookupForm` (under `features/address-lookup/`) that duplicated the fuller, already-complete implementation in #107 (`features/portfolio/`). Closed with a comment pointing to #107 rather than merged, to avoid two parallel components and an `App.tsx` conflict. |
+| #107 | DOB Open Data address-lookup (end-to-end) | Merged | Required CI was already green; `codecov/patch` was failing (97.55%, gaps in `App.tsx`'s new `handleAddressLookupSaved` handler and one line in `AddressLookupForm.tsx`). Closed both gaps with new tests before merging (not required-CI-blocking, but wanted the new code path actually tested). |
+| #108 | Timeline tab for upcoming due dates | Merged | CI was clean, but merging #107 first (via rebase-merge) gave `main` new commit SHAs for the same content, which made #108 (and everything stacked on it) show as conflicting even though no real content conflicted. Rebased `feat/timeline-tab`'s own two commits onto the new `main` and force-pushed before merging. |
+| #109 | Filter ledger by status | Merged | Required check `frontend-ci / test` was genuinely failing: the new status-filter `<select>` renders an `<option>Delinquent</option>`, which made a pre-existing, unscoped Playwright locator (`page.getByText(/delinquent/i)`) in `ledger.spec.ts` match two elements — a strict-mode violation, not a flake. Fixed by scoping the locator to the ledger table. Also needed the same rebase-onto-new-main treatment as #108; that rebase hit one real (but purely additive) conflict in `LedgerPage.test.tsx` where #109's and #110's new tests were inserted at the same spot — resolved by keeping both. |
+| #110 | Delete buildings and elevators | Merged | Clean throughout; only needed the SHA-rebase onto the new `main`, no conflicts. |
+| #111 | Add a "Try sample data" seed button | Merged | `codecov/patch` gap (98.63%, the `onSeeded` default no-op in `LedgerPage.tsx`) closed with a test before merging. Rebasing onto the new `main` hit two real additive conflicts (parallel handler/test additions in `App.tsx`/`App.test.tsx` from #107 and #111; parallel test additions in `LedgerPage.test.tsx` from #109 and #111) — resolved by keeping both sides in each case. That combination also surfaced one new bug: once #110's own always-present `role="status"` live region and #111's `EmptyState` success message (also `role="status"`) coexisted on the page, an existing test's `findByRole("status")` became ambiguous — re-pointed that assertion at the message text instead. |
 
-**All PRs merged in this session:**
+**Real bugs found and fixed during this session** (distinct from the SHA-rebase mechanics above, which were expected stacked-PR friction, not bugs):
 
-- DOB address-lookup (backend endpoint, migrations, frontend form, bug fixes)
-- Status-only filter dropdown on ledger
-- Delete actions for buildings and elevators (cascade + confirm)
-- Sample data seed button and endpoint
-- Timeline tab (already merged 7/27, confirmed on main)
+1. **#109's e2e strict-mode violation** — a genuine defect surfaced by CI itself before any merge activity, described above.
+2. **The `role="status"` ambiguity** — only existed once #110 and #111's code were combined on `main`; neither PR was individually broken, and no CI run had caught it because no CI run had ever exercised both features together until this merge.
 
-**Real bugs caught and fixed during merge triage:**
+Both required a real code/test fix, not just a rebase; both were verified locally (full `npm run test:coverage` run, not just re-reading CI) before pushing.
 
-1. **E2E test locator ambiguity (PR #109):** `getByLabel(/delinquent/i)` matched both the new status-filter dropdown option and ledger cells displaying Delinquent status. Fixed by scoping the ledger locator to the table role.
-2. **Codecov coverage gaps (PR #107, #112):** Two lines in address-lookup and demo-data code uncovered. Both gaps closed with targeted test cases before merge, maintaining 90%+ gate on both backend and frontend.
-
-**Final verification before merge:**
-
-- Backend: `uv run pytest --cov --cov-fail-under=90` — 89 tests on main baseline, now 89+ with new tests; 100% coverage post-gap-close.
-- Frontend: `npm run test:coverage` — 113 tests at 96%/91% coverage post-gap-close.
-- `npm run test:e2e` — all e2e passing (post-#109 locator fix).
-- `npm run build`, `uv run ruff check .`, `npm run typecheck` — all clean.
+**Verification performed at each merge step:** local `npm run test:coverage`, `npm run lint`, and `npm run typecheck` after every manual conflict resolution (not just trusting CI), plus `gh pr checks` on each PR immediately before merging it.
 
 **Carry-over to capstone day (2026-07-29):**
 
 - Schiffon's manual visual/accessibility pass (Fri 7/24 outstanding items) still needs her direct sign-off if not already done.
-- Full dress rehearsal scheduled for Wed morning (already done pre-merge); capstone presentation 2026-07-29.
+- Full dress rehearsal scheduled for Wed morning; capstone presentation 2026-07-29.
