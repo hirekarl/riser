@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.compliance import dob, narration
+from apps.compliance.demo_data import seed_demo_portfolio
 from apps.compliance.models import Building, Elevator
 from apps.compliance.serializers import (
     AddressLookupRequestSerializer,
@@ -338,3 +339,41 @@ class NarrationView(APIView):
             )
         generated_at = datetime.datetime.now(tz=datetime.UTC).isoformat()
         return Response({"narration": text, "generated_at": generated_at})
+
+
+class DemoDataSeedView(APIView):
+    """Seed a realistic demo portfolio over HTTP: ``POST /api/demo-data/seed/``.
+
+    A network-reachable wrapper around
+    :func:`apps.compliance.demo_data.seed_demo_portfolio`, for demo
+    environments where there's no shell access to run the
+    ``seed_demo_data`` management command directly.
+
+    Unlike that command, this endpoint always seeds additively
+    (``keep_existing=True``) and never exposes a way to trigger the
+    command's destructive wipe-first behavior. This MVP is unauthenticated
+    (``docs/adr/0002-no-auth-for-mvp.md``), so any endpoint reachable
+    without credentials must never be able to destroy a real portfolio.
+    """
+
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        """Seed the demo portfolio, adding to whatever data already exists.
+
+        Args:
+            request: The incoming DRF request. The body is ignored — there
+                are no seeding options exposed over HTTP.
+            *args: Unused positional arguments from the URL dispatcher.
+            **kwargs: Unused keyword arguments from the URL dispatcher.
+
+        Returns:
+            A ``Response`` with ``{"buildings_created": int,
+            "elevators_created": int}`` and HTTP 201 on success.
+        """
+        result = seed_demo_portfolio(keep_existing=True)
+        return Response(
+            {
+                "buildings_created": result.buildings_created,
+                "elevators_created": result.elevators_created,
+            },
+            status=http_status.HTTP_201_CREATED,
+        )

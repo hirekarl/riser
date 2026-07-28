@@ -570,3 +570,40 @@ class TestBuildingLookupAPI:
         """GET /api/buildings/lookup/ is not allowed; this is a POST-only action."""
         response = api_client.get("/api/buildings/lookup/")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+class TestDemoDataSeedAPI:
+    """Tests for ``POST /api/demo-data/seed/``."""
+
+    def test_seed_returns_201_with_counts(self, api_client: APIClient) -> None:
+        """A successful seed returns 201 with buildings/elevators created counts."""
+        response = api_client.post("/api/demo-data/seed/", {}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["buildings_created"] >= 6
+        assert 25 <= response.data["elevators_created"] <= 30
+
+    def test_seed_actually_creates_buildings_and_elevators(self, api_client: APIClient) -> None:
+        """Calling the endpoint persists buildings and elevators to the database."""
+        assert Building.objects.count() == 0
+        assert Elevator.objects.count() == 0
+
+        api_client.post("/api/demo-data/seed/", {}, format="json")
+
+        assert Building.objects.count() >= 6
+        assert Elevator.objects.count() >= 25
+
+    def test_seed_is_additive_and_never_destroys_existing_data(
+        self, api_client: APIClient, building: Building, elevator: Elevator
+    ) -> None:
+        """Calling the endpoint with existing data preserves it (never wipes on HTTP)."""
+        response = api_client.post("/api/demo-data/seed/", {}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Building.objects.filter(pk=building.pk).exists()
+        assert Elevator.objects.filter(pk=elevator.pk).exists()
+
+    def test_seed_get_not_allowed(self, api_client: APIClient) -> None:
+        """GET /api/demo-data/seed/ is not allowed; this is a POST-only endpoint."""
+        response = api_client.get("/api/demo-data/seed/")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
