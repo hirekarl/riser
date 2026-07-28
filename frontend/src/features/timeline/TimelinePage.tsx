@@ -1,11 +1,26 @@
+import { StatusBadge } from "../../components/StatusBadge";
 import type { LedgerEntry } from "../../types/domain";
-// Deliberately reuses LedgerPage's table/wrapper/error-banner classes rather
-// than inventing new styles for what is structurally the same kind of table,
-// per the design brief for this stretch feature.
-import styles from "../ledger/LedgerPage.module.css";
+import styles from "./TimelinePage.module.css";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TIMELINE_WINDOW_DAYS = 90;
+// Finer-grained urgency tier applied on top of the "Warning" status (backend
+// threshold: due within 30 days) — a row due in 2 days and one due in 28 days
+// are both "Warning", but the former deserves more visual weight. Purely a
+// display-layer threshold; doesn't affect which entries are shown or how
+// entry.status itself is computed (still always server-computed).
+const DUE_SOON_THRESHOLD_DAYS = 7;
+
+/**
+ * Plain-language phrasing for the "days until due" cell — a bare number
+ * ("0", "1") reads ambiguously at a glance; "Due today" / "1 day" / "N days"
+ * doesn't.
+ */
+function formatDaysUntilDue(days: number): string {
+  if (days === 0) return "Due today";
+  if (days === 1) return "1 day";
+  return `${days} days`;
+}
 
 export interface TimelinePageProps {
   /** Same `LedgerEntry[]` the ledger view receives, lifted to `App` so both
@@ -68,7 +83,19 @@ export function TimelinePage({ entries, error }: TimelinePageProps) {
     .sort((a, b) => (a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0));
 
   if (upcoming.length === 0) {
-    return <p>Nothing is due in the next 90 days.</p>;
+    return (
+      <div className={styles.emptyState}>
+        <span className={styles.emptyIcon} aria-hidden="true">
+          🗓️
+        </span>
+        <h3 className={styles.emptyHeading}>Nothing due in the next 90 days</h3>
+        <p className={styles.emptyLede}>
+          Nothing is due in the next 90 days across your portfolio right now — that&rsquo;s good
+          news. Check back as due dates approach, or switch to the Ledger tab to see every tracked
+          elevator, including anything already overdue.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -78,6 +105,7 @@ export function TimelinePage({ entries, error }: TimelinePageProps) {
           <caption>Upcoming compliance due dates, next 90 days</caption>
           <thead>
             <tr>
+              <th scope="col">Status</th>
               <th scope="col">Building</th>
               <th scope="col">Device</th>
               <th scope="col">Inspection type</th>
@@ -86,15 +114,24 @@ export function TimelinePage({ entries, error }: TimelinePageProps) {
             </tr>
           </thead>
           <tbody>
-            {upcoming.map((entry) => (
-              <tr key={entry.id}>
-                <td>{entry.building_name}</td>
-                <td>{entry.device_identifier}</td>
-                <td>{entry.inspection_type}</td>
-                <td>{entry.due_date}</td>
-                <td>{daysUntilDue(entry.due_date)}</td>
-              </tr>
-            ))}
+            {upcoming.map((entry) => {
+              const days = daysUntilDue(entry.due_date);
+              const isDueSoon = days <= DUE_SOON_THRESHOLD_DAYS;
+              return (
+                <tr key={entry.id} className={isDueSoon ? styles.urgentRow : undefined}>
+                  <td>
+                    <StatusBadge status={entry.status} />
+                  </td>
+                  <td>{entry.building_name}</td>
+                  <td>{entry.device_identifier}</td>
+                  <td>{entry.inspection_type}</td>
+                  <td>{entry.due_date}</td>
+                  <td className={isDueSoon ? styles.dueSoon : undefined}>
+                    {formatDaysUntilDue(days)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
