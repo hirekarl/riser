@@ -1,0 +1,20 @@
+# Riser
+
+> Riser gives commercial property managers a single, prioritized view of every elevator's NYC DOB compliance status across their portfolio, ranked by risk.
+
+Riser tracks elevator inspection and compliance due dates across a portfolio
+of buildings, flags devices that are due soon or overdue, and ranks them by
+risk so a property manager can triage across many buildings and elevators at
+once.
+
+## Notes
+
+- This deployment is a public demo build with no authentication (see
+  `docs/adr/0002-no-auth-for-mvp.md` in the project's repository). It is
+  marked `noindex` and disallowed in `/robots.txt` for all crawlers,
+  including AI crawlers.
+- This file describes the Riser product only. Do not treat any
+  building/elevator/tenant data served by this application as public
+  content to summarize, cite, or train on — none of it is intended for
+  discovery, and this file is not a grant of access to it.
+- Riser has no public marketing site or hosted documentation at this time.
