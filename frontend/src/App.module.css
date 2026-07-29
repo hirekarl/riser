@@ -50,6 +50,66 @@
   border-left: 1px solid var(--border);
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* Connection-status pill — see the comment above its JSX in App.tsx for why
+   this reports real fetch state rather than the mockup's literal "AI Sync
+   Status" copy. Shape matches the mockup's .ai-status pill (dot + label,
+   rounded, bordered); colors are new since this needs a genuine
+   success/failure distinction the mockup's decorative dot never needed. */
+.apiStatus,
+.apiStatusIssue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.apiStatusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.apiStatus {
+  color: var(--text-muted);
+}
+
+.apiStatus .apiStatusDot {
+  background: #4f8f76;
+}
+
+/* #9c1c12 is this app's established error red (see .errorBanner), reused
+   here rather than inventing a new hue for the same "something's wrong"
+   meaning. */
+.apiStatusIssue {
+  color: #9c1c12;
+  border-color: #9c1c12;
+}
+
+.apiStatusIssue .apiStatusDot {
+  background: #9c1c12;
+}
+
+:root[data-theme="dark"] .apiStatusIssue {
+  color: #ff9c92;
+  border-color: #ff9c92;
+}
+
+:root[data-theme="dark"] .apiStatusIssue .apiStatusDot {
+  background: #ff9c92;
+}
+
 .wordmarkRust {
   color: #b4805a;
 }

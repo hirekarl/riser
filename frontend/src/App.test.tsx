@@ -721,4 +721,58 @@ describe("App", () => {
 
     await waitFor(() => expect(listLedgerSpy).toHaveBeenCalledTimes(2));
   });
+
+  it("shows no connection-status pill until the first ledger load has resolved", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    let resolveLedger: (value: LedgerEntry[]) => void = () => {};
+    vi.spyOn(client, "listLedger").mockReturnValue(
+      new Promise((resolve) => {
+        resolveLedger = resolve;
+      }),
+    );
+
+    render(<App />);
+
+    expect(screen.queryByText(/^connected$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/connection issue/i)).not.toBeInTheDocument();
+
+    resolveLedger([]);
+    expect(await screen.findByText(/^connected$/i)).toBeInTheDocument();
+  });
+
+  it("shows 'Connected' once buildings, ledger, and fine exposure all load successfully", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+    render(<App />);
+
+    expect(await screen.findByText(/^connected$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/connection issue/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a 'Connection issue' status when any of buildings/ledger/fine-exposure fails to load", async () => {
+    vi.spyOn(client, "listBuildings").mockRejectedValue(new Error("network down"));
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+    vi.spyOn(logger, "logError").mockImplementation(() => {});
+
+    render(<App />);
+
+    expect(await screen.findByText(/connection issue/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^connected$/i)).not.toBeInTheDocument();
+  });
+
+  it("still shows a 'Connection issue' status when the ledger fetch itself fails outright (entries never resolves)", async () => {
+    // Regression case: entries only ever gets set on a *successful*
+    // listLedger() call, so it stays null forever when the fetch fails —
+    // the pill's "has this settled yet" check must not depend on entries
+    // alone, or a real connection issue would hide the pill entirely.
+    vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+    vi.spyOn(client, "listLedger").mockRejectedValue(new Error("network down"));
+    vi.spyOn(logger, "logError").mockImplementation(() => {});
+
+    render(<App />);
+
+    expect(await screen.findByText(/connection issue/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^connected$/i)).not.toBeInTheDocument();
+  });
 });

@@ -163,6 +163,25 @@ function App() {
     loadBuildings();
   }
 
+  // Header connection-status pill (matches the mockup's "AI Sync Status"
+  // slot). Deliberately NOT a literal port of the mockup's copy: that
+  // widget's own design-note attribute (docs/design/
+  // riser-executive-dashboard.html's #aiStatus title) says it's staged to
+  // look like a live AI-sync feed to match a reference screenshot, and flags
+  // itself for honest re-labeling once wired to real code — the app has no
+  // continuous background sync, only on-demand fetches. This reuses the
+  // same visual slot/shape but reports something real and already tracked:
+  // whether the last fetch of buildings/ledger/fine-exposure succeeded.
+  // Hidden until the first load resolves (success or failure) so it never
+  // claims "Connected" before that's actually been verified.
+  // entries only ever gets set on a *successful* fetch (see the listLedger
+  // effect above) — it stays null forever if the fetch fails, so gating on
+  // `entries !== null` alone would hide this pill exactly when a connection
+  // issue makes it most useful. entriesError settling (to a string OR back
+  // to null) is what actually means "the fetch attempt finished."
+  const hasLoadedOnce = entries !== null || entriesError !== null;
+  const hasConnectionIssue = Boolean(buildingsError || entriesError || fineExposuresError);
+
   return (
     <ThemeProvider>
       <div className={styles.app}>
@@ -206,7 +225,18 @@ function App() {
               </span>
               <span className={styles.brandSub}>Elevator Portfolio Management</span>
             </div>
-            <ThemeToggle />
+            <div className={styles.headerRight}>
+              {hasLoadedOnce && (
+                <span
+                  className={hasConnectionIssue ? styles.apiStatusIssue : styles.apiStatus}
+                  role="status"
+                >
+                  <span className={styles.apiStatusDot} aria-hidden="true" />
+                  {hasConnectionIssue ? "Connection issue" : "Connected"}
+                </span>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
           <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
           {/* Grouped with the other demo/utility controls rather than
