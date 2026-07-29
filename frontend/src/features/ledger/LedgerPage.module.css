@@ -463,36 +463,64 @@
 
 .editButton {
   font: inherit;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid #7a8091;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--hairline-strong);
   border-radius: 6px;
-  background: var(--bg);
+  background: var(--surface);
+  color: var(--ink-quiet);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .deleteButton {
   font: inherit;
-  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
   margin-left: 0.4rem;
-  border: 1px solid #7a8091;
+  border: 1px solid var(--hairline-strong);
   border-radius: 6px;
-  background: var(--bg);
+  background: var(--surface);
+  color: var(--ink-quiet);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
+.editButton:hover,
 .deleteButton:hover {
-  background: #f0f1f3;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  border-color: var(--rust);
 }
 
-/* Same #7a8091 -> #9aa4b8 dark-mode lightening as .filterRow select/
-   .dateInput above; background already tracks the theme via var(--bg). */
-:root[data-theme="dark"] .editButton,
-:root[data-theme="dark"] .deleteButton {
-  border-color: #9aa4b8;
+.detailLink {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--rust);
+  background: none;
+  border: none;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.4rem;
 }
 
-:root[data-theme="dark"] .deleteButton:hover {
-  background: #262b35;
+.detailLink:hover {
+  text-decoration: underline;
+  color: var(--rust-strong);
+}
+
+.noAction {
+  font-size: 0.8125rem;
+  color: var(--taupe);
+  font-weight: 500;
+  margin-left: 0.4rem;
 }
 
 /* Styling for the per-row Delete action's inline reveal-confirm pair,
