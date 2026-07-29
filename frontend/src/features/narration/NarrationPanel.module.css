@@ -90,10 +90,25 @@
   font-size: 0.9rem;
 }
 
+/* One <p> per detected narration segment (see splitNarration in
+   NarrationPanel.tsx) — regular weight body text, with only a detected
+   leading "Label:" bolded via <strong>. Replaces the old blanket
+   font-weight: 600 on the whole response, which read as a dense, undifferen-
+   tiated wall of bold text with no visual hierarchy (flagged during a live
+   QA pass — confirmed by generating a real narration and looking at it). */
 .narration {
-  white-space: pre-wrap;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.narration p {
   margin: 0;
-  font-weight: 600;
+  font-weight: 400;
+}
+
+.narration strong {
+  font-weight: 700;
 }
 
 .timestamp {
