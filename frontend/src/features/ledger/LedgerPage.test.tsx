@@ -904,6 +904,128 @@ describe("LedgerPage", () => {
     expect(screen.queryByText("EL-2")).not.toBeInTheDocument(); // Compliant but Tower B
   });
 
+  describe("sortable columns", () => {
+    function deviceIdsInOrder() {
+      const rows = screen.getAllByRole("row").slice(1);
+      return rows.map((row) => within(row).getAllByText(/^EL-\d$/)[0].textContent);
+    }
+
+    it("sorts ascending by a column on the first click", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      await user.click(screen.getByRole("button", { name: /sort by device/i }));
+
+      expect(deviceIdsInOrder()).toEqual(["EL-1", "EL-2", "EL-3"]);
+    });
+
+    it("reverses to descending on a second click of the same header", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      const button = screen.getByRole("button", { name: /sort by device/i });
+      await user.click(button);
+      await user.click(screen.getByRole("button", { name: /sort by device/i }));
+
+      expect(deviceIdsInOrder()).toEqual(["EL-3", "EL-2", "EL-1"]);
+    });
+
+    it("clears back to the original prop order on a third click, removing aria-sort", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      await user.click(screen.getByRole("button", { name: /sort by device/i }));
+      await user.click(screen.getByRole("button", { name: /sort by device/i }));
+      await user.click(screen.getByRole("button", { name: /sort by device/i }));
+
+      expect(deviceIdsInOrder()).toEqual(["EL-3", "EL-1", "EL-2"]);
+      const deviceHeader = screen.getByRole("columnheader", { name: /device/i });
+      expect(deviceHeader).not.toHaveAttribute("aria-sort");
+    });
+
+    it("resets to ascending on a different column and clears the previous column's aria-sort", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      await user.click(screen.getByRole("button", { name: /sort by device/i }));
+      await user.click(screen.getByRole("button", { name: /sort by building/i }));
+
+      const deviceHeader = screen.getByRole("columnheader", { name: /device/i });
+      const buildingHeader = screen.getByRole("columnheader", { name: /building/i });
+      expect(deviceHeader).not.toHaveAttribute("aria-sort");
+      expect(buildingHeader).toHaveAttribute("aria-sort", "ascending");
+    });
+
+    it("composes with an active building/status filter, sorting only the filtered subset", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+      fireEvent.change(screen.getByLabelText(/filter by building/i), {
+        target: { value: "1" },
+      }); // Tower A -> EL-3, EL-1
+      await user.click(screen.getByRole("button", { name: /sort by device/i }));
+
+      expect(deviceIdsInOrder()).toEqual(["EL-1", "EL-3"]);
+    });
+
+    it("sorts the status column by urgency rank, not alphabetically", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      await user.click(screen.getByRole("button", { name: /sort by status/i }));
+
+      // Delinquent (EL-3), Warning (EL-1), Compliant (EL-2) is the urgency
+      // order — alphabetical would be Compliant, Delinquent, Warning.
+      expect(deviceIdsInOrder()).toEqual(["EL-3", "EL-1", "EL-2"]);
+    });
+
+    it("only puts aria-sort on the currently active column's header", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      await user.click(screen.getByRole("button", { name: /sort by status/i }));
+
+      const headers = screen.getAllByRole("columnheader");
+      const sortedHeaders = headers.filter((header) => header.hasAttribute("aria-sort"));
+      expect(sortedHeaders).toHaveLength(1);
+      expect(sortedHeaders[0]).toHaveTextContent(/status/i);
+    });
+
+    it("renders sortable column headers as real buttons", () => {
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      expect(screen.getByRole("button", { name: /sort by status/i })).toBeInTheDocument();
+    });
+
+    it("has no axe accessibility violations with an active sort applied", async () => {
+      const user = userEvent.setup();
+      const { container } = render(<LedgerPage entries={mixedStatusEntries} />);
+
+      await user.click(screen.getByRole("button", { name: /sort by status/i }));
+
+      const results = await axe(container);
+      expect(results).toHaveNoViolations();
+    });
+
+    it("never gives the Actions header a sort button or aria-sort, under any sort state", async () => {
+      const user = userEvent.setup();
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      const actionsHeader = screen.getByRole("columnheader", { name: /^actions$/i });
+      expect(
+        within(actionsHeader).queryByRole("button", { name: /sort by/i }),
+      ).not.toBeInTheDocument();
+      expect(actionsHeader).not.toHaveAttribute("aria-sort");
+
+      await user.click(screen.getByRole("button", { name: /sort by status/i }));
+
+      expect(actionsHeader).not.toHaveAttribute("aria-sort");
+      expect(
+        within(actionsHeader).queryByRole("button", { name: /sort by/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("disables the inline date input and marks the row for whichever entry is the current edit target", () => {
     const { rerender } = render(<LedgerPage entries={mixedStatusEntries} editingElevatorId={1} />);
 

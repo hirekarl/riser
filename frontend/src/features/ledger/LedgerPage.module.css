@@ -36,6 +36,66 @@
   color: var(--text);
 }
 
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  background: none;
+  border: none;
+  /* Vertical padding widens the click/tap target beyond the text's own
+     line-height (WCAG 2.5.8 recommends >= 24px; header row's line-height
+     alone is tighter than that) without changing the header cell's overall
+     height, since .table th/td already contributes 0.6rem of padding above
+     and below. Negative margin cancels the added width so the button's
+     visible position/alignment inside the <th> is unchanged. */
+  padding: 0.35rem 0;
+  margin: -0.35rem 0;
+  cursor: pointer;
+}
+
+.sortButton:hover {
+  text-decoration: underline;
+}
+
+.sortButton:focus-visible {
+  outline: 2px solid #8f5525;
+  outline-offset: 2px;
+}
+
+/* #8f5525 (reused from .filterRow select:focus) computes to WCAG-contrast
+   ratios of ~6.0:1 against this table's light-mode header background
+   (--bg #ffffff) but only ~3.0:1 against the dark-mode header background
+   (--bg #14161b) — right at WCAG 1.4.11's 3:1 non-text-contrast floor, with
+   essentially no margin for anti-aliasing/sub-pixel rendering differences.
+   Lightened to a warmer amber for dark mode only (~7.5:1 against #14161b),
+   same "give it real margin instead of eyeballing" treatment as the other
+   dark-mode color overrides in this file. */
+:root[data-theme="dark"] .sortButton:focus-visible {
+  outline-color: #d99a52;
+}
+
+.sortIndicator {
+  font-size: 0.75em;
+  line-height: 1;
+}
+
+/* Neutral "sortable but not currently sorted" affordance: a dimmed
+   bidirectional-arrow glyph, deliberately distinct from the active ▲/▼ so an
+   inactive column never visually implies it's already sorted (see the
+   caret-fallback issue this replaces). Decorative/aria-hidden (the
+   accessible name lives on the button's aria-label, which already spells
+   out sorted vs. not-sorted in words), so WCAG's 4.5:1 text-contrast
+   requirement doesn't strictly apply here, but 0.6 opacity was chosen to
+   clear the 3:1 non-text-UI floor anyway with real margin in both themes
+   (~4.2:1 light-mode-text-on-white, ~6.0:1 dark-mode-text-on-#14161b)
+   rather than relying on it being merely decorative. */
+.sortIndicatorNeutral {
+  opacity: 0.6;
+}
+
 /* Status-change highlight: a brief accent sweep on a row whose status just
    recalculated, so an edit's effect on rank/status reads as a visible event
    rather than a silent table reflow. Adapted from the design proposal in
