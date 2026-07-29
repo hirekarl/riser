@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.8.1 (2026-07-29)
+
+### Fix
+
+- **api**: persist resolved BIN when saving a building from address lookup
+
 ## v0.8.0 (2026-07-29)
 
 ### Feat
