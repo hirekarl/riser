@@ -80,10 +80,24 @@ Two things worth calling out about this shape:
 
 ## Team
 
-- [Karl Johnson](https://github.com/hirekarl)
-- [Andres Ballares](https://github.com/AndresBallares)
-- [Schiffon Lola Wise](https://github.com/Roamwell-Travel-Co)
-- [Cornell Robertson](https://github.com/CodeToTheCore)
+- **[Karl Johnson](https://github.com/hirekarl)** — _Core Architecture, Backend & Integration Lead_
+  - Designed core Django/DRF architecture, compliance calculation services, and automated test pipelines (enforcing ≥90% coverage gates across backend and frontend).
+  - Built DOB Open Data address-lookup fallback integration, status-filtering endpoints, cascade-delete UI/backend logic, and demo sample data seeding.
+  - Consolidated executive UI redesigns into a unified tabbed dashboard, slide-over detail drawer, and production deployment pipeline.
+
+- **[Cornell Robertson](https://github.com/CodeToTheCore)** — _Backend & Open Data Services_
+  - **Delivered ahead of schedule:** Built the initial keyless NYC GeoSearch v2 geocoding resolver & DOB Open Data device-fetch service (`dob.py`) two days early, successfully de-risking the complex address-lookup integration.
+  - Implemented building-scoped backend filtering on `LedgerListView` and co-authored DOB device matching logic for auto-recognition.
+
+- **[Andres Ballares](https://github.com/AndresBallares)** — _Frontend Interactivity & Responsive QA Lead_
+  - Wired interactive elevator editing (`ElevatorForm`) to REST `PATCH` endpoints with live status/due-date updates, and built the initial address-lookup form shell and narration error guards.
+  - Executed cross-browser and phone-viewport (390×844) responsive QA across WebKit and Firefox, identifying and fixing narrow-viewport table overflow.
+  - Authored visual screenshot documentation for the ledger overview, elevator edit flow, and empty-state guidance.
+
+- **[Schiffon Lola Wise](https://github.com/Roamwell-Travel-Co)** — _Lead UI/UX & Visual Accessibility Specialist_
+  - Conceptualized and authored the Riser executive dashboard visual specs (`docs/design/`), establishing the v3 brand design system (rust/navy palette, typography, WCAG AA solid rust actions).
+  - Designed and built the elevator detail/remediation panel, status badge styling, and AI Executive Briefing layout.
+  - Led keyboard-only accessibility testing (`keyboard-accessibility.spec.ts`) and visual contrast audits.
 
 ## Prerequisites
 
