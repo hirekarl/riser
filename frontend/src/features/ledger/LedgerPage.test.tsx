@@ -138,6 +138,27 @@ describe("LedgerPage", () => {
     expect(await screen.findByText(/7 buildings/i)).toBeInTheDocument();
   });
 
+  it("threads onNavigateToPortfolio through to the empty state's CTA button", async () => {
+    const onNavigateToPortfolio = vi.fn();
+    const user = userEvent.setup();
+
+    render(<LedgerPage entries={[]} onNavigateToPortfolio={onNavigateToPortfolio} />);
+
+    await user.click(screen.getByRole("button", { name: /go to manage portfolio/i }));
+
+    expect(onNavigateToPortfolio).toHaveBeenCalledTimes(1);
+  });
+
+  it("defaults onNavigateToPortfolio to a no-op so the empty state's CTA works even when the parent doesn't pass one", async () => {
+    const user = userEvent.setup();
+
+    render(<LedgerPage entries={[]} />);
+
+    // No onNavigateToPortfolio was passed — this exercises LedgerPage's
+    // default no-op, so the click must not throw.
+    await user.click(screen.getByRole("button", { name: /go to manage portfolio/i }));
+  });
+
   it("has no axe accessibility violations in a populated state", async () => {
     const { container } = render(<LedgerPage entries={mixedStatusEntries} />);
 

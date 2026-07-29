@@ -48,6 +48,9 @@ describe("App", () => {
     });
     expect(listBuildingsSpy).toHaveBeenCalledTimes(2);
 
+    // The elevator form now lives on the Manage Portfolio outer tab.
+    await user.click(screen.getByRole("tab", { name: /manage portfolio/i }));
+
     // The elevator form's building dropdown should now be populated from the
     // successful retry, rather than staying permanently empty.
     const elevatorForm = await screen.findByRole("form", { name: /add an elevator/i });
@@ -96,6 +99,9 @@ describe("App", () => {
 
     expect(await screen.findByText(/no elevators/i)).toBeInTheDocument();
 
+    // The building/elevator forms live on the Manage Portfolio outer tab.
+    await user.click(screen.getByRole("tab", { name: /manage portfolio/i }));
+
     const buildingForm = screen.getByRole("form", { name: /add a building/i });
     await user.type(within(buildingForm).getByLabelText(/building name/i), "Tower A");
     await user.type(within(buildingForm).getByLabelText(/address/i), "1 Main St");
@@ -111,6 +117,9 @@ describe("App", () => {
     await user.type(within(elevatorForm).getByLabelText(/last inspection date/i), "2026-01-01");
     await user.click(within(elevatorForm).getByRole("button", { name: /add elevator/i }));
 
+    // Switch back to the outer Ledger tab to confirm the new elevator shows
+    // up in the ledger.
+    await user.click(screen.getByRole("tab", { name: /^ledger$/i }));
     expect(await screen.findByText("EL-1")).toBeInTheDocument();
   });
 
@@ -154,6 +163,9 @@ describe("App", () => {
 
     const user = userEvent.setup();
     render(<App />);
+
+    // The address lookup form lives on the Manage Portfolio outer tab.
+    await user.click(screen.getByRole("tab", { name: /manage portfolio/i }));
 
     const lookupForm = await screen.findByRole("form", { name: /look up building by address/i });
     await user.type(within(lookupForm).getByLabelText(/building address/i), "350 5th Ave");
@@ -233,10 +245,15 @@ describe("App", () => {
     });
     expect(createSpy).not.toHaveBeenCalled();
 
-    // Saving reuses the same refetch path as creating, so the ledger reflects
-    // the update live, and the form reverts to create mode.
-    expect(await screen.findByText("EL-1B")).toBeInTheDocument();
+    // Saving reuses the same refetch path as creating, and the form reverts
+    // to create mode — still on Manage Portfolio, since a successful save
+    // does not auto-navigate back to Ledger.
     expect(await screen.findByRole("form", { name: /add an elevator/i })).toBeInTheDocument();
+
+    // Switch back to the outer Ledger tab to confirm the ledger reflects the
+    // update live.
+    await user.click(screen.getByRole("tab", { name: /^ledger$/i }));
+    expect(await screen.findByText("EL-1B")).toBeInTheDocument();
   });
 
   it("disables the inline date input for a row while its Edit form is open, preventing the stale-overwrite race", async () => {
@@ -282,9 +299,14 @@ describe("App", () => {
 
     await screen.findByRole("form", { name: /edit an elevator/i });
 
+    // Opening Edit auto-navigated to Manage Portfolio, which unmounts the
+    // ledger table in the process — the row's disabled state can only be
+    // observed after switching back to the outer Ledger tab.
+    await user.click(screen.getByRole("tab", { name: /^ledger$/i }));
+
     // The inline date input for the row under edit must now be disabled, so
     // there is no way to fire the conflicting PATCH described in the repro.
-    const inlineDateInput = screen.getByLabelText(/last inspection date for el-1/i);
+    const inlineDateInput = await screen.findByLabelText(/last inspection date for el-1/i);
     expect(inlineDateInput).toBeDisabled();
 
     // Confirm this isn't just globally disabled: attempting to change it has
@@ -355,17 +377,24 @@ describe("App", () => {
     render(<App />);
 
     await user.click(await screen.findByRole("button", { name: /edit el-1/i }));
-    const editForm = await screen.findByRole("form", { name: /edit an elevator/i });
+    let editForm = await screen.findByRole("form", { name: /edit an elevator/i });
     expect(within(editForm).getByLabelText(/device identifier/i)).toHaveValue("EL-1");
 
     // Make an unsaved edit to row A's device identifier, without saving.
     await user.clear(within(editForm).getByLabelText(/device identifier/i));
     await user.type(within(editForm).getByLabelText(/device identifier/i), "EL-1-UNSAVED");
 
-    // Switch the edit target to row B without saving or cancelling first.
+    // Switch the edit target to row B without saving or cancelling first. Row
+    // B's Edit button only lives in the ledger table, so this first requires
+    // switching back to the outer Ledger tab — which unmounts (and, on
+    // clicking Edit again, remounts) the Manage Portfolio edit form.
+    await user.click(screen.getByRole("tab", { name: /^ledger$/i }));
     await user.click(screen.getByRole("button", { name: /edit el-2/i }));
 
-    // The form now reflects row B, not A's discarded, unsaved edit.
+    // Re-query: the previous edit form instance was unmounted when Manage
+    // Portfolio's content unmounted; a fresh instance mounts already primed
+    // with row B's data.
+    editForm = await screen.findByRole("form", { name: /edit an elevator/i });
     await waitFor(() => {
       expect(within(editForm).getByLabelText(/device identifier/i)).toHaveValue("EL-2");
     });
@@ -384,8 +413,12 @@ describe("App", () => {
 
     const { container } = render(<App />);
 
-    const ledgerTab = await screen.findByRole("tab", { name: /^ledger$/i });
-    const timelineTab = screen.getByRole("tab", { name: /^timeline$/i });
+    // Scoped through the inner tablist: the outer "Ledger" section tab has
+    // the same accessible name, and both coexist in the DOM by default (the
+    // outer section starts on Ledger).
+    const innerTablist = within(await screen.findByRole("tablist", { name: /ledger views/i }));
+    const ledgerTab = innerTablist.getByRole("tab", { name: /^ledger$/i });
+    const timelineTab = innerTablist.getByRole("tab", { name: /^timeline$/i });
 
     expect(ledgerTab).toHaveAttribute("aria-selected", "true");
     expect(timelineTab).toHaveAttribute("aria-selected", "false");
@@ -403,8 +436,9 @@ describe("App", () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
 
-    const ledgerTab = await screen.findByRole("tab", { name: /^ledger$/i });
-    const timelineTab = screen.getByRole("tab", { name: /^timeline$/i });
+    const innerTablist = within(await screen.findByRole("tablist", { name: /ledger views/i }));
+    const ledgerTab = innerTablist.getByRole("tab", { name: /^ledger$/i });
+    const timelineTab = innerTablist.getByRole("tab", { name: /^timeline$/i });
     const ledgerPanel = container.querySelector("#ledger-panel") as HTMLElement;
     const timelinePanel = container.querySelector("#timeline-panel") as HTMLElement;
 
@@ -430,14 +464,15 @@ describe("App", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const timelineTab = await screen.findByRole("tab", { name: /^timeline$/i });
+    const innerTablist = within(await screen.findByRole("tablist", { name: /ledger views/i }));
+    const timelineTab = innerTablist.getByRole("tab", { name: /^timeline$/i });
     timelineTab.focus();
     expect(timelineTab).toHaveFocus();
 
     await user.keyboard("{Enter}");
     expect(timelineTab).toHaveAttribute("aria-selected", "true");
 
-    const ledgerTab = screen.getByRole("tab", { name: /^ledger$/i });
+    const ledgerTab = innerTablist.getByRole("tab", { name: /^ledger$/i });
     ledgerTab.focus();
     await user.keyboard(" ");
     expect(ledgerTab).toHaveAttribute("aria-selected", "true");
@@ -496,7 +531,12 @@ describe("App", () => {
     vi.spyOn(client, "fetchPortfolioFineExposure").mockRejectedValue(fineExposureError);
     const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
 
+    const user = userEvent.setup();
     render(<App />);
+
+    // The fine-exposure error banner is shown inside BuildingList, which now
+    // lives on the Manage Portfolio outer tab.
+    await user.click(screen.getByRole("tab", { name: /manage portfolio/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not load fine exposure/i);
     expect(logErrorSpy).toHaveBeenCalledWith(
@@ -570,7 +610,9 @@ describe("App", () => {
     const user = userEvent.setup();
     const { container } = render(<App />);
 
-    await screen.findByRole("tab", { name: /^ledger$/i });
+    await within(await screen.findByRole("tablist", { name: /ledger views/i })).findByRole("tab", {
+      name: /^ledger$/i,
+    });
     expect(await axe(container)).toHaveNoViolations();
 
     await user.click(screen.getByRole("tab", { name: /^timeline$/i }));
@@ -602,6 +644,9 @@ describe("App", () => {
 
     const user = userEvent.setup();
     render(<App />);
+
+    // The buildings list lives on the Manage Portfolio outer tab.
+    await user.click(screen.getByRole("tab", { name: /manage portfolio/i }));
 
     const buildingList = await screen.findByRole("region", { name: /buildings/i });
     expect(within(buildingList).getByText("Tower A")).toBeInTheDocument();
@@ -693,7 +738,11 @@ describe("App", () => {
     vi.spyOn(client, "listBuildings").mockResolvedValue([]);
     vi.spyOn(client, "listLedger").mockResolvedValue([]);
 
+    const user = userEvent.setup();
     render(<App />);
+
+    // The building form lives on the Manage Portfolio outer tab.
+    await user.click(screen.getByRole("tab", { name: /manage portfolio/i }));
 
     await screen.findByRole("form", { name: /add a building/i });
     expect(screen.queryByRole("button", { name: /reset portfolio/i })).not.toBeInTheDocument();
@@ -725,5 +774,163 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: /confirm reset/i }));
 
     await waitFor(() => expect(listLedgerSpy).toHaveBeenCalledTimes(2));
+  });
+
+  describe("outer Ledger / Manage Portfolio sections", () => {
+    it("shows the Ledger section's content by default, with Manage Portfolio hidden", async () => {
+      vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+      vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+      const { container } = render(<App />);
+
+      const outerTablist = within(
+        await screen.findByRole("tablist", { name: /portfolio sections/i }),
+      );
+      const sectionLedgerTab = outerTablist.getByRole("tab", { name: /^ledger$/i });
+      const sectionPortfolioTab = outerTablist.getByRole("tab", { name: /manage portfolio/i });
+
+      expect(sectionLedgerTab).toHaveAttribute("aria-selected", "true");
+      expect(sectionPortfolioTab).toHaveAttribute("aria-selected", "false");
+
+      const ledgerSectionPanel = container.querySelector("#section-ledger-panel") as HTMLElement;
+      const portfolioSectionPanel = container.querySelector(
+        "#section-portfolio-panel",
+      ) as HTMLElement;
+      expect(ledgerSectionPanel).not.toHaveAttribute("hidden");
+      expect(portfolioSectionPanel).toHaveAttribute("hidden");
+
+      // Manage Portfolio's forms are unmounted (not just visually hidden).
+      expect(screen.queryByRole("form", { name: /add a building/i })).not.toBeInTheDocument();
+    });
+
+    it("switches to Manage Portfolio and back, fully unmounting each section's content while hidden rather than just hiding it via CSS", async () => {
+      vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+      vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+      const user = userEvent.setup();
+      const { container } = render(<App />);
+
+      const outerTablist = within(
+        await screen.findByRole("tablist", { name: /portfolio sections/i }),
+      );
+      const sectionLedgerTab = outerTablist.getByRole("tab", { name: /^ledger$/i });
+      const sectionPortfolioTab = outerTablist.getByRole("tab", { name: /manage portfolio/i });
+
+      await user.click(sectionPortfolioTab);
+
+      expect(sectionPortfolioTab).toHaveAttribute("aria-selected", "true");
+      expect(sectionLedgerTab).toHaveAttribute("aria-selected", "false");
+      expect(container.querySelector("#section-portfolio-panel")).not.toHaveAttribute("hidden");
+      expect(container.querySelector("#section-ledger-panel")).toHaveAttribute("hidden");
+      expect(await screen.findByRole("form", { name: /add a building/i })).toBeInTheDocument();
+      // The Ledger section's content, including the inner Ledger/Timeline
+      // tabs, is unmounted while hidden.
+      expect(screen.queryByRole("tablist", { name: /ledger views/i })).not.toBeInTheDocument();
+
+      await user.click(sectionLedgerTab);
+
+      expect(sectionLedgerTab).toHaveAttribute("aria-selected", "true");
+      expect(sectionPortfolioTab).toHaveAttribute("aria-selected", "false");
+      expect(container.querySelector("#section-ledger-panel")).not.toHaveAttribute("hidden");
+      expect(container.querySelector("#section-portfolio-panel")).toHaveAttribute("hidden");
+      // Manage Portfolio's forms are unmounted again, not just hidden.
+      expect(screen.queryByRole("form", { name: /add a building/i })).not.toBeInTheDocument();
+    });
+
+    it("is keyboard-operable: an outer tab button can be focused and activated via Enter/Space, being a real <button>", async () => {
+      vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+      vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      const outerTablist = within(
+        await screen.findByRole("tablist", { name: /portfolio sections/i }),
+      );
+      const sectionPortfolioTab = outerTablist.getByRole("tab", { name: /manage portfolio/i });
+
+      sectionPortfolioTab.focus();
+      expect(sectionPortfolioTab).toHaveFocus();
+      await user.keyboard("{Enter}");
+      expect(sectionPortfolioTab).toHaveAttribute("aria-selected", "true");
+
+      const sectionLedgerTab = outerTablist.getByRole("tab", { name: /^ledger$/i });
+      sectionLedgerTab.focus();
+      await user.keyboard(" ");
+      expect(sectionLedgerTab).toHaveAttribute("aria-selected", "true");
+    });
+
+    it("auto-navigates to Manage Portfolio and moves real focus to the device identifier field when Edit is clicked from the Ledger section", async () => {
+      const entry: LedgerEntry = {
+        id: 1,
+        device_identifier: "EL-1",
+        dob_device_number: null,
+        inspection_type: "CAT1",
+        last_inspection_date: "2020-01-01",
+        building_name: "Tower A",
+        due_date: "2021-01-01",
+        status: "Delinquent",
+        has_open_violation: false,
+      };
+      vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+      vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      const editButton = await screen.findByRole("button", { name: /edit el-1/i });
+      await user.click(editButton);
+
+      const sectionPortfolioTab = screen.getByRole("tab", { name: /manage portfolio/i });
+      expect(sectionPortfolioTab).toHaveAttribute("aria-selected", "true");
+
+      const editForm = await screen.findByRole("form", { name: /edit an elevator/i });
+      expect(within(editForm).getByLabelText(/device identifier/i)).toHaveFocus();
+    });
+
+    it("does not auto-navigate back to Ledger when Cancel is clicked from the auto-opened Edit form", async () => {
+      const entry: LedgerEntry = {
+        id: 1,
+        device_identifier: "EL-1",
+        dob_device_number: null,
+        inspection_type: "CAT1",
+        last_inspection_date: "2020-01-01",
+        building_name: "Tower A",
+        due_date: "2021-01-01",
+        status: "Delinquent",
+        has_open_violation: false,
+      };
+      vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+      vi.spyOn(client, "listLedger").mockResolvedValue([entry]);
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      await user.click(await screen.findByRole("button", { name: /edit el-1/i }));
+
+      const editForm = await screen.findByRole("form", { name: /edit an elevator/i });
+      await user.click(within(editForm).getByRole("button", { name: /cancel/i }));
+
+      const sectionPortfolioTab = screen.getByRole("tab", { name: /manage portfolio/i });
+      expect(sectionPortfolioTab).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  describe("EmptyState -> Manage Portfolio navigation", () => {
+    it("navigates to Manage Portfolio when the empty state's CTA is clicked", async () => {
+      vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+      vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+      const user = userEvent.setup();
+      render(<App />);
+
+      expect(await screen.findByText(/no elevators/i)).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /go to manage portfolio/i }));
+
+      const sectionPortfolioTab = screen.getByRole("tab", { name: /manage portfolio/i });
+      expect(sectionPortfolioTab).toHaveAttribute("aria-selected", "true");
+      expect(await screen.findByRole("form", { name: /add a building/i })).toBeInTheDocument();
+    });
   });
 });

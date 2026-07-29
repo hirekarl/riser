@@ -13,14 +13,14 @@ describe("EmptyState", () => {
   });
 
   it("renders a level-3 heading so it nests correctly under the page's h2", () => {
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
     expect(
       screen.getByRole("heading", { level: 3, name: /no elevators yet/i }),
     ).toBeInTheDocument();
   });
 
   it("gives explicit, actionable instructions rather than a bare 'no data' message", () => {
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
     // Points at the address-lookup fast start first, with the manual forms
     // rendered above the ledger as the fallback path.
     expect(screen.getByText(/look up your first building by address/i)).toBeInTheDocument();
@@ -32,7 +32,7 @@ describe("EmptyState", () => {
   });
 
   it("has no axe accessibility violations in the idle state", async () => {
-    const { container } = render(<EmptyState onSeeded={vi.fn()} />);
+    const { container } = render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
@@ -40,7 +40,7 @@ describe("EmptyState", () => {
   it("has no axe accessibility violations while seeding is in flight", async () => {
     vi.spyOn(client, "seedDemoData").mockReturnValue(new Promise(() => {}));
     const user = userEvent.setup();
-    const { container } = render(<EmptyState onSeeded={vi.fn()} />);
+    const { container } = render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /try sample data/i }));
 
@@ -52,7 +52,7 @@ describe("EmptyState", () => {
     vi.spyOn(client, "seedDemoData").mockRejectedValue(new Error("boom"));
     vi.spyOn(logger, "logError").mockImplementation(() => {});
     const user = userEvent.setup();
-    const { container } = render(<EmptyState onSeeded={vi.fn()} />);
+    const { container } = render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /try sample data/i }));
     await screen.findByRole("alert");
@@ -62,7 +62,7 @@ describe("EmptyState", () => {
   });
 
   it("signals the sample-data button as an alternative, faster path rather than a fourth numbered step", () => {
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
     // The three numbered steps are the primary path; the sample-data button
     // is called out as a shortcut, not appended as an equal-weight 4th step.
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
@@ -75,7 +75,7 @@ describe("EmptyState", () => {
     const onSeeded = vi.fn();
     const user = userEvent.setup();
 
-    render(<EmptyState onSeeded={onSeeded} />);
+    render(<EmptyState onSeeded={onSeeded} onNavigateToPortfolio={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /try sample data/i }));
 
@@ -92,7 +92,7 @@ describe("EmptyState", () => {
     );
     const user = userEvent.setup();
 
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /try sample data/i }));
 
@@ -107,7 +107,7 @@ describe("EmptyState", () => {
     vi.spyOn(client, "seedDemoData").mockReturnValue(new Promise(() => {}));
     const user = userEvent.setup();
 
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
 
     const button = screen.getByRole("button", { name: /try sample data/i });
     await user.click(button);
@@ -127,7 +127,7 @@ describe("EmptyState", () => {
     vi.spyOn(client, "seedDemoData").mockResolvedValue(response);
     const user = userEvent.setup();
 
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /try sample data/i }));
 
@@ -141,7 +141,7 @@ describe("EmptyState", () => {
     vi.spyOn(client, "seedDemoData").mockResolvedValue(response);
     const user = userEvent.setup();
 
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /try sample data/i }));
 
@@ -155,11 +155,22 @@ describe("EmptyState", () => {
     const logErrorSpy = vi.spyOn(logger, "logError").mockImplementation(() => {});
     const user = userEvent.setup();
 
-    render(<EmptyState onSeeded={vi.fn()} />);
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /try sample data/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not load sample data/i);
     expect(logErrorSpy).toHaveBeenCalledWith("Failed to seed demo data", error);
+  });
+
+  it("calls onNavigateToPortfolio when the 'Go to Manage Portfolio' button is clicked", async () => {
+    const onNavigateToPortfolio = vi.fn();
+    const user = userEvent.setup();
+
+    render(<EmptyState onSeeded={vi.fn()} onNavigateToPortfolio={onNavigateToPortfolio} />);
+
+    await user.click(screen.getByRole("button", { name: /go to manage portfolio/i }));
+
+    expect(onNavigateToPortfolio).toHaveBeenCalledTimes(1);
   });
 });

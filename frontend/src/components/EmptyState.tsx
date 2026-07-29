@@ -11,6 +11,13 @@ export interface EmptyStateProps {
    * create/update (see `reloadSignal` in App.tsx).
    */
   onSeeded: () => void;
+  /**
+   * Called when the "Go to Manage Portfolio" CTA is clicked, so a parent
+   * (e.g. `App`, via `LedgerPage`) can switch the outer tab from Ledger to
+   * Manage Portfolio, where the address-lookup/building/elevator forms now
+   * live (they're no longer on the same screen as this empty state).
+   */
+  onNavigateToPortfolio: () => void;
 }
 
 /**
@@ -22,12 +29,13 @@ export interface EmptyStateProps {
  * PRD's "Getting started (empty state)" sub-journey (docs/prd/Riser-PRD.md)
  * points at the address-lookup fast start as the primary path, with the
  * manual "Add a building" / "Add an elevator" forms as the fallback for
- * addresses DOB doesn't resolve. Both are rendered above the ledger in
- * App.tsx (AddressLookupForm, then BuildingForm/ElevatorForm). "Try sample
- * data" is a third, even-faster path for a first look at the app without
- * needing a real building on hand.
+ * addresses DOB doesn't resolve. Those forms now live on the separate
+ * "Manage Portfolio" outer tab (see App.tsx), not on this same screen, so the
+ * steps below point there via `onNavigateToPortfolio` rather than saying
+ * "the form above". "Try sample data" is a third, even-faster path for a
+ * first look at the app without needing a real building on hand.
  */
-export function EmptyState({ onSeeded }: EmptyStateProps) {
+export function EmptyState({ onSeeded, onNavigateToPortfolio }: EmptyStateProps) {
   const [seeding, setSeeding] = useState(false);
   const [seedError, setSeedError] = useState<string | null>(null);
   const [seedSuccessMessage, setSeedSuccessMessage] = useState<string | null>(null);
@@ -71,18 +79,23 @@ export function EmptyState({ onSeeded }: EmptyStateProps) {
       </p>
       <ol className={styles.steps}>
         <li>
-          Use the <strong>&ldquo;Look up an address&rdquo;</strong> form above to auto-populate a
-          building from its NYC DOB elevator records.
+          Go to <strong>Manage Portfolio</strong> and use the{" "}
+          <strong>&ldquo;Look up an address&rdquo;</strong> form to auto-populate a building from
+          its NYC DOB elevator records.
         </li>
         <li>
           If DOB doesn&rsquo;t have your building on file, use the{" "}
-          <strong>&ldquo;Add a building&rdquo;</strong> form above to enter its name and address.
+          <strong>&ldquo;Add a building&rdquo;</strong> form there instead to enter its name and
+          address.
         </li>
         <li>
-          Use the <strong>&ldquo;Add an elevator&rdquo;</strong> form above to add a device, its
+          Then use the <strong>&ldquo;Add an elevator&rdquo;</strong> form to add a device, its
           inspection type, and its last inspection date.
         </li>
       </ol>
+      <button type="button" className={styles.primaryButton} onClick={onNavigateToPortfolio}>
+        Go to Manage Portfolio <span aria-hidden="true">→</span>
+      </button>
       {/*
         A visually separated "shortcut" section, not a 4th numbered step —
         the three steps above are the real, primary path (a real building's

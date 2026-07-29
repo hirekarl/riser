@@ -187,15 +187,19 @@ async function inspectFocused(page: Page): Promise<{ desc: string; hasFocusRing:
   });
 }
 
-test("keyboard-only walkthrough: every control is reachable, operable, and visibly focused via Tab alone", async ({
-  page,
-}) => {
-  await mockApiWithSeedData(page);
-  await page.goto("/");
-  await expect(page.getByRole("table")).toBeVisible();
+interface SweepResult {
+  trace: string[];
+  missingFocusRing: string[];
+}
 
-  // Full-page Tab sweep: walk forward through every focusable element,
-  // recording the trace and flagging any step with no visible focus ring.
+/** Full Tab sweep from wherever focus currently is: walks forward through
+ * every focusable element, recording the trace and flagging any step with no
+ * visible focus ring, until either 80 presses have happened or a keyboard
+ * trap / end-of-page is detected (the same element focused 3x running).
+ * Shared by both the default-Ledger-section and the Manage-Portfolio-section
+ * sweep tests below, which differ only in where the sweep starts and which
+ * stops they expect. */
+async function sweepTabOrder(page: Page): Promise<SweepResult> {
   const trace: string[] = [];
   const missingFocusRing: string[] = [];
   const seen = new Set<string>();
@@ -226,17 +230,34 @@ test("keyboard-only walkthrough: every control is reachable, operable, and visib
     seen.add(desc);
   }
 
-  console.log("=== Keyboard Tab trace ===\n" + trace.join("\n"));
-  console.log(`=== Unique focusable stops: ${seen.size} ===`);
+  return { trace, missingFocusRing };
+}
+
+test("keyboard-only walkthrough: every control on the default Ledger section is reachable, operable, and visibly focused via Tab alone", async ({
+  page,
+}) => {
+  await mockApiWithSeedData(page);
+  await page.goto("/");
+  await expect(page.getByRole("table")).toBeVisible();
+
+  const { trace, missingFocusRing } = await sweepTabOrder(page);
+
+  console.log("=== Keyboard Tab trace (Ledger section) ===\n" + trace.join("\n"));
+  console.log(`=== Unique focusable stops: ${new Set(trace).size} ===`);
   if (missingFocusRing.length > 0) {
     console.log("=== Steps with NO visible focus indicator ===\n" + missingFocusRing.join("\n"));
   }
 
-  // The core interactive surfaces must all appear somewhere in the trace —
-  // if any of these never got focus, they're not keyboard-reachable at all.
+  // The core interactive surfaces on the default Ledger section must all
+  // appear somewhere in the trace — if any of these never got focus, they're
+  // not keyboard-reachable at all. The address-lookup/building/elevator
+  // forms are NOT included here: they now live behind the (initially
+  // inactive) outer "Manage Portfolio" tab, so they're unreachable via Tab
+  // alone from a fresh page load — see the Manage Portfolio sweep test below
+  // for their coverage instead. The outer tab button itself is still
+  // reachable and focusable (just not activated), so it's included.
   const traceText = trace.join(" | ").toLowerCase();
-  expect(traceText).toContain("add building");
-  expect(traceText).toContain("add elevator");
+  expect(traceText).toContain("manage portfolio");
   expect(traceText).toContain("generate briefing");
   expect(traceText).toContain("what do these statuses mean");
   // The building filter is a chip row (role="group", individual buttons with
@@ -254,6 +275,44 @@ test("keyboard-only walkthrough: every control is reachable, operable, and visib
   // single most common real-world keyboard-accessibility failure (a control
   // that *works* via keyboard but a sighted keyboard user can't tell is
   // focused).
+  expect(
+    missingFocusRing,
+    `Elements with no visible focus ring:\n${missingFocusRing.join("\n")}`,
+  ).toEqual([]);
+});
+
+test("keyboard-only walkthrough: every control on the Manage Portfolio section is reachable, operable, and visibly focused via Tab alone", async ({
+  page,
+}) => {
+  await mockApiWithSeedData(page);
+  await page.goto("/");
+  await expect(page.getByRole("table")).toBeVisible();
+
+  // Keyboard-only activation of the outer "Manage Portfolio" tab — a raw
+  // `.click()` would defeat the point of a keyboard-only test, since a real
+  // keyboard-only user reaches this via Tab + Enter, never a pointer.
+  await page.getByRole("tab", { name: /manage portfolio/i }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("form", { name: /^add a building$/i })).toBeVisible();
+
+  const { trace, missingFocusRing } = await sweepTabOrder(page);
+
+  console.log("=== Keyboard Tab trace (Manage Portfolio section) ===\n" + trace.join("\n"));
+  console.log(`=== Unique focusable stops: ${new Set(trace).size} ===`);
+  if (missingFocusRing.length > 0) {
+    console.log("=== Steps with NO visible focus indicator ===\n" + missingFocusRing.join("\n"));
+  }
+
+  // The address-lookup form, the manual building/elevator forms, and the
+  // buildings list (pre-seeded with two buildings by mockApiWithSeedData
+  // above, so a real "Delete building" action exists to reach) all live here
+  // now, and must all be keyboard-reachable once this outer tab is active.
+  const traceText = trace.join(" | ").toLowerCase();
+  expect(traceText).toContain("building address");
+  expect(traceText).toContain("add building");
+  expect(traceText).toContain("add elevator");
+  expect(traceText).toContain("delete building");
+
   expect(
     missingFocusRing,
     `Elements with no visible focus ring:\n${missingFocusRing.join("\n")}`,

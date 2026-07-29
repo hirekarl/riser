@@ -153,6 +153,14 @@ export interface LedgerPageProps {
    * state don't need to pass it.
    */
   onSeeded?: () => void;
+  /**
+   * Passed straight through to the empty state's "Go to Manage Portfolio"
+   * CTA (see `EmptyState`'s `onNavigateToPortfolio` prop) so the parent can
+   * switch the outer tab away from Ledger. Optional (with a no-op default)
+   * for the same reason as `onSeeded` above — existing tests that never
+   * render the empty state don't need to pass it.
+   */
+  onNavigateToPortfolio?: () => void;
 }
 
 export function LedgerPage({
@@ -163,6 +171,7 @@ export function LedgerPage({
   editingElevatorId,
   onElevatorUpdated,
   onSeeded = () => {},
+  onNavigateToPortfolio = () => {},
 }: LedgerPageProps) {
   const statusFilterId = useId();
   const searchId = useId();
@@ -723,7 +732,7 @@ export function LedgerPage({
       )}
 
       {visibleEntries && visibleEntries.length === 0 ? (
-        <EmptyState onSeeded={onSeeded} />
+        <EmptyState onSeeded={onSeeded} onNavigateToPortfolio={onNavigateToPortfolio} />
       ) : visibleEntries && visibleEntries.length > 0 ? (
         <div className={styles.tableScroll}>
           <table className={styles.table}>
