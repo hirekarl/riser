@@ -159,6 +159,78 @@
   color: var(--text-muted);
 }
 
+/* Group-by-building toggle switch, matching the mockup's .group-toggle/
+   .switch-track exactly: a visually-hidden checkbox driving a custom track,
+   so it reads as an on/off switch rather than a checkbox. Track/thumb use
+   var(--border)/var(--bg)/var(--text-muted) so it tracks the theme instead
+   of the mockup's fixed hex pair. */
+.groupToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.groupToggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.switchTrack {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  position: relative;
+  transition: background 0.15s ease;
+  flex: none;
+}
+
+.switchTrack::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.groupToggle input:checked + .switchTrack {
+  background: #1c3a63;
+}
+
+:root[data-theme="dark"] .groupToggle input:checked + .switchTrack {
+  background: #3d5a85;
+}
+
+.groupToggle input:checked + .switchTrack::after {
+  transform: translateX(14px);
+}
+
+.groupToggle input:focus-visible + .switchTrack {
+  outline: 2px solid #8f5525;
+  outline-offset: 2px;
+}
+
+/* Group header row, shown between building groups when grouping is active —
+   a single full-width cell naming the building and its device count, no
+   per-column data, so it reads as a section divider rather than a data row. */
+.groupRow td {
+  font-weight: 700;
+  padding: 0.5rem 0.8rem;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
 .filterRow {
   display: flex;
   align-items: center;

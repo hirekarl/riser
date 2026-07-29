@@ -936,4 +936,61 @@ describe("LedgerPage", () => {
       screen.getByLabelText(/last inspection date for el-1/i).closest("tr")?.className,
     ).not.toMatch(/editingRow/);
   });
+
+  it("does not show the group-by-building toggle when there is only one building", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={[buildings[0]]} />);
+
+    expect(screen.queryByLabelText(/group by building/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the group-by-building toggle, unchecked, with rows ungrouped by default", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    const toggle = screen.getByLabelText(/group by building/i);
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByText(/Tower A — \d/)).not.toBeInTheDocument();
+  });
+
+  it("groups rows under a per-building header, in status-urgency order, when the toggle is switched on", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    fireEvent.click(screen.getByLabelText(/group by building/i));
+
+    // Tower A has EL-3 and EL-1 (2 devices), Tower B has EL-2 (1 device).
+    expect(screen.getByText("Tower A — 2 devices")).toBeInTheDocument();
+    expect(screen.getByText("Tower B — 1 device")).toBeInTheDocument();
+
+    const rows = screen.getAllByRole("row").slice(1); // drop column header row
+    const rowLabels = rows.map((row) => row.textContent);
+    // Tower A's group header, then its two rows (still status-urgency
+    // ordered: EL-3 Delinquent before EL-1 Warning), then Tower B's group.
+    expect(rowLabels[0]).toMatch(/Tower A — 2 devices/);
+    expect(rowLabels[1]).toMatch(/EL-3/);
+    expect(rowLabels[2]).toMatch(/EL-1/);
+    expect(rowLabels[3]).toMatch(/Tower B — 1 device/);
+    expect(rowLabels[4]).toMatch(/EL-2/);
+  });
+
+  it("returns to the flat, ungrouped view when the toggle is switched back off", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    const toggle = screen.getByLabelText(/group by building/i);
+    fireEvent.click(toggle);
+    expect(screen.getByText("Tower A — 2 devices")).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(screen.queryByText(/Tower A — \d/)).not.toBeInTheDocument();
+    expect(screen.getByText("EL-1")).toBeInTheDocument();
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.getByText("EL-3")).toBeInTheDocument();
+  });
+
+  it("has no axe accessibility violations with grouping switched on", async () => {
+    const { container } = render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    fireEvent.click(screen.getByLabelText(/group by building/i));
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });

@@ -128,6 +128,8 @@ export function LedgerPage({
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<ComplianceStatus | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
+  const [groupByBuilding, setGroupByBuilding] = useState(false);
+  const groupToggleId = useId();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
 
@@ -293,6 +295,189 @@ export function LedgerPage({
     ? new Set(entries.map((entry) => entry.building_name)).size
     : 0;
 
+  // Groups preserve visibleEntries' existing status-urgency sort within each
+  // building, and buildings are ordered by first appearance in that same
+  // sorted list — so the most urgent building's group still leads, matching
+  // the flat view's overall priority ordering rather than falling back to
+  // something arbitrary like alphabetical.
+  const groupedEntries: { buildingName: string; entries: LedgerEntry[] }[] = [];
+  if (visibleEntries) {
+    const groupsByName = new Map<string, LedgerEntry[]>();
+    for (const entry of visibleEntries) {
+      const existing = groupsByName.get(entry.building_name);
+      if (existing) {
+        existing.push(entry);
+      } else {
+        groupsByName.set(entry.building_name, [entry]);
+      }
+    }
+    for (const [buildingName, groupEntries] of groupsByName) {
+      groupedEntries.push({ buildingName, entries: groupEntries });
+    }
+  }
+
+  function renderEntryRow(entry: LedgerEntry) {
+    const isEditingRow = editingElevatorId === entry.id;
+    const rowClassName =
+      [
+        justChangedIds.has(entry.id) ? styles.highlighting : null,
+        isEditingRow ? styles.editingRow : null,
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined;
+    const pendingDate = pendingDates[entry.id];
+    const hasPendingEdit = pendingDate !== undefined && pendingDate !== entry.last_inspection_date;
+    const isSaving = pendingId === entry.id;
+    const needsRemediation = entry.status === "Warning" || entry.status === "Delinquent";
+    const isExpanded = expandedId === entry.id;
+    const isConfirmingDelete = confirmingDeleteId === entry.id;
+    const isDeleting = deletingId === entry.id;
+
+    return (
+      <Fragment key={entry.id}>
+        <tr className={rowClassName}>
+          <td>
+            <StatusBadge status={entry.status} />
+            {entry.has_open_violation && (
+              <span className={styles.violationBadge}>
+                <span aria-hidden="true">⚠</span> Open violation
+              </span>
+            )}
+          </td>
+          <td>{entry.building_name}</td>
+          <td>
+            {entry.device_identifier}
+            {entry.dob_device_number && (
+              <span className={styles.dobDeviceNumber}>(DOB #{entry.dob_device_number})</span>
+            )}
+          </td>
+          <td>{entry.inspection_type}</td>
+          <td>
+            <label>
+              <span className="visually-hidden">
+                Last inspection date for {entry.device_identifier}
+              </span>
+              <input
+                type="date"
+                className={styles.dateInput}
+                value={pendingDate ?? entry.last_inspection_date}
+                disabled={isSaving || isEditingRow}
+                onChange={(event) => handleDateInputChange(entry.id, event.target.value)}
+              />
+            </label>
+            {hasPendingEdit && (
+              <span className={styles.dateActions}>
+                <button
+                  type="button"
+                  className={styles.saveDateButton}
+                  aria-label={`Save inspection date for ${entry.device_identifier}`}
+                  disabled={isSaving}
+                  onClick={() => handleDateSave(entry.id)}
+                >
+                  {isSaving ? "Saving…" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.cancelDateButton}
+                  aria-label={`Cancel editing inspection date for ${entry.device_identifier}`}
+                  disabled={isSaving}
+                  onClick={() => handleDateCancel(entry.id)}
+                >
+                  Cancel
+                </button>
+              </span>
+            )}
+          </td>
+          <td>{entry.due_date}</td>
+          <td>
+            <button
+              type="button"
+              className={styles.editButton}
+              aria-label={`Edit ${entry.device_identifier}`}
+              onClick={() => onEditRequest?.(entry)}
+            >
+              Edit
+            </button>
+            {needsRemediation && (
+              <button
+                type="button"
+                className={styles.detailsButton}
+                aria-label={`${isExpanded ? "Hide" : "View"} details for ${entry.device_identifier}`}
+                aria-expanded={isExpanded}
+                onClick={() => handleToggleDetails(entry.id)}
+              >
+                {isExpanded ? "Hide details" : "View details"}
+              </button>
+            )}
+            {isConfirmingDelete ? (
+              <span className={styles.deleteActions}>
+                <button
+                  type="button"
+                  className={styles.confirmDeleteButton}
+                  aria-label={`Confirm delete ${entry.device_identifier}`}
+                  disabled={isDeleting}
+                  onClick={() => handleDeleteConfirm(entry.id)}
+                >
+                  {isDeleting ? "Deleting…" : "Confirm delete"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.cancelDeleteButton}
+                  aria-label={`Cancel deleting ${entry.device_identifier}`}
+                  disabled={isDeleting}
+                  onClick={handleDeleteCancel}
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={styles.deleteButton}
+                aria-label={`Delete ${entry.device_identifier}`}
+                onClick={() => handleDeleteRequest(entry.id)}
+              >
+                Delete
+              </button>
+            )}
+          </td>
+        </tr>
+        {isExpanded && (
+          <tr>
+            <td colSpan={7} className={styles.detailCell}>
+              {(() => {
+                const { whatsWrong, nextStep, whereToGo, openViolationNote } =
+                  getRemediationCopy(entry);
+                return (
+                  <dl className={styles.detailPanel}>
+                    <div>
+                      <dt>What&apos;s wrong</dt>
+                      <dd>{whatsWrong}</dd>
+                    </div>
+                    {openViolationNote && (
+                      <div>
+                        <dt>Open DOB safety violation</dt>
+                        <dd>{openViolationNote}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt>Next step</dt>
+                      <dd>{nextStep}</dd>
+                    </div>
+                    <div>
+                      <dt>Where to go</dt>
+                      <dd>{whereToGo}</dd>
+                    </div>
+                  </dl>
+                );
+              })()}
+            </td>
+          </tr>
+        )}
+      </Fragment>
+    );
+  }
+
   return (
     <div className={styles.wrapper}>
       {/* Always-mounted polite live region (not conditionally rendered) so
@@ -352,6 +537,18 @@ export function LedgerPage({
               building{uniqueBuildingCount === 1 ? "" : "s"}
             </span>
           </div>
+          {buildings.length > 1 && (
+            <label className={styles.groupToggle} htmlFor={groupToggleId}>
+              Group by Building
+              <input
+                id={groupToggleId}
+                type="checkbox"
+                checked={groupByBuilding}
+                onChange={(event) => setGroupByBuilding(event.target.checked)}
+              />
+              <span className={styles.switchTrack} aria-hidden="true"></span>
+            </label>
+          )}
         </div>
       )}
 
@@ -447,173 +644,17 @@ export function LedgerPage({
               </tr>
             </thead>
             <tbody>
-              {visibleEntries.map((entry) => {
-                const isEditingRow = editingElevatorId === entry.id;
-                const rowClassName =
-                  [
-                    justChangedIds.has(entry.id) ? styles.highlighting : null,
-                    isEditingRow ? styles.editingRow : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" ") || undefined;
-                const pendingDate = pendingDates[entry.id];
-                const hasPendingEdit =
-                  pendingDate !== undefined && pendingDate !== entry.last_inspection_date;
-                const isSaving = pendingId === entry.id;
-                const needsRemediation =
-                  entry.status === "Warning" || entry.status === "Delinquent";
-                const isExpanded = expandedId === entry.id;
-                const isConfirmingDelete = confirmingDeleteId === entry.id;
-                const isDeleting = deletingId === entry.id;
-
-                return (
-                  <Fragment key={entry.id}>
-                    <tr className={rowClassName}>
-                      <td>
-                        <StatusBadge status={entry.status} />
-                        {entry.has_open_violation && (
-                          <span className={styles.violationBadge}>
-                            <span aria-hidden="true">⚠</span> Open violation
-                          </span>
-                        )}
+              {groupByBuilding
+                ? groupedEntries.flatMap((group) => [
+                    <tr key={`group-${group.buildingName}`} className={styles.groupRow}>
+                      <td colSpan={7}>
+                        {group.buildingName} — {group.entries.length} device
+                        {group.entries.length === 1 ? "" : "s"}
                       </td>
-                      <td>{entry.building_name}</td>
-                      <td>
-                        {entry.device_identifier}
-                        {entry.dob_device_number && (
-                          <span className={styles.dobDeviceNumber}>
-                            (DOB #{entry.dob_device_number})
-                          </span>
-                        )}
-                      </td>
-                      <td>{entry.inspection_type}</td>
-                      <td>
-                        <label>
-                          <span className="visually-hidden">
-                            Last inspection date for {entry.device_identifier}
-                          </span>
-                          <input
-                            type="date"
-                            className={styles.dateInput}
-                            value={pendingDate ?? entry.last_inspection_date}
-                            disabled={isSaving || isEditingRow}
-                            onChange={(event) =>
-                              handleDateInputChange(entry.id, event.target.value)
-                            }
-                          />
-                        </label>
-                        {hasPendingEdit && (
-                          <span className={styles.dateActions}>
-                            <button
-                              type="button"
-                              className={styles.saveDateButton}
-                              aria-label={`Save inspection date for ${entry.device_identifier}`}
-                              disabled={isSaving}
-                              onClick={() => handleDateSave(entry.id)}
-                            >
-                              {isSaving ? "Saving…" : "Save"}
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.cancelDateButton}
-                              aria-label={`Cancel editing inspection date for ${entry.device_identifier}`}
-                              disabled={isSaving}
-                              onClick={() => handleDateCancel(entry.id)}
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        )}
-                      </td>
-                      <td>{entry.due_date}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.editButton}
-                          aria-label={`Edit ${entry.device_identifier}`}
-                          onClick={() => onEditRequest?.(entry)}
-                        >
-                          Edit
-                        </button>
-                        {needsRemediation && (
-                          <button
-                            type="button"
-                            className={styles.detailsButton}
-                            aria-label={`${isExpanded ? "Hide" : "View"} details for ${entry.device_identifier}`}
-                            aria-expanded={isExpanded}
-                            onClick={() => handleToggleDetails(entry.id)}
-                          >
-                            {isExpanded ? "Hide details" : "View details"}
-                          </button>
-                        )}
-                        {isConfirmingDelete ? (
-                          <span className={styles.deleteActions}>
-                            <button
-                              type="button"
-                              className={styles.confirmDeleteButton}
-                              aria-label={`Confirm delete ${entry.device_identifier}`}
-                              disabled={isDeleting}
-                              onClick={() => handleDeleteConfirm(entry.id)}
-                            >
-                              {isDeleting ? "Deleting…" : "Confirm delete"}
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.cancelDeleteButton}
-                              aria-label={`Cancel deleting ${entry.device_identifier}`}
-                              disabled={isDeleting}
-                              onClick={handleDeleteCancel}
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            className={styles.deleteButton}
-                            aria-label={`Delete ${entry.device_identifier}`}
-                            onClick={() => handleDeleteRequest(entry.id)}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan={7} className={styles.detailCell}>
-                          {(() => {
-                            const { whatsWrong, nextStep, whereToGo, openViolationNote } =
-                              getRemediationCopy(entry);
-                            return (
-                              <dl className={styles.detailPanel}>
-                                <div>
-                                  <dt>What&apos;s wrong</dt>
-                                  <dd>{whatsWrong}</dd>
-                                </div>
-                                {openViolationNote && (
-                                  <div>
-                                    <dt>Open DOB safety violation</dt>
-                                    <dd>{openViolationNote}</dd>
-                                  </div>
-                                )}
-                                <div>
-                                  <dt>Next step</dt>
-                                  <dd>{nextStep}</dd>
-                                </div>
-                                <div>
-                                  <dt>Where to go</dt>
-                                  <dd>{whereToGo}</dd>
-                                </div>
-                              </dl>
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
+                    </tr>,
+                    ...group.entries.map((entry) => renderEntryRow(entry)),
+                  ])
+                : visibleEntries.map((entry) => renderEntryRow(entry))}
             </tbody>
           </table>
         </div>
