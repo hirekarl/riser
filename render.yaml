@@ -1,13 +1,12 @@
 # Render Blueprint for Riser.
 # Two services only, split so a change under one directory never triggers a
 # deploy of the other, and a docs-only change (root markdown / docs/**)
-# triggers neither. riser-frontend uses autoDeployTrigger: checksPass so a
-# deploy only fires once the linked branch's GitHub CI checks are green;
-# riser-backend uses the simpler "commit" trigger — see the incident note
-# below for why. Branch protection on main already requires CI to pass
-# before anything merges, so backend still never deploys unreviewed/failing
-# code — this only removes Render's own (buggy, for this one service)
-# webhook-driven wait for a second, redundant confirmation that CI passed.
+# triggers neither. Both services now use autoDeployTrigger: commit — see
+# the incident notes below for why. Branch protection on main already
+# requires CI to pass before anything merges, so neither service deploys
+# unreviewed/failing code — this only removes Render's own (buggy, for
+# these services) webhook-driven wait for a second, redundant confirmation
+# that CI passed.
 #
 # NOTE (manual step at setup time): connecting this repo to Render in the
 # first place (New + > Blueprint > select this repo) is still a one-time
@@ -31,8 +30,14 @@
 # deploy. Switched riser-backend to autoDeployTrigger: commit to route
 # around whatever's broken in Render's checksPass handling for this
 # specific service, rather than depending on a webhook path that's proven
-# unreliable here. If riser-frontend ever shows the same symptom, this same
-# switch is the fallback for it too.
+# unreliable here.
+#
+# INCIDENT (2026-07-29): riser-frontend repeated the exact same silent-
+# failure pattern — checksPass stopped triggering deploys despite green CI,
+# with no corresponding entry in Render's Events tab. Applied the same fix:
+# switched riser-frontend to autoDeployTrigger: commit rather than
+# continuing to depend on a webhook path proven unreliable on this Render
+# account for both services.
 
 services:
   - type: web
@@ -75,7 +80,7 @@ services:
     name: riser-frontend
     runtime: static
     rootDir: frontend
-    autoDeployTrigger: checksPass
+    autoDeployTrigger: commit
     buildFilter:
       paths:
         - frontend/**
