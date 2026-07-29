@@ -35,7 +35,12 @@ export interface Elevator {
 /**
  * A single row in the portfolio-wide ledger, as returned by GET /api/ledger/.
  * The API pre-sorts these: delinquent > warning > compliant, then by due_date ascending.
- * Clients must trust this order and render it as-is, not re-sort client-side.
+ * This is the ledger's default order and clients must trust it and render it
+ * as-is — i.e. never silently or incidentally reorder entries. This does not
+ * preclude an explicit, user-initiated column sort (see LedgerPage's sortable
+ * headers): that's a deliberate view-level reordering the user opted into,
+ * not an incidental client re-sort, and it doesn't change what `entries`
+ * itself represents.
  *
  * This mirrors `LedgerEntrySerializer`'s field list exactly — it does NOT
  * extend `Elevator`: the ledger endpoint deliberately omits `building` (the

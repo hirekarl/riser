@@ -19,6 +19,46 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 // than, say, alphabetical, so the dropdown reads consistently with the table.
 const STATUS_FILTER_OPTIONS: ComplianceStatus[] = ["Delinquent", "Warning", "Compliant"];
 
+type SortColumn =
+  | "status"
+  | "building_name"
+  | "device_identifier"
+  | "inspection_type"
+  | "last_inspection_date"
+  | "due_date";
+
+type SortDirection = "ascending" | "descending";
+
+interface SortState {
+  column: SortColumn;
+  direction: SortDirection;
+}
+
+const SORTABLE_COLUMNS: { column: SortColumn; label: string }[] = [
+  { column: "status", label: "Status" },
+  { column: "building_name", label: "Building" },
+  { column: "device_identifier", label: "Device" },
+  { column: "inspection_type", label: "Inspection type" },
+  { column: "last_inspection_date", label: "Last inspection date" },
+  { column: "due_date", label: "Due date" },
+];
+
+// Status sorts by urgency rank (via STATUS_FILTER_OPTIONS' Delinquent > Warning
+// > Compliant order), not alphabetically; last_inspection_date/due_date are
+// plain YYYY-MM-DD strings, so lexicographic comparison is already
+// chronological — no Date parsing needed. Everything else is a plain string.
+function sortValue(entry: LedgerEntry, column: SortColumn): string | number {
+  if (column === "status") return STATUS_FILTER_OPTIONS.indexOf(entry.status);
+  return entry[column];
+}
+
+function compareEntries(a: LedgerEntry, b: LedgerEntry, sort: SortState): number {
+  const va = sortValue(a, sort.column);
+  const vb = sortValue(b, sort.column);
+  const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+  return sort.direction === "ascending" ? cmp : -cmp;
+}
+
 // Plain-language remediation copy for a Warning/Delinquent row, derived
 // entirely from data the ledger already returns (status, due_date,
 // inspection_type) — no new endpoint. Compliant rows don't get this panel;
@@ -129,6 +169,7 @@ export function LedgerPage({
   const [selectedStatus, setSelectedStatus] = useState<ComplianceStatus | undefined>(undefined);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
+  const [sort, setSort] = useState<SortState | null>(null);
 
   // Tracks status changes across successive `entries` props (e.g. after an
   // inline Save triggers a parent refetch) to briefly highlight the row(s)
@@ -228,6 +269,17 @@ export function LedgerPage({
     setExpandedId((current) => (current === elevatorId ? null : elevatorId));
   }
 
+  // 3-state cycle per column: no/different sort -> ascending -> descending ->
+  // null (back to default order). Clicking a different column always resets
+  // to ascending on that new column rather than continuing the old cycle.
+  function handleSortClick(column: SortColumn) {
+    setSort((current) => {
+      if (!current || current.column !== column) return { column, direction: "ascending" };
+      if (current.direction === "ascending") return { column, direction: "descending" };
+      return null;
+    });
+  }
+
   function handleDateCancel(elevatorId: number) {
     setPendingDates((current) => {
       const next = { ...current };
@@ -268,14 +320,19 @@ export function LedgerPage({
   // numeric id, exposing only `building_name` — so the filter matches by
   // name rather than id. Both filters below only ever narrow the
   // already server-sorted `entries` down to a subset (order preserved, AND'd
-  // together); neither ever re-sorts them.
+  // together); neither ever re-sorts them. The trailing `.sort()` is a
+  // deliberate exception to that: it only runs when `sort` is non-null, i.e.
+  // the user explicitly clicked a sortable column header, not an incidental
+  // client-side re-sort.
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId);
   const visibleEntries =
     entries === null
       ? null
       : entries
           .filter((entry) => !selectedBuilding || entry.building_name === selectedBuilding.name)
-          .filter((entry) => !selectedStatus || entry.status === selectedStatus);
+          .filter((entry) => !selectedStatus || entry.status === selectedStatus)
+          .slice()
+          .sort((a, b) => (sort ? compareEntries(a, b, sort) : 0));
 
   return (
     <div className={styles.wrapper}>
@@ -381,12 +438,39 @@ export function LedgerPage({
             </caption>
             <thead>
               <tr>
-                <th scope="col">Status</th>
-                <th scope="col">Building</th>
-                <th scope="col">Device</th>
-                <th scope="col">Inspection type</th>
-                <th scope="col">Last inspection date</th>
-                <th scope="col">Due date</th>
+                {SORTABLE_COLUMNS.map(({ column, label }) => {
+                  const isActive = sort?.column === column;
+                  const direction = isActive ? sort.direction : null;
+                  const ariaLabel =
+                    direction === "ascending"
+                      ? `Sort by ${label}, descending`
+                      : direction === "descending"
+                        ? `Clear sort by ${label}`
+                        : `Sort by ${label}, ascending`;
+
+                  return (
+                    <th key={column} scope="col" aria-sort={direction ?? undefined}>
+                      <button
+                        type="button"
+                        className={styles.sortButton}
+                        aria-label={ariaLabel}
+                        onClick={() => handleSortClick(column)}
+                      >
+                        {label}
+                        <span
+                          aria-hidden="true"
+                          className={
+                            direction
+                              ? styles.sortIndicator
+                              : `${styles.sortIndicator} ${styles.sortIndicatorNeutral}`
+                          }
+                        >
+                          {direction === "ascending" ? "▲" : direction === "descending" ? "▼" : "⇅"}
+                        </span>
+                      </button>
+                    </th>
+                  );
+                })}
                 <th scope="col">Actions</th>
               </tr>
             </thead>
