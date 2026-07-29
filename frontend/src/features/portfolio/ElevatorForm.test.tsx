@@ -8,8 +8,8 @@ import * as logger from "../../lib/logger";
 import type { Building, Elevator } from "../../types/domain";
 
 const buildings: Building[] = [
-  { id: 1, name: "Tower A", address: "1 Main St", created_at: "x", updated_at: "x" },
-  { id: 2, name: "Tower B", address: "2 Main St", created_at: "x", updated_at: "x" },
+  { id: 1, name: "Tower A", address: "1 Main St", bin: null, created_at: "x", updated_at: "x" },
+  { id: 2, name: "Tower B", address: "2 Main St", bin: null, created_at: "x", updated_at: "x" },
 ];
 
 describe("ElevatorForm", () => {

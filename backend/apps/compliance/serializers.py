@@ -44,7 +44,7 @@ class BuildingSerializer(serializers.ModelSerializer[Building]):
         """Serializer configuration for BuildingSerializer."""
 
         model = Building
-        fields = ["id", "name", "address", "created_at", "updated_at"]
+        fields = ["id", "name", "address", "bin", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
 

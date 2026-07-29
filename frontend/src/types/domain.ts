@@ -17,6 +17,14 @@ export interface Building {
   id: number;
   name: string;
   address: string;
+  /**
+   * Cached NYC Building Identification Number, resolved via the address
+   * lookup flow (POST /api/buildings/lookup/) and persisted on save. `null`
+   * for buildings added manually (BuildingForm) or never resolved. Always
+   * present as a key in API responses (even when `null`) — see
+   * `BuildingSerializer.Meta.fields` on the backend.
+   */
+  bin: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -71,6 +79,8 @@ export interface LedgerEntry {
 export interface CreateBuildingPayload {
   name: string;
   address: string;
+  /** Resolved BIN from the address lookup flow; omitted for manual entry. */
+  bin?: string;
 }
 
 export interface CreateElevatorPayload {

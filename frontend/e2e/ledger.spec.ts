@@ -10,6 +10,7 @@ interface MockBuilding {
   id: number;
   name: string;
   address: string;
+  bin: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,11 +58,12 @@ async function mockApi(page: Page) {
       return;
     }
     if (request.method() === "POST") {
-      const payload = request.postDataJSON() as { name: string; address: string };
+      const payload = request.postDataJSON() as { name: string; address: string; bin?: string };
       const building: MockBuilding = {
         id: nextBuildingId++,
         name: payload.name,
         address: payload.address,
+        bin: payload.bin ?? null,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       };

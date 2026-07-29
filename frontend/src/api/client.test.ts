@@ -50,6 +50,7 @@ describe("api client", () => {
         id: 1,
         name: "Tower A",
         address: "1 Main St",
+        bin: null,
         created_at: "2026-01-01",
         updated_at: "2026-01-01",
       },
@@ -116,6 +117,7 @@ describe("api client", () => {
     const created: Building = {
       id: 2,
       ...payload,
+      bin: payload.bin ?? null,
       created_at: "2026-01-01",
       updated_at: "2026-01-01",
     };
