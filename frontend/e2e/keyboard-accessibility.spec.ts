@@ -239,7 +239,7 @@ test("keyboard-only walkthrough: every control is reachable, operable, and visib
   expect(traceText).toContain("add elevator");
   expect(traceText).toContain("generate briefing");
   expect(traceText).toContain("what do these statuses mean");
-  expect(traceText).toContain("filter by building");
+  expect(traceText).toContain("all buildings");
   expect(traceText).toContain("edit el-");
   expect(traceText).toContain("view details");
 
@@ -319,16 +319,17 @@ test("keyboard-only: the elevator Edit form opens, is fully tabbable, and Cancel
   await expect(editForm).not.toBeVisible();
 });
 
-test("keyboard-only: the building filter select is fully operable via keyboard", async ({
+test("keyboard-only: the building filter chips are fully operable via keyboard", async ({
   page,
 }) => {
   await mockApiWithSeedData(page);
   await page.goto("/");
 
-  const filterSelect = page.getByLabel(/filter by building/i);
-  await filterSelect.focus();
+  const towerBChip = page.getByRole("button", { name: "Tower B", exact: true });
+  await towerBChip.focus();
   await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
-  await filterSelect.selectOption({ label: "Tower B" });
+  await page.keyboard.press("Enter");
+  await expect(towerBChip).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("table")).toBeVisible();
   await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toBeVisible();
 });

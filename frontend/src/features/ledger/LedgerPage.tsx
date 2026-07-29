@@ -121,12 +121,13 @@ export function LedgerPage({
   onElevatorUpdated,
   onSeeded = () => {},
 }: LedgerPageProps) {
-  const filterId = useId();
   const statusFilterId = useId();
+  const searchId = useId();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<ComplianceStatus | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
 
@@ -270,12 +271,27 @@ export function LedgerPage({
   // already server-sorted `entries` down to a subset (order preserved, AND'd
   // together); neither ever re-sorts them.
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
   const visibleEntries =
     entries === null
       ? null
       : entries
           .filter((entry) => !selectedBuilding || entry.building_name === selectedBuilding.name)
-          .filter((entry) => !selectedStatus || entry.status === selectedStatus);
+          .filter((entry) => !selectedStatus || entry.status === selectedStatus)
+          .filter(
+            (entry) =>
+              !normalizedSearch ||
+              entry.device_identifier.toLowerCase().includes(normalizedSearch) ||
+              entry.building_name.toLowerCase().includes(normalizedSearch) ||
+              entry.status.toLowerCase().includes(normalizedSearch),
+          );
+
+  // "N devices across M buildings" — always describes the full unfiltered
+  // portfolio (entries), not visibleEntries, so applying a filter/search
+  // doesn't make this count silently shrink and read like data went missing.
+  const uniqueBuildingCount = entries
+    ? new Set(entries.map((entry) => entry.building_name)).size
+    : 0;
 
   return (
     <div className={styles.wrapper}>
@@ -327,24 +343,64 @@ export function LedgerPage({
         </dl>
       </details>
 
+      {entries && entries.length > 0 && (
+        <div className={styles.ledgerHead}>
+          <div className={styles.ledgerTitleRow}>
+            <h3 className={styles.ledgerTitle}>Portfolio Ledger</h3>
+            <span className={styles.ledgerCount}>
+              {entries.length} device{entries.length === 1 ? "" : "s"} across {uniqueBuildingCount}{" "}
+              building{uniqueBuildingCount === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
+      )}
+
       {buildings.length > 0 && (
         <div className={styles.filterRow}>
-          <label htmlFor={filterId}>Filter by building</label>
-          <select
-            id={filterId}
-            value={selectedBuildingId ?? ""}
-            onChange={(event) => {
-              const { value } = event.target;
-              setSelectedBuildingId(value === "" ? undefined : Number(value));
-            }}
-          >
-            <option value="">All buildings</option>
+          <div className={styles.chipRow} role="group" aria-label="Filter by building">
+            <button
+              type="button"
+              className={selectedBuildingId === undefined ? styles.chipActive : styles.chip}
+              aria-pressed={selectedBuildingId === undefined}
+              onClick={() => setSelectedBuildingId(undefined)}
+            >
+              All buildings
+            </button>
             {buildings.map((building) => (
-              <option key={building.id} value={building.id}>
+              <button
+                key={building.id}
+                type="button"
+                className={selectedBuildingId === building.id ? styles.chipActive : styles.chip}
+                aria-pressed={selectedBuildingId === building.id}
+                onClick={() => setSelectedBuildingId(building.id)}
+              >
                 {building.name}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
+
+          <div className={styles.searchInputWrap}>
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
+              <path d="m14 14-3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+            <label htmlFor={searchId} className="visually-hidden">
+              Search by device, building, or status
+            </label>
+            <input
+              id={searchId}
+              type="text"
+              className={styles.searchInput}
+              placeholder="Search device / building / status…"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </div>
         </div>
       )}
 

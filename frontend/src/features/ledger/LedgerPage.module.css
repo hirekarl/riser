@@ -127,10 +127,136 @@
   color: var(--text-muted);
 }
 
+/* Ledger section header — matches the mockup's .ledger-head/.ledger-title/
+   .ledger-count: an eyebrow-style title plus a live "N devices across M
+   buildings" count, above the filter controls. */
+.ledgerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ledgerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.ledgerTitle {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.8125rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.ledgerCount {
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .filterRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* Building filter, as a chip row — matches the mockup's .chip-row/.chip
+   exactly in spirit (pill buttons, one active at a time) but with WCAG-safe
+   colors: the mockup's literal inactive-chip pairing (gray fill + light
+   text) measures ~4.28:1, just under the 4.5:1 text minimum, so inactive
+   chips use an outlined/ghost treatment instead (same pattern as this app's
+   existing .secondaryButton/.cancelDateButton) while the active chip stays
+   a solid navy fill — that pairing already clears contrast by a wide margin. */
+.chipRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chip,
+.chipActive {
+  font: inherit;
+  font-size: 0.78125rem;
+  font-weight: 700;
+  padding: 0.4375rem 0.8125rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip {
+  border: 1px solid var(--text-muted);
+  background: transparent;
+  color: var(--text);
+}
+
+.chip:hover {
+  background: var(--bg-subtle);
+}
+
+.chipActive {
+  border: 1px solid #1c3a63;
+  background: #1c3a63;
+  color: #fff9f1;
+}
+
+.chipActive:hover {
+  background: #16324f;
+  border-color: #16324f;
+}
+
+:root[data-theme="dark"] .chipActive {
+  border-color: #3d5a85;
+  background: #3d5a85;
+}
+
+:root[data-theme="dark"] .chipActive:hover {
+  background: #4a6a9a;
+  border-color: #4a6a9a;
+}
+
+.searchInputWrap {
+  position: relative;
+  flex: none;
+  width: 250px;
+  max-width: 100%;
+}
+
+.searchInputWrap svg {
+  position: absolute;
+  left: 0.6875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  font: inherit;
+  font-size: 0.84375rem;
+  padding: 0.5625rem 0.75rem 0.5625rem 2rem;
+  border-radius: 9px;
+  border: 1px solid var(--text-muted);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.searchInput:focus {
+  outline: 2px solid #8f5525;
+  outline-offset: 1px;
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
 }
 
 .filterRow label {

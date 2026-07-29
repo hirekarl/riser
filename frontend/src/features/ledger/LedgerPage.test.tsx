@@ -604,28 +604,32 @@ describe("LedgerPage", () => {
   it("does not show a building filter when no buildings are given", () => {
     render(<LedgerPage entries={mixedStatusEntries} />);
 
-    expect(screen.queryByLabelText(/filter by building/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /filter by building/i })).not.toBeInTheDocument();
   });
 
-  it("shows a building filter with an 'All buildings' option plus one per building", () => {
+  it("shows a building filter chip row with an 'All buildings' chip plus one per building", () => {
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
 
-    const select = screen.getByLabelText(/filter by building/i);
-    const options = within(select).getAllByRole("option");
-    expect(options.map((o) => o.textContent)).toEqual(["All buildings", "Tower A", "Tower B"]);
+    const group = screen.getByRole("group", { name: /filter by building/i });
+    const chips = within(group).getAllByRole("button");
+    expect(chips.map((c) => c.textContent)).toEqual(["All buildings", "Tower A", "Tower B"]);
+    expect(screen.getByRole("button", { name: "All buildings" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   it("filters the displayed rows to the selected building without triggering a new fetch", () => {
     const listLedgerSpy = vi.spyOn(client, "listLedger");
 
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
-    const select = screen.getByLabelText(/filter by building/i);
 
-    fireEvent.change(select, { target: { value: "2" } }); // Tower B
+    fireEvent.click(screen.getByRole("button", { name: "Tower B" }));
 
     expect(screen.getByText("EL-2")).toBeInTheDocument();
     expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
     expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tower B" })).toHaveAttribute("aria-pressed", "true");
     // Filtering is now a purely client-side operation over the entries the
     // parent already fetched — it must never issue its own request.
     expect(listLedgerSpy).not.toHaveBeenCalled();
@@ -633,16 +637,27 @@ describe("LedgerPage", () => {
 
   it("shows the unfiltered ledger again when switching back to 'All buildings'", () => {
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
-    const select = screen.getByLabelText(/filter by building/i);
 
-    fireEvent.change(select, { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Tower B" }));
     expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
 
-    fireEvent.change(select, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "All buildings" }));
 
     expect(screen.getByText("EL-1")).toBeInTheDocument();
     expect(screen.getByText("EL-2")).toBeInTheDocument();
     expect(screen.getByText("EL-3")).toBeInTheDocument();
+  });
+
+  it("filters the displayed rows via the search box across device id, building, and status", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    fireEvent.change(screen.getByLabelText(/search by device, building, or status/i), {
+      target: { value: "el-2" },
+    });
+
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
   });
 
   it("reveals Confirm delete/Cancel controls when Delete is clicked, without calling deleteElevator yet", () => {
@@ -892,10 +907,9 @@ describe("LedgerPage", () => {
   it("combines the building and status filters with AND, not OR", () => {
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
 
-    const buildingSelect = screen.getByLabelText(/filter by building/i);
     const statusSelect = screen.getByLabelText(/filter by status/i);
 
-    fireEvent.change(buildingSelect, { target: { value: "1" } }); // Tower A
+    fireEvent.click(screen.getByRole("button", { name: "Tower A" }));
     fireEvent.change(statusSelect, { target: { value: "Delinquent" } });
 
     // Only EL-3 is both in Tower A and Delinquent.
