@@ -62,24 +62,17 @@
 .deleteButton {
   font: inherit;
   padding: 0.3rem 0.7rem;
-  border: 1px solid #7a8091;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   background: var(--bg);
   cursor: pointer;
 }
 
+/* var(--border-strong) and var(--bg-subtle) already carry their own
+   light/dark values (see index.css), so no separate
+   :root[data-theme="dark"] override block is needed here. */
 .deleteButton:hover {
-  background: #f0f1f3;
-}
-
-/* #7a8091 -> #9aa4b8 dark-mode lightening, same as LedgerPage.module.css's
-   equivalent buttons; background already tracks the theme via var(--bg). */
-:root[data-theme="dark"] .deleteButton {
-  border-color: #9aa4b8;
-}
-
-:root[data-theme="dark"] .deleteButton:hover {
-  background: #262b35;
+  background: var(--bg-subtle);
 }
 
 /* Groups the cascade-impact warning paragraph with the Confirm delete/Cancel
@@ -95,26 +88,21 @@
 /* Deleting a building cascade-deletes all of its elevators server-side (see
    App.tsx's handleBuildingDeleted) — this states that consequence as
    visible copy, not just an aria-label, so a sighted user reads it before
-   confirming too. Reuses the same amber "warning" palette already validated
-   in StatusBadge.module.css's .warning (#7a5200 on #fff6e0, ~6.4:1 contrast,
-   comfortably clearing WCAG AA's 4.5:1) rather than inventing a new color. */
+   confirming too. Reuses the app-wide "warning" status tokens (the same
+   --status-warning-bg/--status-warning-fg pair StatusBadge.module.css's
+   .warning uses) rather than a one-off amber hex, so this banner's colors
+   move in lockstep with the rest of the warning color language and its
+   light/dark variants live in index.css instead of here. */
 .deleteWarning {
   align-self: stretch;
   margin: 0;
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
-  background-color: #fff6e0;
-  color: #7a5200;
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-fg);
   font-size: 0.85rem;
   font-weight: 600;
   text-align: left;
-}
-
-/* Dark-mode counterpart for the Warning palette, same pairing StatusBadge
-   .module.css uses for its own .warning dark variant: ~9.3:1 text-on-bg. */
-:root[data-theme="dark"] .deleteWarning {
-  background-color: #3a2c05;
-  color: #ffcf70;
 }
 
 /* Confirm delete/Cancel: intentionally matches LedgerPage.module.css's
@@ -163,12 +151,12 @@
   color: var(--text);
 }
 
+/* var(--bg-subtle) already carries its own light/dark value (see
+   index.css), same neutral-hover-surface token as .deleteButton:hover
+   above, so no separate :root[data-theme="dark"] override block is needed
+   here either. */
 .cancelDeleteButton:hover:not(:disabled) {
-  background-color: #f0f1f3;
-}
-
-:root[data-theme="dark"] .cancelDeleteButton:hover:not(:disabled) {
-  background-color: #262b35;
+  background-color: var(--bg-subtle);
 }
 
 .confirmDeleteButton:disabled,

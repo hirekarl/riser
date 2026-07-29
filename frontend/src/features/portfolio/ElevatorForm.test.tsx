@@ -57,6 +57,27 @@ describe("ElevatorForm", () => {
     expect(screen.getByRole("button", { name: /add elevator/i })).toBeDisabled();
   });
 
+  it("shows the panel head (icon badge + eyebrow title/subtitle) above the fields in create mode", () => {
+    render(<ElevatorForm buildings={buildings} onCreated={vi.fn()} />);
+
+    expect(screen.getByText("Add Device")).toBeInTheDocument();
+    expect(screen.getByText("Manual entry")).toBeInTheDocument();
+  });
+
+  // Regression test for PR #128's button-hierarchy bug: it demoted the
+  // create-mode "Add elevator" submit to .secondaryButton (while leaving
+  // AddressLookupForm's and BuildingForm's submits on .primaryButton), an
+  // unjustified asymmetry with no design rationale. The single committing
+  // action in every one of these forms must stay .primaryButton;
+  // .secondaryButton is reserved for Cancel/dismiss actions only.
+  it("keeps the single commit action (Add elevator) on the primary (filled) button style in create mode", () => {
+    render(<ElevatorForm buildings={buildings} onCreated={vi.fn()} />);
+
+    const submitButton = screen.getByRole("button", { name: /add elevator/i });
+    expect(submitButton.className).toMatch(/primaryButton/);
+    expect(submitButton.className).not.toMatch(/secondaryButton/);
+  });
+
   it("shows an error message when the API call fails", async () => {
     const error = new Error("boom");
     vi.spyOn(client, "createElevator").mockRejectedValue(error);
@@ -71,6 +92,11 @@ describe("ElevatorForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not add elevator/i);
     expect(logErrorSpy).toHaveBeenCalledWith("Failed to create elevator", error);
+  });
+
+  it("has no axe accessibility violations in create mode", async () => {
+    const { container } = render(<ElevatorForm buildings={buildings} onCreated={vi.fn()} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   describe("edit mode", () => {

@@ -156,8 +156,8 @@ describe("App", () => {
     render(<App />);
 
     const lookupForm = await screen.findByRole("form", { name: /look up building by address/i });
-    await user.type(within(lookupForm).getByLabelText(/street address/i), "350 5th Ave");
-    await user.click(within(lookupForm).getByRole("button", { name: /look up address/i }));
+    await user.type(within(lookupForm).getByLabelText(/building address/i), "350 5th Ave");
+    await user.click(within(lookupForm).getByRole("button", { name: /resolve.*verify/i }));
 
     const reviewForm = await screen.findByRole("form", { name: /review and save building/i });
     await user.type(within(reviewForm).getByLabelText(/building name/i), "Tower A");
@@ -551,7 +551,12 @@ describe("App", () => {
     });
     fireEvent.click(saveButton);
 
-    expect(await screen.findByText("2027-07-01")).toBeInTheDocument();
+    // Scoped to the ledger row itself: the same due date can now also appear
+    // in the ExecutiveSummaryBand's "Next Inspection Due" tile above the
+    // ledger, so an unscoped screen-wide query would be ambiguous.
+    await waitFor(() => {
+      expect(within(row).getByText("2027-07-01")).toBeInTheDocument();
+    });
     expect(listLedgerSpy).toHaveBeenCalledTimes(2);
     // No Edit form was open, so nothing about handleElevatorUpdated's
     // editingElevator reset should have been touched/needed here.

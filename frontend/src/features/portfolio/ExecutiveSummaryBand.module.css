@@ -1,0 +1,89 @@
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-card);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.625rem;
+}
+
+/* Same navy-chip icon-badge language as forms.module.css's .panelIcon, so
+   the summary band's tiles read as part of the same visual system as the
+   Building Lookup/Add Building/Add Device panels above them. */
+.icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--navy-soft);
+  border: 1px solid var(--navy-soft-border);
+}
+
+.icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.label {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.subtext {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 0.35rem;
+}
+
+.atRiskValue {
+  color: var(--badge-delinquent-text);
+}
+
+.exposureValue {
+  color: var(--rust);
+}
+
+/* Due-date urgency color-coding, matching the ledger's due-date column and
+   StatusBadge exactly (see lib/dueUrgency.ts) — this is meant to read as the
+   same "how urgent is this" signature everywhere it appears. */
+.dueOverdue {
+  color: var(--due-overdue);
+}
+
+.dueSoon {
+  color: var(--due-soon);
+}
+
+.dueOk {
+  color: var(--due-ok);
+}

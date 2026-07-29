@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { axe } from "vitest-axe";
 import { BuildingForm } from "./BuildingForm";
 import * as client from "../../api/client";
 import * as logger from "../../lib/logger";
@@ -9,6 +10,26 @@ import type { Building } from "../../types/domain";
 describe("BuildingForm", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("shows the panel head (icon badge + eyebrow title/subtitle) above the fields", () => {
+    render(<BuildingForm onCreated={vi.fn()} />);
+
+    expect(screen.getByText("Add Building")).toBeInTheDocument();
+    expect(screen.getByText("Manual entry")).toBeInTheDocument();
+  });
+
+  it("keeps the single commit action (Add building) on the primary (filled) button style", () => {
+    render(<BuildingForm onCreated={vi.fn()} />);
+
+    const submitButton = screen.getByRole("button", { name: /add building/i });
+    expect(submitButton.className).toMatch(/primaryButton/);
+    expect(submitButton.className).not.toMatch(/secondaryButton/);
+  });
+
+  it("has no axe accessibility violations", async () => {
+    const { container } = render(<BuildingForm onCreated={vi.fn()} />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it("submits the name/address payload to createBuilding and notifies on success", async () => {

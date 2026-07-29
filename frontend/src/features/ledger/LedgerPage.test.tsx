@@ -486,7 +486,7 @@ describe("LedgerPage", () => {
     );
   });
 
-  it("shows a 'View details' button for Warning/Delinquent rows but not for Compliant rows", () => {
+  it("shows a 'Remediation steps' button for Warning/Delinquent rows but not for Compliant rows", () => {
     render(<LedgerPage entries={mixedStatusEntries} />);
 
     const delinquentCell = screen.getByText("EL-3"); // Delinquent
@@ -495,17 +495,17 @@ describe("LedgerPage", () => {
 
     expect(
       within(delinquentCell.closest("tr") as HTMLElement).getByRole("button", {
-        name: /view details for el-3/i,
+        name: /remediation steps for el-3/i,
       }),
     ).toBeInTheDocument();
     expect(
       within(warningCell.closest("tr") as HTMLElement).getByRole("button", {
-        name: /view details for el-1/i,
+        name: /remediation steps for el-1/i,
       }),
     ).toBeInTheDocument();
     expect(
       within(compliantCell.closest("tr") as HTMLElement).queryByRole("button", {
-        name: /view details/i,
+        name: /remediation steps/i,
       }),
     ).not.toBeInTheDocument();
   });
@@ -515,7 +515,7 @@ describe("LedgerPage", () => {
 
     const warningCell = screen.getByText("EL-1"); // Warning, due_date is WARNING_DUE_DATE (5 days out)
     const viewDetailsButton = within(warningCell.closest("tr") as HTMLElement).getByRole("button", {
-      name: /view details for el-1/i,
+      name: /remediation steps for el-1/i,
     });
 
     fireEvent.click(viewDetailsButton);
@@ -531,13 +531,13 @@ describe("LedgerPage", () => {
     expect(within(detailPanel).getByText(/schedule the inspection now/i)).toBeInTheDocument();
   });
 
-  it("expands a plain-language remediation panel (what's wrong / next step / where to go) when View details is clicked, and collapses on a second click", () => {
+  it("expands a plain-language remediation panel (what's wrong / next step / where to go) when Remediation steps is clicked, and collapses on a second click", () => {
     render(<LedgerPage entries={mixedStatusEntries} />);
 
     const delinquentCell = screen.getByText("EL-3");
     const viewDetailsButton = within(delinquentCell.closest("tr") as HTMLElement).getByRole(
       "button",
-      { name: /view details for el-3/i },
+      { name: /remediation steps for el-3/i },
     );
 
     fireEvent.click(viewDetailsButton);
@@ -546,11 +546,11 @@ describe("LedgerPage", () => {
     expect(screen.getByText(/next step/i)).toBeInTheDocument();
     expect(screen.getByText(/where to go/i)).toBeInTheDocument();
 
-    // The accessible name must track the visible label ("Hide details" once
-    // expanded), not stay pinned to "View details" — otherwise a
-    // screen-reader/voice-control user hears a name that doesn't match what's
-    // on screen (WCAG 2.5.3 Label in Name).
-    expect(viewDetailsButton).toHaveAccessibleName(/hide details for el-3/i);
+    // The accessible name must track the visible label ("Hide remediation
+    // steps" once expanded), not stay pinned to "Remediation steps" —
+    // otherwise a screen-reader/voice-control user hears a name that doesn't
+    // match what's on screen (WCAG 2.5.3 Label in Name).
+    expect(viewDetailsButton).toHaveAccessibleName(/hide remediation steps for el-3/i);
 
     // Mentions the specific inspection type so the copy is concrete, not
     // generic — scoped to the detail panel itself, since the ledger table's
@@ -560,7 +560,7 @@ describe("LedgerPage", () => {
 
     fireEvent.click(viewDetailsButton);
     expect(screen.queryByText(/what's wrong/i)).not.toBeInTheDocument();
-    expect(viewDetailsButton).toHaveAccessibleName(/view details for el-3/i);
+    expect(viewDetailsButton).toHaveAccessibleName(/show remediation steps for el-3/i);
   });
 
   it("has no axe accessibility violations with a remediation panel expanded", async () => {
@@ -569,7 +569,7 @@ describe("LedgerPage", () => {
     const delinquentCell = screen.getByText("EL-3");
     fireEvent.click(
       within(delinquentCell.closest("tr") as HTMLElement).getByRole("button", {
-        name: /view details for el-3/i,
+        name: /remediation steps for el-3/i,
       }),
     );
     screen.getByText(/what's wrong/i);
@@ -596,49 +596,60 @@ describe("LedgerPage", () => {
     const entries: LedgerEntry[] = [{ ...mixedStatusEntries[0], has_open_violation: true }];
     render(<LedgerPage entries={entries} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /view details for el-3/i }));
+    fireEvent.click(screen.getByRole("button", { name: /remediation steps for el-3/i }));
 
     expect(screen.getByText("Open DOB safety violation")).toBeInTheDocument();
   });
 
-  it("does not show a building filter when no buildings are given", () => {
+  it("does not show a building filter chip row when there are 0 or 1 buildings", () => {
     render(<LedgerPage entries={mixedStatusEntries} />);
+    expect(screen.queryByRole("group", { name: /filter by building/i })).not.toBeInTheDocument();
 
-    expect(screen.queryByLabelText(/filter by building/i)).not.toBeInTheDocument();
+    render(<LedgerPage entries={mixedStatusEntries} buildings={[buildings[0]]} />);
+    expect(screen.queryByRole("group", { name: /filter by building/i })).not.toBeInTheDocument();
   });
 
-  it("shows a building filter with an 'All buildings' option plus one per building", () => {
+  it("shows a building filter chip row with an 'All buildings' chip plus one per building", () => {
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
 
-    const select = screen.getByLabelText(/filter by building/i);
-    const options = within(select).getAllByRole("option");
-    expect(options.map((o) => o.textContent)).toEqual(["All buildings", "Tower A", "Tower B"]);
+    const group = screen.getByRole("group", { name: /filter by building/i });
+    const chips = within(group).getAllByRole("button");
+    expect(chips.map((chip) => chip.textContent)).toEqual(["All buildings", "Tower A", "Tower B"]);
+    // "All buildings" starts pressed (the default, unfiltered state).
+    expect(within(group).getByRole("button", { name: "All buildings" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
-  it("filters the displayed rows to the selected building without triggering a new fetch", () => {
+  it("filters the displayed rows to the selected building chip without triggering a new fetch", () => {
     const listLedgerSpy = vi.spyOn(client, "listLedger");
 
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
-    const select = screen.getByLabelText(/filter by building/i);
+    const group = screen.getByRole("group", { name: /filter by building/i });
 
-    fireEvent.change(select, { target: { value: "2" } }); // Tower B
+    fireEvent.click(within(group).getByRole("button", { name: "Tower B" }));
 
     expect(screen.getByText("EL-2")).toBeInTheDocument();
     expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
     expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
+    expect(within(group).getByRole("button", { name: "Tower B" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     // Filtering is now a purely client-side operation over the entries the
     // parent already fetched — it must never issue its own request.
     expect(listLedgerSpy).not.toHaveBeenCalled();
   });
 
-  it("shows the unfiltered ledger again when switching back to 'All buildings'", () => {
+  it("shows the unfiltered ledger again when switching back to the 'All buildings' chip", () => {
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
-    const select = screen.getByLabelText(/filter by building/i);
+    const group = screen.getByRole("group", { name: /filter by building/i });
 
-    fireEvent.change(select, { target: { value: "2" } });
+    fireEvent.click(within(group).getByRole("button", { name: "Tower B" }));
     expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
 
-    fireEvent.change(select, { target: { value: "" } });
+    fireEvent.click(within(group).getByRole("button", { name: "All buildings" }));
 
     expect(screen.getByText("EL-1")).toBeInTheDocument();
     expect(screen.getByText("EL-2")).toBeInTheDocument();
@@ -892,10 +903,10 @@ describe("LedgerPage", () => {
   it("combines the building and status filters with AND, not OR", () => {
     render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
 
-    const buildingSelect = screen.getByLabelText(/filter by building/i);
+    const buildingGroup = screen.getByRole("group", { name: /filter by building/i });
     const statusSelect = screen.getByLabelText(/filter by status/i);
 
-    fireEvent.change(buildingSelect, { target: { value: "1" } }); // Tower A
+    fireEvent.click(within(buildingGroup).getByRole("button", { name: "Tower A" }));
     fireEvent.change(statusSelect, { target: { value: "Delinquent" } });
 
     // Only EL-3 is both in Tower A and Delinquent.
@@ -960,9 +971,8 @@ describe("LedgerPage", () => {
       const user = userEvent.setup();
       render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
 
-      fireEvent.change(screen.getByLabelText(/filter by building/i), {
-        target: { value: "1" },
-      }); // Tower A -> EL-3, EL-1
+      const buildingGroup = screen.getByRole("group", { name: /filter by building/i });
+      fireEvent.click(within(buildingGroup).getByRole("button", { name: "Tower A" })); // -> EL-3, EL-1
       await user.click(screen.getByRole("button", { name: /sort by device/i }));
 
       expect(deviceIdsInOrder()).toEqual(["EL-1", "EL-3"]);
@@ -1043,5 +1053,233 @@ describe("LedgerPage", () => {
     expect(
       screen.getByLabelText(/last inspection date for el-1/i).closest("tr")?.className,
     ).not.toMatch(/editingRow/);
+  });
+
+  describe("toolbar: title, device count, group-by toggle", () => {
+    it("shows a 'N devices across M buildings' count describing the full unfiltered entries, unaffected by an active filter/search", () => {
+      render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+      expect(screen.getByText(/3 devices across 2 buildings/i)).toBeInTheDocument();
+
+      const buildingGroup = screen.getByRole("group", { name: /filter by building/i });
+      fireEvent.click(within(buildingGroup).getByRole("button", { name: "Tower B" }));
+
+      // Filtering down to one building's rows must not make the header read
+      // as if data went missing — it still describes the whole portfolio.
+      expect(screen.getByText(/3 devices across 2 buildings/i)).toBeInTheDocument();
+    });
+
+    it("does not render the toolbar (title, count, chips, search) at all when there are zero entries", () => {
+      render(<LedgerPage entries={[]} buildings={buildings} />);
+
+      expect(screen.queryByText(/devices across/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: /filter by building/i })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/search/i)).not.toBeInTheDocument();
+    });
+
+    it("does not show the group-by-building toggle when there are 0 or 1 buildings", () => {
+      render(<LedgerPage entries={mixedStatusEntries} buildings={[buildings[0]]} />);
+
+      expect(
+        screen.queryByRole("checkbox", { name: /group by building/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows the group-by-building toggle when there is more than one building", () => {
+      render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+      expect(screen.getByRole("checkbox", { name: /group by building/i })).toBeInTheDocument();
+    });
+  });
+
+  describe("group-by-building toggle", () => {
+    it("groups rows under a per-building header once checked, and returns to a flat list when unchecked", () => {
+      render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+      const toggle = screen.getByRole("checkbox", { name: /group by building/i });
+      expect(toggle).not.toBeChecked();
+      expect(screen.queryByText(/tower a — 2 devices/i)).not.toBeInTheDocument();
+
+      fireEvent.click(toggle);
+
+      expect(toggle).toBeChecked();
+      expect(screen.getByText(/tower a — 2 devices/i)).toBeInTheDocument();
+      expect(screen.getByText(/tower b — 1 device/i)).toBeInTheDocument();
+      // Every row still renders under its group.
+      expect(screen.getByText("EL-1")).toBeInTheDocument();
+      expect(screen.getByText("EL-2")).toBeInTheDocument();
+      expect(screen.getByText("EL-3")).toBeInTheDocument();
+
+      fireEvent.click(toggle);
+
+      expect(screen.queryByText(/tower a — 2 devices/i)).not.toBeInTheDocument();
+    });
+
+    it("keeps row actions (Edit) fully working for a row rendered inside a group", () => {
+      const onEditRequest = vi.fn();
+      render(
+        <LedgerPage
+          entries={mixedStatusEntries}
+          buildings={buildings}
+          onEditRequest={onEditRequest}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("checkbox", { name: /group by building/i }));
+
+      const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+      fireEvent.click(within(row).getByRole("button", { name: /edit el-1/i }));
+
+      expect(onEditRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, device_identifier: "EL-1" }),
+      );
+    });
+
+    it("respects the active building/status/search filters while grouped", () => {
+      render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+      fireEvent.click(screen.getByRole("checkbox", { name: /group by building/i }));
+      const buildingGroup = screen.getByRole("group", { name: /filter by building/i });
+      fireEvent.click(within(buildingGroup).getByRole("button", { name: "Tower A" }));
+
+      expect(screen.getByText(/tower a — 2 devices/i)).toBeInTheDocument();
+      expect(screen.queryByText(/tower b — \d+ device/i)).not.toBeInTheDocument();
+      expect(screen.queryByText("EL-2")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("search box", () => {
+    const searchEntries: LedgerEntry[] = [
+      {
+        id: 20,
+        building_name: "Riverside Tower",
+        device_identifier: "EL-RS-1",
+        dob_device_number: "9Z999",
+        inspection_type: "CAT1",
+        last_inspection_date: "2020-01-01",
+        due_date: "2021-01-01",
+        status: "Delinquent",
+        has_open_violation: false,
+      },
+      {
+        id: 21,
+        building_name: "Harbor Point",
+        device_identifier: "EL-HP-2",
+        dob_device_number: null,
+        inspection_type: "CAT5",
+        last_inspection_date: "2024-01-01",
+        due_date: "2029-01-01",
+        status: "Compliant",
+        has_open_violation: false,
+      },
+    ];
+
+    it("has a visible (not visually-hidden) label", () => {
+      render(<LedgerPage entries={searchEntries} />);
+
+      const input = screen.getByLabelText(/search/i);
+      const label = input.closest("div")?.querySelector("label") ?? screen.getByText(/search/i);
+      expect(label).not.toHaveClass("visually-hidden");
+      expect(input).toBeVisible();
+    });
+
+    it("matches by building name", () => {
+      render(<LedgerPage entries={searchEntries} />);
+      fireEvent.change(screen.getByLabelText(/search/i), { target: { value: "riverside" } });
+
+      expect(screen.getByText("EL-RS-1")).toBeInTheDocument();
+      expect(screen.queryByText("EL-HP-2")).not.toBeInTheDocument();
+    });
+
+    it("matches by device_identifier", () => {
+      render(<LedgerPage entries={searchEntries} />);
+      fireEvent.change(screen.getByLabelText(/search/i), { target: { value: "hp-2" } });
+
+      expect(screen.getByText("EL-HP-2")).toBeInTheDocument();
+      expect(screen.queryByText("EL-RS-1")).not.toBeInTheDocument();
+    });
+
+    it("matches by dob_device_number", () => {
+      render(<LedgerPage entries={searchEntries} />);
+      fireEvent.change(screen.getByLabelText(/search/i), { target: { value: "9z999" } });
+
+      expect(screen.getByText("EL-RS-1")).toBeInTheDocument();
+      expect(screen.queryByText("EL-HP-2")).not.toBeInTheDocument();
+    });
+
+    it("matches by status", () => {
+      render(<LedgerPage entries={searchEntries} />);
+      fireEvent.change(screen.getByLabelText(/search/i), { target: { value: "compliant" } });
+
+      expect(screen.getByText("EL-HP-2")).toBeInTheDocument();
+      expect(screen.queryByText("EL-RS-1")).not.toBeInTheDocument();
+    });
+
+    it("shows every row again once the search is cleared", () => {
+      render(<LedgerPage entries={searchEntries} />);
+      const input = screen.getByLabelText(/search/i);
+
+      fireEvent.change(input, { target: { value: "riverside" } });
+      expect(screen.queryByText("EL-HP-2")).not.toBeInTheDocument();
+
+      fireEvent.change(input, { target: { value: "" } });
+      expect(screen.getByText("EL-RS-1")).toBeInTheDocument();
+      expect(screen.getByText("EL-HP-2")).toBeInTheDocument();
+    });
+  });
+
+  describe("due-date urgency styling", () => {
+    it("marks a Delinquent row's due date overdue with a day-count subtext", () => {
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      const row = screen.getByText("EL-3").closest("tr") as HTMLElement;
+      const dueDate = within(row).getByText("2021-01-01");
+      expect(dueDate.className).toMatch(/dueOverdue/);
+      expect(within(row).getByText(/day.*overdue/i)).toBeInTheDocument();
+    });
+
+    it("marks a Warning row's due date as due-soon with a 'Due in N days' subtext", () => {
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+      const dueDate = within(row).getByText(WARNING_DUE_DATE);
+      expect(dueDate.className).toMatch(/dueSoon/);
+      expect(within(row).getByText(/due in 5 days/i)).toBeInTheDocument();
+    });
+
+    it("marks a Compliant row's due date ok with no day-count subtext", () => {
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      const row = screen.getByText("EL-2").closest("tr") as HTMLElement;
+      const dueDate = within(row).getByText("2029-01-01");
+      expect(dueDate.className).toMatch(/dueOk/);
+      expect(within(row).queryByText(/day/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("ElevatorDetailDrawer integration", () => {
+    it("opens the drawer with the clicked row's entry, and closes it via the close button", () => {
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      const row = screen.getByText("EL-1").closest("tr") as HTMLElement;
+      fireEvent.click(within(row).getByRole("button", { name: /view device details for el-1/i }));
+
+      const dialog = screen.getByRole("dialog");
+      expect(within(dialog).getByText("Device Details — EL-1")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText("Close details drawer"));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("opens with a different row's entry when a different row's button is clicked", () => {
+      render(<LedgerPage entries={mixedStatusEntries} />);
+
+      const row = screen.getByText("EL-2").closest("tr") as HTMLElement;
+      fireEvent.click(within(row).getByRole("button", { name: /view device details for el-2/i }));
+
+      expect(screen.getByText("Device Details — EL-2")).toBeInTheDocument();
+    });
   });
 });

@@ -10,6 +10,7 @@ import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { BuildingList } from "./features/portfolio/BuildingList";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
+import { ExecutiveSummaryBand } from "./features/portfolio/ExecutiveSummaryBand";
 import { TimelinePage } from "./features/timeline/TimelinePage";
 import { logError } from "./lib/logger";
 import { ThemeProvider } from "./lib/theme";
@@ -168,10 +169,44 @@ function App() {
       <div className={styles.app}>
         <header className={styles.header}>
           <div className={styles.headerRow}>
-            <h1>
-              <span className={styles.wordmarkRust}>RI</span>
-              <span className={styles.wordmarkNavy}>SER</span>
-            </h1>
+            <div className={styles.brand}>
+              <span className={styles.brandMark}>
+                <svg
+                  viewBox="0 0 26 26"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="1"
+                    y="1"
+                    width="24"
+                    height="24"
+                    rx="6"
+                    className={styles.brandMarkFill}
+                  />
+                  <path
+                    d="M8.5 17.5V8.5M8.5 8.5L6 11M8.5 8.5L11 11"
+                    stroke="#FBF7EE"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M17.5 8.5V17.5M17.5 17.5L15 15M17.5 17.5L20 15"
+                    stroke="#FBF7EE"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <h1>
+                  <span className={styles.wordmarkRust}>RI</span>
+                  <span className={styles.wordmarkNavy}>SER</span>
+                </h1>
+              </span>
+              <span className={styles.brandSub}>Elevator Portfolio Management</span>
+            </div>
             <ThemeToggle />
           </div>
           <p>NYC elevator compliance ledger, ranked by risk across your portfolio.</p>
@@ -193,6 +228,8 @@ function App() {
 
         <AddressLookupForm onSaved={handleAddressLookupSaved} />
 
+        <p className={styles.formsDivider}>or add manually</p>
+
         <div className={styles.formsRow}>
           <BuildingForm onCreated={handleBuildingCreated} />
           <ElevatorForm
@@ -211,7 +248,16 @@ function App() {
           onDeleted={handleBuildingDeleted}
         />
 
-        <main>
+        <main className={styles.main}>
+          {/* Portfolio-wide stat band — sits above the narration panel as the
+            page's lead at-a-glance summary, computed client-side from data
+            already fetched above (never a separate summary endpoint). */}
+          <ExecutiveSummaryBand
+            entries={entries ?? []}
+            buildingsCount={buildings.length}
+            fineExposures={fineExposures}
+          />
+
           {/* Placed above the ledger as the page's lead feature, per the v3
             design pass (docs/design/) — matches the "AI Executive
             Briefing" position in the reference mockup. */}

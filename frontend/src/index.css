@@ -1,33 +1,133 @@
 :root {
-  --text: #1f2430;
-  --text-muted: #4b5261;
-  --bg: #ffffff;
-  --bg-subtle: #f6f7f9;
-  --border: #d9dde3;
-  --focus: #2c5cf6;
-  --focus-subtle: #e8edfe;
+  --font-body: system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Spacing scale — one small set of tokens (multiples of 4px) reused across
+     page-section gaps, panel padding, and form field/button rhythm, rather
+     than each .module.css file picking its own ad hoc rem values. Not
+     exhaustive (some already-consistent one-off values were deliberately
+     left alone rather than churned for no visual reason), but every *new*
+     spacing decision in this design pass pulls from this list. */
+  --space-1: 0.25rem; /* 4px  — tightest, e.g. label-to-input */
+  --space-2: 0.5rem; /* 8px  — small inline gaps (icon-to-label, chip rows) */
+  --space-3: 0.75rem; /* 12px — inter-field gaps within a form */
+  --space-4: 1rem; /* 16px — default panel/card internal rhythm */
+  --space-5: 1.5rem; /* 24px — gap between side-by-side panels */
+  --space-6: 2rem; /* 32px — gap between major page sections */
+  --space-7: 3rem; /* 48px — reserved for rare, deliberately large separation */
+
+  --rust: #8c5228;
+  --rust-strong: #7d441e;
+  --rust-wash: #fbf5ec;
+
+  --navy: #1c3a63;
+  --navy-soft: #edf0f4;
+  --navy-soft-border: #c9d2de;
+  --navy-soft-text: #1c3a63;
+  --navy-header: #1c3a63;
+  --navy-header-text: #ffffff;
+  /* Navy set as *text on the page background* (e.g. the wordmark) — kept
+     distinct from --navy itself, which is calibrated for use as a fill/
+     border/background, not as foreground text: --navy's dark-mode value is
+     only ~2.6:1 against dark-mode --bg, well under WCAG AA. */
+  --navy-text: #1c3a63;
+
+  /* Page background lightened toward white per Schiffon's design-direction
+     feedback (was #fbf8f3), while staying a hair warmer than --bg-card
+     (#ffffff) so cards still visibly "sit on" the page rather than
+     collapsing into it. --bg-subtle nudged proportionally lighter too, so
+     its relationship to --bg (subtle reads a touch more saturated/darker)
+     stays the same as before, just at the new lighter overall level. */
+  --bg: #fdfcfa;
+  --bg-subtle: #f8f4ea;
+  --bg-card: #ffffff;
+
+  --text: #1c1a17;
+  --text-secondary: #4b4438;
+  --text-muted: #5e5241;
+
+  --border: #e7dfd1;
+  --border-strong: #d8ccb6;
+
+  --focus: var(--rust-strong);
+  --focus-subtle: var(--rust-wash);
+
+  --shadow-card: 0 1px 2px rgba(41, 28, 15, 0.05), 0 10px 28px -14px rgba(41, 28, 15, 0.18);
+  --shadow-pop: 0 24px 60px -20px rgba(20, 12, 4, 0.35);
+
+  --status-compliant-bg: #e7f7ee;
+  --status-compliant-fg: #1d7a46;
+  --status-warning-bg: #fef7e6;
+  --status-warning-fg: #8a5400;
+  --status-delinquent-bg: #fdf0ee;
+  --status-delinquent-fg: #b53027;
+
+  --badge-compliant-bg: var(--status-compliant-bg);
+  --badge-compliant-text: var(--status-compliant-fg);
+  --badge-compliant-border: #b7e4c7;
+
+  --badge-warning-bg: var(--status-warning-bg);
+  --badge-warning-text: var(--status-warning-fg);
+  --badge-warning-border: #fde68a;
+
+  --badge-delinquent-bg: var(--status-delinquent-bg);
+  --badge-delinquent-text: var(--status-delinquent-fg);
+  --badge-delinquent-border: #fca5a5;
+
+  /* Due-date urgency — the one color language this app is meant to be
+     remembered by, shared by the ledger's due-date column, the "Next
+     Inspection Due" stat tile, and StatusBadge, so "how urgent is this"
+     always reads the same way no matter where it's shown. */
+  --due-overdue: var(--badge-delinquent-text);
+  --due-soon: var(--badge-warning-text);
+  --due-ok: var(--text-muted);
 
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
-  font:
-    16px/1.5 system-ui,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
+  font: 16px/1.5 var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #e7e9ee;
-    --text-muted: #a7adba;
-    --bg: #14161b;
-    --bg-subtle: #1c1f26;
-    --border: #333844;
-    --focus: #8ab4ff;
-    --focus-subtle: #243352;
+    --rust: #d9a05c;
+    --rust-strong: #e9b679;
+    --rust-wash: #211a12;
+
+    --navy: #3d5a85;
+    --navy-soft: #232e46;
+    --navy-soft-border: #5b6a94;
+    --navy-soft-text: #c3d1ea;
+    --navy-header: #10141d;
+    --navy-header-text: #ece6da;
+    --navy-text: #6f93c9;
+
+    --bg: #131417;
+    --bg-subtle: #191b1f;
+    --bg-card: #191b1f;
+
+    --text: #ece6da;
+    --text-secondary: #b4a995;
+    --text-muted: #9c8f79;
+
+    --border: #2b2b27;
+    --border-strong: #37342c;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -14px rgba(0, 0, 0, 0.6);
+    --shadow-pop: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+
+    --status-compliant-bg: rgba(70, 166, 105, 0.16);
+    --status-compliant-fg: #34d399;
+    --status-warning-bg: rgba(212, 150, 42, 0.18);
+    --status-warning-fg: #f0b03e;
+    --status-delinquent-bg: rgba(224, 90, 72, 0.18);
+    --status-delinquent-fg: #e8737a;
+
+    --badge-compliant-border: rgba(70, 166, 105, 0.3);
+    --badge-warning-border: rgba(212, 150, 42, 0.3);
+    --badge-delinquent-border: rgba(224, 90, 72, 0.3);
   }
 }
 
@@ -40,13 +140,45 @@
    default" and "explicit override" cases each fully self-contained and
    easy to audit independently. */
 :root[data-theme="light"] {
-  --text: #1f2430;
-  --text-muted: #4b5261;
-  --bg: #ffffff;
-  --bg-subtle: #f6f7f9;
-  --border: #d9dde3;
-  --focus: #2c5cf6;
-  --focus-subtle: #e8edfe;
+  --rust: #8c5228;
+  --rust-strong: #7d441e;
+  --rust-wash: #fbf5ec;
+
+  --navy: #1c3a63;
+  --navy-soft: #edf0f4;
+  --navy-soft-border: #c9d2de;
+  --navy-soft-text: #1c3a63;
+  --navy-header: #1c3a63;
+  --navy-header-text: #ffffff;
+  --navy-text: #1c3a63;
+
+  /* Same lightened-toward-white pair as the base :root block above — kept in
+     sync since this override block fully self-contains the light theme. */
+  --bg: #fdfcfa;
+  --bg-subtle: #f8f4ea;
+  --bg-card: #ffffff;
+
+  --text: #1c1a17;
+  --text-secondary: #4b4438;
+  --text-muted: #5e5241;
+
+  --border: #e7dfd1;
+  --border-strong: #d8ccb6;
+
+  --shadow-card: 0 1px 2px rgba(41, 28, 15, 0.05), 0 10px 28px -14px rgba(41, 28, 15, 0.18);
+  --shadow-pop: 0 24px 60px -20px rgba(20, 12, 4, 0.35);
+
+  --status-compliant-bg: #e7f7ee;
+  --status-compliant-fg: #1d7a46;
+  --status-warning-bg: #fef7e6;
+  --status-warning-fg: #8a5400;
+  --status-delinquent-bg: #fdf0ee;
+  --status-delinquent-fg: #b53027;
+
+  --badge-compliant-border: #b7e4c7;
+  --badge-warning-border: #fde68a;
+  --badge-delinquent-border: #fca5a5;
+
   /* Without this, native form controls (text inputs, selects, etc.) keep
      following the OS's prefers-color-scheme regardless of this override —
      `color-scheme: light dark` on the base :root just tells the browser
@@ -57,13 +189,43 @@
 }
 
 :root[data-theme="dark"] {
-  --text: #e7e9ee;
-  --text-muted: #a7adba;
-  --bg: #14161b;
-  --bg-subtle: #1c1f26;
-  --border: #333844;
-  --focus: #8ab4ff;
-  --focus-subtle: #243352;
+  --rust: #d9a05c;
+  --rust-strong: #e9b679;
+  --rust-wash: #211a12;
+
+  --navy: #3d5a85;
+  --navy-soft: #232e46;
+  --navy-soft-border: #5b6a94;
+  --navy-soft-text: #c3d1ea;
+  --navy-header: #10141d;
+  --navy-header-text: #ece6da;
+  --navy-text: #6f93c9;
+
+  --bg: #131417;
+  --bg-subtle: #191b1f;
+  --bg-card: #191b1f;
+
+  --text: #ece6da;
+  --text-secondary: #b4a995;
+  --text-muted: #9c8f79;
+
+  --border: #2b2b27;
+  --border-strong: #37342c;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px -14px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+
+  --status-compliant-bg: rgba(70, 166, 105, 0.16);
+  --status-compliant-fg: #34d399;
+  --status-warning-bg: rgba(212, 150, 42, 0.18);
+  --status-warning-fg: #f0b03e;
+  --status-delinquent-bg: rgba(224, 90, 72, 0.18);
+  --status-delinquent-fg: #e8737a;
+
+  --badge-compliant-border: rgba(70, 166, 105, 0.3);
+  --badge-warning-border: rgba(212, 150, 42, 0.3);
+  --badge-delinquent-border: rgba(224, 90, 72, 0.3);
+
   color-scheme: dark;
 }
 
@@ -84,10 +246,16 @@ body {
 }
 
 #root {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.75rem 2rem 5rem;
   min-height: 100svh;
+}
+
+@media (max-width: 720px) {
+  #root {
+    padding: 1.25rem 1rem 3rem;
+  }
 }
 
 h1,

@@ -1,10 +1,27 @@
 .app {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--space-6);
+}
+
+/* <main> wraps the executive summary band, the AI narration panel, and the
+   ledger/timeline tabs. It previously had no layout styles of its own, so
+   its children (each a bordered/filled card) sat directly adjacent with
+   zero gap between them — the actual source of the "sections mashing
+   against each other" complaint, since .app's own gap only ever applied
+   between *its* direct children (header, forms, building list, main itself),
+   never inside main. Same section-level gap as .app for one consistent
+   page-level rhythm. */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 .header h1 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 800;
   letter-spacing: 0.01em;
 }
 
@@ -15,19 +32,48 @@
   gap: 1rem;
 }
 
+/* Brand block: an inline mark (a rounded rust-fill square with two simple
+   up/down glyphs) alongside the RI/SER wordmark, plus a divider-separated
+   subtitle — grafted onto the existing header row without disturbing
+   ThemeToggle/PortfolioReset's placement. */
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brandMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brandMark svg {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+
+.brandMarkFill {
+  fill: var(--rust);
+}
+
+.brandSub {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
 .wordmarkRust {
-  color: #b4805a;
+  color: var(--rust);
 }
 
 .wordmarkNavy {
-  color: #1c3a63;
-}
-
-/* #1c3a63 against the dark-mode --bg (#14161b) is ~1.6:1, far below WCAG AA
-   — lighten it for dark mode, same light/dark hex-pairing pattern index.css
-   uses for its own tokens. ~5.8:1 against --bg in dark mode. */
-:root[data-theme="dark"] .wordmarkNavy {
-  color: #6f93c9;
+  color: var(--navy-text);
 }
 
 .header p {
@@ -38,7 +84,34 @@
 .formsRow {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  gap: var(--space-5);
+}
+
+/* Sits between the Building Lookup panel (the primary, DOB-backed path) and
+   .formsRow (the manual-entry fallback pair below it), so a first-time user
+   reads the two as sequential alternatives — "look it up, or fall back to
+   entering it yourself" — rather than two unrelated, equally-weighted
+   features. Purely decorative rule lines via ::before/::after; the label
+   text itself stays in the accessibility tree (not aria-hidden) since it's
+   genuine wayfinding copy, not just visual flourish. */
+.formsDivider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.formsDivider::before,
+.formsDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 /* Tab switcher — visual states: inactive (muted text), hover (darker text +

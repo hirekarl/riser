@@ -140,6 +140,146 @@ async function mockApi(page: Page) {
   });
 }
 
+/** Adds a building via the "Add a building" form — mirrors the inline
+ * add-building steps repeated across this file's existing tests. */
+async function addBuilding(page: Page, name: string, address: string) {
+  const buildingForm = page.getByRole("form", { name: /^add a building$/i });
+  await buildingForm.getByLabel(/building name/i).fill(name);
+  await buildingForm.getByLabel(/address/i).fill(address);
+  await page.getByRole("button", { name: /add building/i }).click();
+}
+
+/** Adds an elevator to the given (already-added) building via the "Add an
+ * elevator" form. Explicitly selects the building, unlike this file's
+ * existing single-building tests which rely on the form's default
+ * first-building selection. */
+async function addElevator(
+  page: Page,
+  building: string,
+  deviceId: string,
+  inspectionType: "CAT1" | "CAT5",
+  lastInspectionDate: string,
+) {
+  const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
+  await expect(elevatorForm.getByLabel(/^building$/i)).toBeEnabled();
+  await elevatorForm.getByLabel(/^building$/i).selectOption({ label: building });
+  await elevatorForm.getByLabel(/device identifier/i).fill(deviceId);
+  await elevatorForm.getByLabel(/inspection type/i).selectOption(inspectionType);
+  await elevatorForm.getByLabel(/last inspection date/i).fill(lastInspectionDate);
+  await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
+}
+
+/** Seeds two buildings and three elevators whose statuses land, by
+ * construction, as Delinquent (EL-1, Tower A), Warning (EL-3, Tower B), and
+ * Compliant (EL-2, Tower A) — giving the search/group-by-building tests a
+ * real, non-trivial urgency order and building split to assert against. */
+async function seedTwoBuildingsThreeElevators(page: Page) {
+  await addBuilding(page, "Tower A", "1 Main St");
+  await addBuilding(page, "Tower B", "2 Main St");
+
+  // Far in the past -> CAT1 due date (last inspection + 1yr) long passed.
+  await addElevator(page, "Tower A", "EL-1", "CAT1", "2020-01-01");
+
+  // Due in ~15 days -> a genuine Warning (CAT5 = last inspection + 5yr).
+  const warningDate = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 5);
+    d.setDate(d.getDate() + 15);
+    return d.toISOString().slice(0, 10);
+  })();
+  await addElevator(page, "Tower B", "EL-3", "CAT5", warningDate);
+
+  // Inspected today -> CAT1 due date a year out, comfortably Compliant.
+  await addElevator(page, "Tower A", "EL-2", "CAT1", new Date().toISOString().slice(0, 10));
+}
+
+test("search box narrows the ledger table by device id and by building name, and clearing it restores the full list", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/");
+  await seedTwoBuildingsThreeElevators(page);
+
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-2", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toBeVisible();
+
+  const searchBox = page.getByLabel(/search ledger/i);
+
+  // Narrows by device id.
+  await searchBox.fill("EL-3");
+  await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("cell", { name: "EL-2", exact: true })).toHaveCount(0);
+
+  // Narrows by building name (both Tower A devices match; Tower B's doesn't).
+  await searchBox.fill("Tower A");
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-2", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toHaveCount(0);
+
+  // Clearing the box restores the full, unfiltered list.
+  await searchBox.fill("");
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-2", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toBeVisible();
+});
+
+test("group-by-building groups rows under building headers, preserves urgency order within/across groups, and row actions still work on a grouped row", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto("/");
+  await seedTwoBuildingsThreeElevators(page);
+
+  const table = page.getByRole("table");
+
+  // Ungrouped: server-sorted purely by urgency — Delinquent (EL-1) > Warning
+  // (EL-3) > Compliant (EL-2) — regardless of building.
+  const deviceOrderBefore = (await table.getByRole("row").allTextContents())
+    .map((text) => (text.match(/EL-\d/) ?? [])[0])
+    .filter((id): id is string => Boolean(id));
+  expect(deviceOrderBefore).toEqual(["EL-1", "EL-3", "EL-2"]);
+
+  const groupToggle = page.getByLabel(/group by building/i);
+  // The toggle's real `<input type="checkbox">` is visually hidden in favor
+  // of the adjacent custom switch graphic (see .groupToggle input in
+  // LedgerPage.module.css) — force bypasses Playwright's hit-target
+  // visibility check while still dispatching a real click/change on the
+  // input itself, exactly like a user clicking the visible switch does.
+  await groupToggle.check({ force: true });
+
+  await expect(page.getByRole("row").filter({ hasText: /Tower A — 2 devices/ })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: /Tower B — 1 device/ })).toBeVisible();
+
+  // Grouped: Tower A's group leads (its EL-1 was the first-appearing entry
+  // in the urgency-sorted list), and within it EL-1 (Delinquent) still comes
+  // before EL-2 (Compliant) — regrouping by building must never scramble the
+  // existing urgency order within or across groups.
+  const deviceOrderAfter = (await table.getByRole("row").allTextContents())
+    .map((text) => (text.match(/EL-\d/) ?? [])[0])
+    .filter((id): id is string => Boolean(id));
+  expect(deviceOrderAfter).toEqual(["EL-1", "EL-2", "EL-3"]);
+
+  // A row action (Edit) still works correctly on a row rendered inside a
+  // group — a real regression risk if renderEntryRow()'s extraction ever
+  // mismatched entries when called from the grouped code path.
+  const groupedRowForEl2 = page.getByRole("row").filter({ hasText: "EL-2" });
+  await groupedRowForEl2.getByRole("button", { name: /edit el-2/i }).click();
+
+  const editForm = page.getByRole("form", { name: /edit an elevator/i });
+  await expect(editForm).toBeVisible();
+  await expect(editForm.getByLabel(/device identifier/i)).toHaveValue("EL-2");
+
+  await editForm.getByLabel(/device identifier/i).fill("EL-2-RENAMED");
+  await editForm.getByRole("button", { name: /save changes/i }).click();
+
+  await expect(page.getByRole("form", { name: /add an elevator/i })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-2-RENAMED", exact: true })).toBeVisible();
+  // The renamed row is still correctly grouped under Tower A afterward.
+  await expect(page.getByRole("row").filter({ hasText: /Tower A — 2 devices/ })).toBeVisible();
+});
+
 test("generates an AI narration briefing on demand, showing a loading state then the narration text", async ({
   page,
 }) => {
