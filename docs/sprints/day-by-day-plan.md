@@ -114,7 +114,9 @@ Narration is the simpler of the two remaining features (one endpoint, one panel)
 
 ### Wed 2026-07-29 — Final capstone presentation
 
-- Morning: last-look rehearsal, fix only true blockers.
+**Unscheduled consolidation work landed this morning ahead of rehearsal:** PR #127 (Karl's executive-UI redesign implementing `docs/design/riser-executive-dashboard.html` per Schiffon's mockup) and PR #128 (Schiffon's matching style pass on the same mockup) opened independently the same evening two days ago, representing duplicate implementations of the same design spec. PR #129 (bundled backend fix + now-superseded frontend branch) was closed; PR #130 (just the backend fix, cherry-picked onto a clean branch) was merged via admin bypass. A deliberate hand-merge onto `feat/executive-ui-consolidated` kept the best of both PRs plus real bug fixes neither had independently: consolidated design tokens, restored a deleted `:focus-visible` ring, new `ExecutiveSummaryBand`/`ElevatorDetailDrawer` components, ledger search/chips/group-by-building, forms restyle, `NarrationPanel` paragraph structure, and a live design-feedback polish pass. Same session: tab restructuring split the app into "Ledger" (stat band, AI briefing, Ledger/Timeline sub-tabs) and "Manage Portfolio" (address lookup, forms, buildings list) tabs; a real bug was fixed where `backend/.env` wasn't being auto-loaded for local dev (silently broke the AI narration endpoint); outer and inner tab levels were visually distinguished. All of this is consolidated in open PR #131, currently under review (this docs-sync pass is part of that review). See `docs/team/status-log.md`'s new 2026-07-29 entry for full details and per-source-PR attribution.
+
+- Morning: last-look rehearsal, fix only true blockers (following consolidation work above).
 - Present.
 
 ## Cut order if the team falls behind (most expendable first)

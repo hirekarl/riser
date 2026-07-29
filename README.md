@@ -19,8 +19,12 @@ Managers can add buildings and elevators in two ways:
 
 **Additional features:**
 
+- **Ledger / Manage Portfolio tabs** — the risk-triage ledger (stat band, AI briefing, Ledger/Timeline sub-tabs) is the default landing tab, with onboarding (address lookup, building/elevator forms, buildings list) moved to its own Manage Portfolio tab — so the portfolio's current risk is visible immediately instead of below a scroll of forms. Editing a ledger row auto-switches to Manage Portfolio with that elevator's form pre-filled and focused.
+- **Executive summary stat band** — five at-a-glance tiles (monitored buildings, active elevators, at-risk/delinquent count, next inspection due, DOB penalty exposure) above the ledger.
 - **Timeline tab** — view upcoming compliance due dates across the whole portfolio, sorted by due date (e.g., next 90 days), complementing the current-status ledger.
 - **AI risk-narration briefing** — on-demand Claude API-powered summary of urgent portfolio risk (e.g., "3 elevators are Delinquent, 2 enter Warning this week — prioritize X first").
+- **Ledger search and building filter chips** — search by building, device id, or DOB device number, or narrow to one building via a chip row; an optional group-by-building toggle re-renders the table with a header row per building.
+- **Elevator detail drawer** — a slide-over per device with structured DOB reference data, compliance state, open violations, and a direct link to NYC DOB BIS, alongside a separate "Remediation steps" action for what to do about it.
 - **Status filter** — filter the ledger by compliance status (Compliant, Warning, Delinquent, or All).
 - **Delete actions** — remove buildings or individual elevators from the portfolio, with cascade-delete of a building's elevators.
 - **Sample data button** — populate the app with demo buildings and elevators in the empty state for a quick first look at the feature set.
@@ -58,17 +62,21 @@ Two things worth calling out about this shape:
 
 ## Screenshots
 
-**Portfolio ledger** — every elevator across every building, ranked by urgency (Delinquent → Warning → Compliant), with inline editing and a per-building filter:
+**Ledger tab (default landing)** — the executive summary stat band, on-demand AI briefing, and the portfolio ledger ranked by urgency (Delinquent → Warning → Compliant), with building filter chips, search, and a status filter:
 
-![Riser's portfolio ledger, showing a mix of Delinquent-status elevators across several buildings, with Add Building/Add Elevator forms above it](docs/screenshots/ledger-overview.jpg)
+![Riser's Ledger tab, showing the executive stat band, AI Executive Briefing panel, and portfolio ledger with building filter chips and a Delinquent-status row](docs/screenshots/ledger-overview.jpg)
 
-**Editing an elevator** — updating an elevator's record recalculates its due date/status live; the row being edited is highlighted and its inline date field locks while the edit form is open:
+**Editing an elevator** — clicking Edit on a ledger row auto-switches to the Manage Portfolio tab with that elevator's form pre-filled and focused, ready to update its device identifier, inspection type, or last inspection date:
 
-![The ledger's Edit an elevator form open for one row, with that row highlighted and its inline date input disabled](docs/screenshots/elevator-edit.jpg)
+![The Manage Portfolio tab with an "Edit" form open and focused for one elevator, pre-filled with its existing device identifier, inspection type, and last inspection date](docs/screenshots/elevator-edit.jpg)
 
-**Empty state** — a new portfolio with no elevators yet tracked:
+**Manage Portfolio tab** — building lookup (auto-populate from NYC DOB), manual Add Building/Add Device forms, and the buildings list with fine-exposure totals:
 
-![Riser's empty-state message: "No elevators yet," with guidance to add a building and an elevator to start tracking compliance deadlines](docs/screenshots/empty-state.jpg)
+![Riser's Manage Portfolio tab, showing the Building Lookup panel, Add Building and Add Device manual-entry forms, and a buildings list with outstanding-fine totals](docs/screenshots/manage-portfolio.jpg)
+
+**Empty state** — a new portfolio with no elevators yet tracked, with guidance pointing to the Manage Portfolio tab:
+
+![Riser's empty-state message: "No elevators yet," on the Ledger tab, with numbered guidance pointing to the Manage Portfolio tab's lookup/add-building/add-elevator forms](docs/screenshots/empty-state.jpg)
 
 ## Team
 

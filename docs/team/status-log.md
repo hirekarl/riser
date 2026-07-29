@@ -199,3 +199,59 @@ Both required a real code/test fix, not just a rebase; both were verified locall
 
 - Schiffon's manual visual/accessibility pass (Fri 7/24 outstanding items) still needs her direct sign-off if not already done.
 - Full dress rehearsal scheduled for Wed morning; capstone presentation 2026-07-29.
+
+## 2026-07-29 (Wed) — Capstone day: executive UI consolidation
+
+Karl (with Claude Code) consolidated two competing executive-UI redesigns (PR #127 by Karl and PR #128 by Schiffon) that had opened independently the same night, both implementing the same design mockup from `docs/design/riser-executive-dashboard.html`. The consolidation included a tab-page restructuring, a critical backend `.env` autoload fix, and a visual polish pass. All work is now consolidated in open PR #131, currently under review (this docs-sync update is part of that review cycle).
+
+### PR dispositions and hand-merge
+
+| Item | Details | Notes |
+| --- | --- | --- |
+| PR #127 (Karl) | Executive-UI redesign implementation | Closed, superseded by PR #131 (which points back to it and credits what was carried over). |
+| PR #128 (Schiffon) | Executive-UI design polish pass | Closed, superseded by PR #131 (which points back to it and credits what was carried over). |
+| PR #129 | `fix/active-elevators-and-building-violations` (bundled backend fix + superseded frontend branch) | Closed. |
+| PR #130 | `fix/active-elevator-and-violation-aggregation` (backend fix alone, cherry-picked from #129) | Merged via admin bypass. Explicit session-specific authorization was logged in the deleted handoff doc: "do not assume that authorization carries into a new session; re-confirm with Karl before using admin bypass again" — this use is one-time, not a standing policy. |
+| `feat/executive-ui-consolidated` (branch) | Hand-merged consolidation of best of both #127/#128 plus bug fixes | Opened as PR #131 later the same session (after the tab restructuring and follow-on commits below landed on the same branch). All linting, type-checking, build, coverage (>90%), and e2e tests passing. Currently under review — this docs-sync pass is part of that review. |
+
+### Hand-merge: what was consolidated from each source
+
+Per the now-deleted handoff doc (`git show 9b5a5cf~1:riser-redesign-handoff.md`), the following items were extracted:
+
+| Component / Item | Source PR(s) | Status |
+| --- | --- | --- |
+| Design-token system (`frontend/src/index.css`) | Both | Consolidated into one unified rust/navy/warm-paper palette, spacing scale (`--space-1` through `--space-7`), due-date urgency tokens. Restored global `:focus-visible` ring that one source PR had silently deleted (a11y regression fixed). |
+| Header/brand restyle | Both | Wordmark + "Elevator Portfolio Management" subtitle; `ThemeToggle`/`PortfolioReset` preserved from `main`. |
+| `ExecutiveSummaryBand` (5-tile stat band) | Both | New component. Fixed real bug: fine-exposure total now correctly excludes buildings with `reason !== null` from sum and shows "incomplete" caveat. |
+| `LedgerPage` (highest-risk merge) | Both | Chip-only building filter, unified search (building/device id/DOB device number/status), group-by-building toggle (`Map`-based, preserves urgency sort), new `ElevatorDetailDrawer` slide-over component. Due-urgency color-coding wired up via new `frontend/src/lib/dueUrgency.ts` shared helper. |
+| Row-action label disambiguation | Both | Renamed to "Remediation steps" (what to do) vs. "Device details" (reference data). |
+| Forms restyle (`AddressLookupForm`/`BuildingForm`/`ElevatorForm`) | Both | Panel-head icon/eyebrow pattern, navy-chip fields, token-based styling. Fixed button-hierarchy bug: "Add elevator" submit button reverted to correct primary-filled style. |
+| `NarrationPanel` | Both | Paragraph-per-label rendering (was one bold block); renamed to "AI Executive Briefing". Explicitly does not add the mockup's "Connected, Up to date" pill (mockup's own comment flags it as dishonest UI). |
+| `StatusBadge`/`BuildingList` | Both | Token-based rewrite; contrast verified against WCAG AA 4.5:1. |
+| Keyboard/focus e2e tests | Both | New tests for drawer, search box, group-by-building (neither source PR had any). `:focus-visible` fix verified under real Tab traversal. |
+| Live-data bug-fix verification | PR #130 (backend) | Backend fix (open-violation aggregation across Safety Violations and ECB datasets, not just ECB) confirmed working end-to-end against seeded demo data — buildings now show real open-violation counts (2, 3, 12, 17...) instead of "0". |
+| Design-feedback polish pass | Karl (UI-UX specialist) | Six specific pieces of feedback addressed: added "OR ADD MANUALLY" divider + copy disambiguating lookup vs. manual entry, applied consistent `--space-*` spacing across sections, consolidated pill sizing for status/violation indicators, regrouped ledger row actions into three-tier layout, resized select chevrons, lightened light-mode background from `#fbf8f3` to `#fdfcfa`. All verified visually via Playwright screenshots in light and dark mode. |
+
+### Follow-on commits (same session)
+
+| Commit | Description | Status |
+| --- | --- | --- |
+| `7cd414f` | `feat(frontend): split App into Ledger/Manage Portfolio tabs` | Done. Restructured page into two top-level tabs: "Ledger" (stat band, AI briefing, Ledger/Timeline sub-tabs as default landing); "Manage Portfolio" (address lookup, forms, buildings list). Reused existing two-tab pattern from current Ledger/Timeline implementation. All tests/lint/typecheck updated and passing; e2e specs for tab navigation confirmed. |
+| `5142921` | `fix(backend): auto-load .env for local development` | Done. Real bug fix: nothing in the codebase called `read_env()`/`load_dotenv()`, so `ANTHROPIC_API_KEY` (and anything else in `backend/.env`) never reached `os.environ` unless a developer's shell happened to export it manually — silently breaking the AI narration endpoint (503 `narration_unavailable`) otherwise. Fixed via a new `backend/config/dotenv_loader.py` module (reusing the already-installed `django-environ`), wired into `config/settings/local.py` only — `production.py` is untouched, since Render injects real env vars directly and has no `.env` file. Never overrides a value already exported in the shell. |
+| `1fc9929` | `style(frontend): visually distinguish outer and inner tab levels` | Done. Added visual styling to distinguish the new top-level Ledger/Manage-Portfolio tabs from the nested Ledger/Timeline sub-tabs (e.g., different background colors, underline styles, font weights). |
+| `9b5a5cf` | `chore: remove completed handoff docs from repo root` | Done. Removed the temporary `riser-redesign-handoff.md` and `riser-p2-handoff.md` from repo root. |
+
+### Coverage and verification
+
+- **Frontend:** 291 tests at 97.97% coverage (well above 90% gate); all `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm run build`, `npx playwright test` passing (keyboard-accessibility and ledger specs explicitly re-verified).
+- **Backend:** 100% coverage maintained; all `uv run ruff check .` and `uv run mypy .` passing.
+- **Manual verification:** App rendered in real browser (light and dark mode); populated ledger, empty state, mid-animation status-change highlight, drawer interactions all confirmed working.
+
+### Outstanding — Schiffon's manual visual/accessibility sign-off
+
+The following items from the log's own 2026-07-24 "Outstanding" table remain logically open and are explicitly **not claimed as done** by this session:
+
+- Final visual pass: confirm status colors are distinct/high-contrast in practice (Schiffon's direct human judgment required).
+- Final accessibility pass: contrast/jsx-a11y/axe, screen-reader, keyboard-only walkthrough (Schiffon's direct manual verification required).
+
+**Note:** Automated `axe-core` scans against the actual rendered app (populated ledger, empty state, highlight animations) showed 0 violations and all component-level e2e tests for keyboard navigation are green — this is incidental coverage from TDD, not a substitute for Schiffon's deliberate whole-app manual pass. The automated checks pass, but the human sign-off remains outstanding.
