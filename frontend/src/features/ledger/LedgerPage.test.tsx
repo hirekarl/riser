@@ -1044,4 +1044,28 @@ describe("LedgerPage", () => {
       screen.getByLabelText(/last inspection date for el-1/i).closest("tr")?.className,
     ).not.toMatch(/editingRow/);
   });
+
+  it("opens and closes the ElevatorDetailDrawer when View Full Details is clicked", async () => {
+    const user = userEvent.setup();
+    render(<LedgerPage entries={mixedStatusEntries} />);
+
+    await user.click(screen.getByRole("button", { name: /view full details drawer for el-1/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /close details drawer/i }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows an error banner when deleting an elevator fails", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(client, "deleteElevator").mockRejectedValue(new Error("Network error"));
+    render(<LedgerPage entries={mixedStatusEntries} />);
+
+    await user.click(screen.getByRole("button", { name: /delete el-1/i }));
+    await user.click(screen.getByRole("button", { name: /confirm delete el-1/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/could not delete the elevator/i)).toBeInTheDocument();
+    });
+  });
 });

@@ -721,4 +721,24 @@ describe("App", () => {
 
     await waitFor(() => expect(listLedgerSpy).toHaveBeenCalledTimes(2));
   });
+
+  it("passes totalFineExposure down to ExecutiveSummaryBand when fineExposures is populated", async () => {
+    vi.spyOn(client, "listBuildings").mockResolvedValue([
+      { id: 1, name: "Tower A", address: "1 Main St", created_at: "x", updated_at: "x" },
+    ]);
+    vi.spyOn(client, "listLedger").mockResolvedValue([]);
+    vi.spyOn(client, "fetchPortfolioFineExposure").mockResolvedValue([
+      {
+        building: 1,
+        bin: "1001686",
+        open_violation_count: 2,
+        total_exposure: "2500.00",
+        reason: null,
+      },
+    ]);
+
+    render(<App />);
+
+    expect(await screen.findByText("$2,500")).toBeInTheDocument();
+  });
 });
