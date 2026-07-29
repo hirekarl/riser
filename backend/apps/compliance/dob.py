@@ -226,17 +226,23 @@ def map_dob_devices_to_drafts(devices: list[DobDevice]) -> list[ElevatorDraft]:
     ``last_inspection_date``. This function keeps that one-type-per-row
     model intact by emitting a separate draft per populated date field.
 
+    Only devices with an active status (``device_status == "Active"``,
+    case-insensitive) are converted to drafts. Inactive, decommissioned,
+    or dismantled devices contribute no drafts.
+
     Args:
         devices: Normalized devices from :func:`fetch_devices`.
 
     Returns:
         One :class:`ElevatorDraft` per populated ``cat1_latest_report_filed``
-        or ``cat5_latest_report_filed`` field, in device order (CAT1 before
-        CAT5 for a given device). A device with neither date populated
-        contributes no drafts.
+        or ``cat5_latest_report_filed`` field for active devices, in device
+        order (CAT1 before CAT5 for a given device). A non-active device or
+        a device with neither date populated contributes no drafts.
     """
     drafts: list[ElevatorDraft] = []
     for device in devices:
+        if device.device_status.strip().lower() != "active":
+            continue
         if device.cat1_latest_report_filed is not None:
             drafts.append(
                 ElevatorDraft(

@@ -141,12 +141,12 @@ def _parse_balance_due(value: str | None) -> decimal.Decimal:
 
 
 def fetch_building_fine_exposures(bins: list[str]) -> dict[str, FineExposure]:
-    """Fetch outstanding ECB fine exposure for every BIN in ``bins``, batched.
+    """Fetch outstanding fine exposure and open violation count for every BIN in ``bins``, batched.
 
-    A single request covers every building rather than one Socrata call
-    per building (issue #120 follow-up: the portfolio's fine exposure is
-    now shown for every building automatically, so this needs to scale
-    with one external call regardless of portfolio size, not N of them).
+    Aggregates open violation counts across both **DOB Safety Violations**
+    (``855j-jady``, active safety civil penalties) and **DOB ECB Violations**
+    (``6bgk-3dad``, positive-balance OATH/ECB monetary summonses). Total balance
+    due is calculated from the ECB dataset.
 
     Args:
         bins: The Building Identification Numbers to query. Duplicates are
@@ -155,34 +155,50 @@ def fetch_building_fine_exposures(bins: list[str]) -> dict[str, FineExposure]:
 
     Returns:
         A dict keyed by every distinct BIN in ``bins``, each mapped to its
-        summed outstanding balance across every ``6bgk-3dad`` row with a
-        positive ``balance_due`` and how many such rows contributed. A BIN
-        with no violations on file still gets an explicit zero/zero
-        entry — that's a normal outcome, not an omission.
+        summed outstanding ECB balance and total open violation count
+        across both datasets. A BIN with no violations on file still gets an
+        explicit zero/zero entry — that's a normal outcome, not an omission.
     """
     if not bins:
         return {}
     unique_bins = sorted(set(bins))
-    where = f"bin in ({_soql_string_list(unique_bins)})"
-    query = urllib.parse.urlencode({"$where": where, "$limit": 10000})
-    rows = _http_get_json(f"{ECB_VIOLATIONS_URL}?{query}")
+
+    # 1. Fetch active DOB Safety Violations (855j-jady) by BIN
+    safety_counts = dict.fromkeys(unique_bins, 0)
+    safety_where = (
+        f"bin in ({_soql_string_list(unique_bins)}) "
+        f"AND violation_status = '{_OPEN_VIOLATION_STATUS}'"
+    )
+    safety_query = urllib.parse.urlencode(
+        {"$where": safety_where, "$select": "bin", "$limit": 10000}
+    )
+    safety_rows = _http_get_json(f"{DOB_VIOLATIONS_URL}?{safety_query}")
+    for row in safety_rows:
+        bin_value = row.get("bin")
+        if bin_value in safety_counts:
+            safety_counts[bin_value] += 1
+
+    # 2. Fetch DOB ECB Violations (6bgk-3dad) by BIN
+    ecb_where = f"bin in ({_soql_string_list(unique_bins)})"
+    ecb_query = urllib.parse.urlencode({"$where": ecb_where, "$limit": 10000})
+    ecb_rows = _http_get_json(f"{ECB_VIOLATIONS_URL}?{ecb_query}")
 
     totals = {bin_value: decimal.Decimal("0") for bin_value in unique_bins}
-    counts = dict.fromkeys(unique_bins, 0)
-    for row in rows:
+    ecb_counts = dict.fromkeys(unique_bins, 0)
+    for row in ecb_rows:
         bin_value = row.get("bin")
         if bin_value not in totals:
             continue
         balance = _parse_balance_due(row.get("balance_due"))
         if balance > 0:
             totals[bin_value] += balance
-            counts[bin_value] += 1
+            ecb_counts[bin_value] += 1
 
     return {
         bin_value: FineExposure(
             bin=bin_value,
             total_balance_due=totals[bin_value],
-            open_violation_count=counts[bin_value],
+            open_violation_count=safety_counts[bin_value] + ecb_counts[bin_value],
         )
         for bin_value in unique_bins
     }
