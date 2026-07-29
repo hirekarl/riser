@@ -1,7 +1,17 @@
 .app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem 5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.75rem;
+}
+
+@media (max-width: 720px) {
+  .app {
+    padding: 1.25rem 1rem 4rem;
+    gap: 1.25rem;
+  }
 }
 
 .header h1 {
