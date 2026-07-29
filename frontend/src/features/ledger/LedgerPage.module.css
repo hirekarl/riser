@@ -187,37 +187,133 @@
   color: var(--text-muted);
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.deviceCount {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
 .toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
   gap: 1rem;
   padding: 1rem;
   background-color: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.searchInput {
-  font: inherit;
-  font-size: 0.875rem;
-  padding: 0.4375rem 0.75rem;
-  border: 1px solid var(--border-strong, #cbd5e1);
-  border-radius: 8px;
-  background-color: var(--bg);
-  color: var(--text);
-  min-width: 240px;
-}
-
-.searchInput:focus {
-  outline: 2px solid var(--rust-accent);
-  outline-offset: 1px;
+  border-radius: 12px;
 }
 
 .filterRow {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.chipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong, #cbd5e1);
+  background-color: var(--bg-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chip:hover {
+  color: var(--text);
+  border-color: var(--rust-accent);
+}
+
+.chipActive {
+  background-color: var(--navy-header);
+  border-color: var(--navy-header);
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .chipActive {
+  background-color: var(--rust-accent);
+  border-color: var(--rust-accent);
+  color: #ffffff;
+}
+
+.cellMono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cellDue {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dueSubtext {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.dueOverdue {
+  color: var(--badge-delinquent-text);
+}
+
+.dueSoon {
+  color: var(--badge-warning-text);
+}
+
+.dueOk {
+  color: var(--text-muted);
+}
+
+.detailLink {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--rust-accent);
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.detailLink:hover {
+  text-decoration: underline;
+  background-color: var(--bg-subtle);
 }
 
 .filterRow label {

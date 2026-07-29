@@ -334,60 +334,93 @@ export function LedgerPage({
         </dl>
       </details>
 
-      <div className={styles.toolbar}>
-        <div className={styles.filterRow}>
-          <label htmlFor={searchId}>Search ledger</label>
-          <input
-            id={searchId}
-            type="search"
-            className={styles.searchInput}
-            placeholder="Search building, device ID, or DOB #"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.sectionTitle}>Portfolio Ledger</h2>
+          <span className={styles.deviceCount}>
+            {entries ? `${entries.length} devices across ${buildings.length} buildings` : ""}
+          </span>
         </div>
+      </div>
 
+      <div className={styles.toolbar}>
         {buildings.length > 0 && (
-          <div className={styles.filterRow}>
-            <label htmlFor={filterId}>Filter by building</label>
-            <select
-              id={filterId}
-              value={selectedBuildingId ?? ""}
-              onChange={(event) => {
-                const { value } = event.target;
-                setSelectedBuildingId(value === "" ? undefined : Number(value));
-              }}
+          <div className={styles.chipRow}>
+            <button
+              type="button"
+              className={`${styles.chip} ${selectedBuildingId === undefined ? styles.chipActive : ""}`}
+              onClick={() => setSelectedBuildingId(undefined)}
             >
-              <option value="">All buildings</option>
-              {buildings.map((building) => (
-                <option key={building.id} value={building.id}>
-                  {building.name}
-                </option>
-              ))}
-            </select>
+              All buildings
+            </button>
+            {buildings.map((building) => (
+              <button
+                key={building.id}
+                type="button"
+                className={`${styles.chip} ${selectedBuildingId === building.id ? styles.chipActive : ""}`}
+                onClick={() => setSelectedBuildingId(building.id)}
+              >
+                {building.name}
+              </button>
+            ))}
           </div>
         )}
 
-        {entries && entries.length > 0 && (
+        <div className={styles.filterRow}>
           <div className={styles.filterRow}>
-            <label htmlFor={statusFilterId}>Filter by status</label>
-            <select
-              id={statusFilterId}
-              value={selectedStatus ?? ""}
-              onChange={(event) => {
-                const { value } = event.target;
-                setSelectedStatus(value === "" ? undefined : (value as ComplianceStatus));
-              }}
-            >
-              <option value="">All statuses</option>
-              {STATUS_FILTER_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+            <label htmlFor={searchId}>Search ledger</label>
+            <input
+              id={searchId}
+              type="search"
+              className={styles.searchInput}
+              placeholder="Search building, device ID, or DOB #"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        )}
+
+          {buildings.length > 0 && (
+            <div className={styles.filterRow}>
+              <label htmlFor={filterId}>Filter by building</label>
+              <select
+                id={filterId}
+                value={selectedBuildingId ?? ""}
+                onChange={(event) => {
+                  const { value } = event.target;
+                  setSelectedBuildingId(value === "" ? undefined : Number(value));
+                }}
+              >
+                <option value="">All buildings</option>
+                {buildings.map((building) => (
+                  <option key={building.id} value={building.id}>
+                    {building.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {entries && entries.length > 0 && (
+            <div className={styles.filterRow}>
+              <label htmlFor={statusFilterId}>Filter by status</label>
+              <select
+                id={statusFilterId}
+                value={selectedStatus ?? ""}
+                onChange={(event) => {
+                  const { value } = event.target;
+                  setSelectedStatus(value === "" ? undefined : (value as ComplianceStatus));
+                }}
+              >
+                <option value="">All statuses</option>
+                {STATUS_FILTER_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       {visibleEntries && visibleEntries.length === 0 ? (
@@ -470,7 +503,7 @@ export function LedgerPage({
                         )}
                       </td>
                       <td>{entry.building_name}</td>
-                      <td>
+                      <td className={styles.cellMono}>
                         {entry.device_identifier}
                         {entry.dob_device_number && (
                           <span className={styles.dobDeviceNumber}>
@@ -517,7 +550,7 @@ export function LedgerPage({
                           </span>
                         )}
                       </td>
-                      <td>{entry.due_date}</td>
+                      <td className={styles.cellDue}>{entry.due_date}</td>
                       <td>
                         <button
                           type="button"
@@ -540,11 +573,11 @@ export function LedgerPage({
                         )}
                         <button
                           type="button"
-                          className={styles.detailsButton}
+                          className={styles.detailLink}
                           aria-label={`View full details drawer for ${entry.device_identifier}`}
                           onClick={() => setDetailDrawerEntry(entry)}
                         >
-                          Full details
+                          View Full Details <span aria-hidden="true">→</span>
                         </button>
                         {isConfirmingDelete ? (
                           <span className={styles.deleteActions}>
