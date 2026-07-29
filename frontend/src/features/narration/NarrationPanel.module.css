@@ -1,37 +1,38 @@
-/* v3 design pass: styled as a bordered "AI Executive Briefing" card,
-   distinct from the neutral form/ledger cards elsewhere on the page. */
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.25rem 1.5rem;
-  border: 1px solid #bba995;
+  gap: 0.85rem;
+  padding: 1.5rem;
+  border: 1px solid var(--rust-accent-border, #fde68a);
   border-radius: 12px;
-  background: var(--bg);
+  background: var(--bg-card);
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.06);
+  margin-bottom: 1.5rem;
 }
 
 .headerRow {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .icon {
-  color: #b4805a;
-  font-size: 1.1rem;
+  color: var(--rust-accent);
+  font-size: 1.2rem;
   line-height: 1;
 }
 
 .heading {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--text);
 }
 
 .poweredBy {
-  font-weight: 400;
+  font-weight: 500;
+  font-size: 0.875rem;
   color: var(--text-muted);
 }
 
@@ -39,45 +40,39 @@
   margin-left: auto;
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #a8672e;
-  border: 1px solid #bba995;
+  letter-spacing: 0.05em;
+  color: var(--rust-accent);
+  border: 1px solid var(--rust-accent-border, #fde68a);
+  background-color: var(--rust-accent-light, #fffbeb);
   border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-}
-
-/* #a8672e against the dark-mode --bg (#14161b) is ~4.0:1, just under WCAG
-   AA's 4.5:1 — lighten it for dark mode, same as .wordmarkNavy in
-   App.module.css. ~7.5:1 against --bg in dark mode. */
-:root[data-theme="dark"] .onDemandTag {
-  color: #d99a5c;
+  padding: 0.2rem 0.65rem;
 }
 
 .description {
   margin: 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
-/* Solid rust fill, not the design mockup's gradient — see the comment on
-   .primaryButton in forms.module.css for why (WCAG contrast + the
-   backgroundColor-must-differ e2e check). Same rust family, one solid
-   shade. */
 .generateButton {
   align-self: flex-start;
   font: inherit;
   font-weight: 700;
-  padding: 0.5rem 1.25rem;
-  border-radius: 6px;
+  font-size: 0.9375rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
   cursor: pointer;
-  border: 1px solid #8f5525;
-  background-color: #8f5525;
-  color: #fff9f1;
+  border: 1px solid var(--rust-accent);
+  background-color: var(--rust-accent);
+  color: #ffffff;
+  transition:
+    background-color 0.2s ease,
+    filter 0.2s ease;
 }
 
 .generateButton:hover:not(:disabled) {
-  background-color: #7a4720;
-  border-color: #7a4720;
+  filter: brightness(0.9);
 }
 
 .generateButton:disabled {
@@ -86,22 +81,35 @@
 }
 
 .loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
+  margin: 0.25rem 0 0 0;
 }
 
 .narration {
   white-space: pre-wrap;
-  margin: 0;
-  font-weight: 600;
+  margin: 0.5rem 0 0 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg-subtle);
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--rust-accent);
 }
 
 .timestamp {
-  margin: 0;
+  margin: 0.25rem 0 0 0;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
 }
 
 .errorMessage {
-  color: #9c1c12;
+  margin: 0.25rem 0 0 0;
+  color: var(--badge-delinquent-text, #dc2626);
+  font-weight: 600;
 }

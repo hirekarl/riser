@@ -187,6 +187,33 @@
   color: var(--text-muted);
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.searchInput {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4375rem 0.75rem;
+  border: 1px solid var(--border-strong, #cbd5e1);
+  border-radius: 8px;
+  background-color: var(--bg);
+  color: var(--text);
+  min-width: 240px;
+}
+
+.searchInput:focus {
+  outline: 2px solid var(--rust-accent);
+  outline-offset: 1px;
+}
+
 .filterRow {
   display: flex;
   align-items: center;

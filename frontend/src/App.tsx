@@ -10,6 +10,7 @@ import { BuildingForm } from "./features/portfolio/BuildingForm";
 import { BuildingList } from "./features/portfolio/BuildingList";
 import { ElevatorForm } from "./features/portfolio/ElevatorForm";
 import type { EditableElevator } from "./features/portfolio/ElevatorForm";
+import { ExecutiveSummaryBand } from "./features/portfolio/ExecutiveSummaryBand";
 import { TimelinePage } from "./features/timeline/TimelinePage";
 import { logError } from "./lib/logger";
 import { ThemeProvider } from "./lib/theme";
@@ -212,9 +213,23 @@ function App() {
         />
 
         <main>
-          {/* Placed above the ledger as the page's lead feature, per the v3
-            design pass (docs/design/) — matches the "AI Executive
-            Briefing" position in the reference mockup. */}
+          {(() => {
+            const totalFineExposure = fineExposures
+              ? fineExposures.reduce(
+                  (acc, fe) => acc + (fe.total_exposure ? Number(fe.total_exposure) || 0 : 0),
+                  0,
+                )
+              : 0;
+            return (
+              <ExecutiveSummaryBand
+                entries={entries || []}
+                totalBuildingsCount={buildings.length}
+                totalFineExposure={totalFineExposure}
+              />
+            );
+          })()}
+
+          {/* Placed above the ledger as the page's lead feature */}
           <NarrationPanel />
 
           <div role="tablist" aria-label="Ledger views" className={styles.tabList}>

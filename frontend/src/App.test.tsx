@@ -551,7 +551,7 @@ describe("App", () => {
     });
     fireEvent.click(saveButton);
 
-    expect(await screen.findByText("2027-07-01")).toBeInTheDocument();
+    expect((await screen.findAllByText("2027-07-01")).length).toBeGreaterThan(0);
     expect(listLedgerSpy).toHaveBeenCalledTimes(2);
     // No Edit form was open, so nothing about handleElevatorUpdated's
     // editingElevator reset should have been touched/needed here.

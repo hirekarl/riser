@@ -5,6 +5,7 @@ import { Spinner } from "../../components/Spinner";
 import { StatusBadge } from "../../components/StatusBadge";
 import { logError } from "../../lib/logger";
 import type { Building, ComplianceStatus, LedgerEntry } from "../../types/domain";
+import { ElevatorDetailDrawer } from "./ElevatorDetailDrawer";
 import styles from "./LedgerPage.module.css";
 
 // Matches the sweep-fade animation duration in LedgerPage.module.css, plus a
@@ -43,10 +44,6 @@ const SORTABLE_COLUMNS: { column: SortColumn; label: string }[] = [
   { column: "due_date", label: "Due date" },
 ];
 
-// Status sorts by urgency rank (via STATUS_FILTER_OPTIONS' Delinquent > Warning
-// > Compliant order), not alphabetically; last_inspection_date/due_date are
-// plain YYYY-MM-DD strings, so lexicographic comparison is already
-// chronological — no Date parsing needed. Everything else is a plain string.
 function sortValue(entry: LedgerEntry, column: SortColumn): string | number {
   if (column === "status") return STATUS_FILTER_OPTIONS.indexOf(entry.status);
   return entry[column];
@@ -59,22 +56,12 @@ function compareEntries(a: LedgerEntry, b: LedgerEntry, sort: SortState): number
   return sort.direction === "ascending" ? cmp : -cmp;
 }
 
-// Plain-language remediation copy for a Warning/Delinquent row, derived
-// entirely from data the ledger already returns (status, due_date,
-// inspection_type) — no new endpoint. Compliant rows don't get this panel;
-// there's nothing to remediate. Where-to-go is intentionally generic (DOB's
-// elevator unit / a licensed inspection agency), not a live lookup.
 function getRemediationCopy(entry: LedgerEntry): {
   whatsWrong: string;
   nextStep: string;
   whereToGo: string;
   openViolationNote: string | null;
 } {
-  // entry.due_date is a date-only string, which Date parses as UTC midnight;
-  // normalize "now" to a UTC-midnight Date built from the local calendar date
-  // (not new Date() directly) so the diff isn't skewed by the viewer's
-  // timezone offset/time-of-day — the same UTC-date-only convention
-  // backend/apps/compliance/services.py uses for this math server-side.
   const dueDate = new Date(entry.due_date);
   const now = new Date();
   const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -93,11 +80,6 @@ function getRemediationCopy(entry: LedgerEntry): {
   const whereToGo =
     "Contact your building's licensed elevator inspection agency to schedule or confirm filing, or NYC DOB's elevator unit (311) for questions about a specific violation.";
 
-  // has_open_violation (issue #120) is a device-level flag only — no dollar
-  // figure attached to it, since the DOB ECB Violations feed only joins by
-  // BIN, not by device number (see docs/architecture/integration-contracts.md
-  // §6). The building-level dollar total lives in the separate, on-demand
-  // fine-exposure widget, not here.
   const openViolationNote = entry.has_open_violation
     ? "This elevator has an open DOB safety violation on file, in addition to its compliance status above."
     : null;
@@ -106,49 +88,12 @@ function getRemediationCopy(entry: LedgerEntry): {
 }
 
 export interface LedgerPageProps {
-  /**
-   * Ledger entries fetched once by the parent (`App`) via `listLedger()` and
-   * shared with `TimelinePage`, so the two views don't each issue their own
-   * request. `null` while the parent's initial fetch is still in flight.
-   */
   entries: LedgerEntry[] | null;
-  /**
-   * Ledger-fetch error surfaced by the parent, if the shared `listLedger()`
-   * call failed. Distinct from the inline-Save error this component still
-   * tracks locally.
-   */
   error?: string | null;
-  /**
-   * Buildings available to filter the ledger by. The filter control only
-   * renders when this is non-empty.
-   */
   buildings?: Building[];
-  /**
-   * Called with the full ledger entry for a row when its Edit button is
-   * clicked, so a parent (e.g. `App`) can switch `ElevatorForm` into edit
-   * mode for that elevator.
-   */
   onEditRequest?: (entry: LedgerEntry) => void;
-  /**
-   * The id of the elevator currently open in the (parent-owned) Edit form, if
-   * any. The row matching this id has its inline date input disabled and is
-   * marked with `styles.editingRow`, so the same field can't be edited via
-   * two surfaces at once (see the stale-overwrite race this prevents).
-   */
   editingElevatorId?: number;
-  /**
-   * Called after an inline Save successfully persists a new
-   * `last_inspection_date`, so the parent can refetch the ledger — status,
-   * due_date, and rank are always server-computed, never recalculated here.
-   */
   onElevatorUpdated?: () => void;
-  /**
-   * Passed straight through to the empty state's "Try sample data" button
-   * (see `EmptyState`'s `onSeeded` prop) so the parent can trigger the same
-   * ledger refetch it does after any other create/update. Optional (with a
-   * no-op default) purely so existing tests that never render the empty
-   * state don't need to pass it.
-   */
   onSeeded?: () => void;
 }
 
@@ -163,10 +108,15 @@ export function LedgerPage({
 }: LedgerPageProps) {
   const filterId = useId();
   const statusFilterId = useId();
+  const searchId = useId();
+
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<ComplianceStatus | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [detailDrawerEntry, setDetailDrawerEntry] = useState<LedgerEntry | null>(null);
+
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
   const [sort, setSort] = useState<SortState | null>(null);
@@ -331,14 +281,21 @@ export function LedgerPage({
       : entries
           .filter((entry) => !selectedBuilding || entry.building_name === selectedBuilding.name)
           .filter((entry) => !selectedStatus || entry.status === selectedStatus)
+          .filter((entry) => {
+            if (!searchQuery.trim()) return true;
+            const q = searchQuery.toLowerCase();
+            return (
+              entry.building_name.toLowerCase().includes(q) ||
+              entry.device_identifier.toLowerCase().includes(q) ||
+              (entry.dob_device_number && entry.dob_device_number.toLowerCase().includes(q))
+            );
+          })
           .slice()
           .sort((a, b) => (sort ? compareEntries(a, b, sort) : 0));
 
   return (
     <div className={styles.wrapper}>
-      {/* Always-mounted polite live region (not conditionally rendered) so
-          assistive tech has already registered it by the time a delete
-          updates its text — see the comment on `deleteAnnouncement` above. */}
+      {/* Always-mounted polite live region so assistive tech registers delete announcements */}
       <div role="status" aria-live="polite" className="visually-hidden">
         {deleteAnnouncement}
       </div>
@@ -353,13 +310,6 @@ export function LedgerPage({
         </div>
       )}
 
-      {/*
-        Display copy only — the actual thresholds live in
-        backend/apps/compliance/services.py (WARNING_WINDOW_DAYS, and the
-        Delinquent/Warning/Compliant rules in calculate_status). There is no
-        API-exposed value for this threshold, so if that constant ever
-        changes, this text must be updated by hand to match.
-      */}
       <details className={styles.legend}>
         <summary className={styles.legendSummary}>What do these statuses mean?</summary>
         <dl className={styles.legendList}>
@@ -384,47 +334,61 @@ export function LedgerPage({
         </dl>
       </details>
 
-      {buildings.length > 0 && (
+      <div className={styles.toolbar}>
         <div className={styles.filterRow}>
-          <label htmlFor={filterId}>Filter by building</label>
-          <select
-            id={filterId}
-            value={selectedBuildingId ?? ""}
-            onChange={(event) => {
-              const { value } = event.target;
-              setSelectedBuildingId(value === "" ? undefined : Number(value));
-            }}
-          >
-            <option value="">All buildings</option>
-            {buildings.map((building) => (
-              <option key={building.id} value={building.id}>
-                {building.name}
-              </option>
-            ))}
-          </select>
+          <label htmlFor={searchId}>Search ledger</label>
+          <input
+            id={searchId}
+            type="search"
+            className={styles.searchInput}
+            placeholder="Search building, device ID, or DOB #"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-      )}
 
-      {entries && entries.length > 0 && (
-        <div className={styles.filterRow}>
-          <label htmlFor={statusFilterId}>Filter by status</label>
-          <select
-            id={statusFilterId}
-            value={selectedStatus ?? ""}
-            onChange={(event) => {
-              const { value } = event.target;
-              setSelectedStatus(value === "" ? undefined : (value as ComplianceStatus));
-            }}
-          >
-            <option value="">All statuses</option>
-            {STATUS_FILTER_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+        {buildings.length > 0 && (
+          <div className={styles.filterRow}>
+            <label htmlFor={filterId}>Filter by building</label>
+            <select
+              id={filterId}
+              value={selectedBuildingId ?? ""}
+              onChange={(event) => {
+                const { value } = event.target;
+                setSelectedBuildingId(value === "" ? undefined : Number(value));
+              }}
+            >
+              <option value="">All buildings</option>
+              {buildings.map((building) => (
+                <option key={building.id} value={building.id}>
+                  {building.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {entries && entries.length > 0 && (
+          <div className={styles.filterRow}>
+            <label htmlFor={statusFilterId}>Filter by status</label>
+            <select
+              id={statusFilterId}
+              value={selectedStatus ?? ""}
+              onChange={(event) => {
+                const { value } = event.target;
+                setSelectedStatus(value === "" ? undefined : (value as ComplianceStatus));
+              }}
+            >
+              <option value="">All statuses</option>
+              {STATUS_FILTER_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {visibleEntries && visibleEntries.length === 0 ? (
         <EmptyState onSeeded={onSeeded} />
@@ -574,6 +538,14 @@ export function LedgerPage({
                             {isExpanded ? "Hide details" : "View details"}
                           </button>
                         )}
+                        <button
+                          type="button"
+                          className={styles.detailsButton}
+                          aria-label={`View full details drawer for ${entry.device_identifier}`}
+                          onClick={() => setDetailDrawerEntry(entry)}
+                        >
+                          Full details
+                        </button>
                         {isConfirmingDelete ? (
                           <span className={styles.deleteActions}>
                             <button
@@ -646,6 +618,8 @@ export function LedgerPage({
           </table>
         </div>
       ) : null}
+
+      <ElevatorDetailDrawer entry={detailDrawerEntry} onClose={() => setDetailDrawerEntry(null)} />
     </div>
   );
 }

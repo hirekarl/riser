@@ -1,17 +1,40 @@
 :root {
-  --text: #1f2430;
-  --text-muted: #4b5261;
-  --bg: #ffffff;
-  --bg-subtle: #f6f7f9;
-  --border: #d9dde3;
-  --focus: #2c5cf6;
-  --focus-subtle: #e8edfe;
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --bg: #f8fafc;
+  --bg-subtle: #f1f5f9;
+  --bg-card: #ffffff;
+  --navy-header: #0f172a;
+  --navy-header-text: #f8fafc;
+  --rust-accent: #b45309;
+  --rust-accent-light: #fffbeb;
+  --rust-accent-border: #fde68a;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus: #2563eb;
+  --focus-subtle: #dbeafe;
+
+  --badge-compliant-bg: #d1fae5;
+  --badge-compliant-text: #065f46;
+  --badge-compliant-border: #a7f3d0;
+
+  --badge-warning-bg: #fef3c7;
+  --badge-warning-text: #92400e;
+  --badge-warning-border: #fde68a;
+
+  --badge-delinquent-bg: #fee2e2;
+  --badge-delinquent-text: #991b1b;
+  --badge-delinquent-border: #fca5a5;
 
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
   font:
-    16px/1.5 system-ui,
+    16px/1.5 "Public Sans",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
     "Segoe UI",
     Roboto,
     sans-serif;
@@ -21,49 +44,97 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #e7e9ee;
-    --text-muted: #a7adba;
-    --bg: #14161b;
-    --bg-subtle: #1c1f26;
-    --border: #333844;
-    --focus: #8ab4ff;
-    --focus-subtle: #243352;
+    --text: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --bg: #090d16;
+    --bg-subtle: #0f172a;
+    --bg-card: #1e293b;
+    --navy-header: #0f172a;
+    --navy-header-text: #f8fafc;
+    --rust-accent: #f59e0b;
+    --rust-accent-light: #451a03;
+    --rust-accent-border: #78350f;
+    --border: #334155;
+    --border-strong: #475569;
+    --focus: #60a5fa;
+    --focus-subtle: #1e3a8a;
+
+    --badge-compliant-bg: #064e3b;
+    --badge-compliant-text: #a7f3d0;
+    --badge-compliant-border: #047857;
+
+    --badge-warning-bg: #78350f;
+    --badge-warning-text: #fef3c7;
+    --badge-warning-border: #b45309;
+
+    --badge-delinquent-bg: #7f1d1d;
+    --badge-delinquent-text: #fecaca;
+    --badge-delinquent-border: #b91c1c;
   }
 }
 
-/* Manual light/dark toggle scaffold: a `data-theme` attribute on <html> lets
-   a future toggle component override the OS-level prefers-color-scheme
-   default above. Placed after the @media block so these rules win via
-   source order/specificity once the attribute is set; when the attribute is
-   absent, the @media query above still governs. Values are duplicated
-   (rather than deriving one from the other) to keep both the "system
-   default" and "explicit override" cases each fully self-contained and
-   easy to audit independently. */
 :root[data-theme="light"] {
-  --text: #1f2430;
-  --text-muted: #4b5261;
-  --bg: #ffffff;
-  --bg-subtle: #f6f7f9;
-  --border: #d9dde3;
-  --focus: #2c5cf6;
-  --focus-subtle: #e8edfe;
-  /* Without this, native form controls (text inputs, selects, etc.) keep
-     following the OS's prefers-color-scheme regardless of this override —
-     `color-scheme: light dark` on the base :root just tells the browser
-     both are supported, not which one is active. That produced dark
-     browser-chrome inputs with dark (var(--text)) text drawn on top when a
-     user manually chose light mode on a dark-OS system: unreadable. */
+  --text: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --bg: #f8fafc;
+  --bg-subtle: #f1f5f9;
+  --bg-card: #ffffff;
+  --navy-header: #0f172a;
+  --navy-header-text: #f8fafc;
+  --rust-accent: #b45309;
+  --rust-accent-light: #fffbeb;
+  --rust-accent-border: #fde68a;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus: #2563eb;
+  --focus-subtle: #dbeafe;
+
+  --badge-compliant-bg: #d1fae5;
+  --badge-compliant-text: #065f46;
+  --badge-compliant-border: #a7f3d0;
+
+  --badge-warning-bg: #fef3c7;
+  --badge-warning-text: #92400e;
+  --badge-warning-border: #fde68a;
+
+  --badge-delinquent-bg: #fee2e2;
+  --badge-delinquent-text: #991b1b;
+  --badge-delinquent-border: #fca5a5;
+
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --text: #e7e9ee;
-  --text-muted: #a7adba;
-  --bg: #14161b;
-  --bg-subtle: #1c1f26;
-  --border: #333844;
-  --focus: #8ab4ff;
-  --focus-subtle: #243352;
+  --text: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --bg: #090d16;
+  --bg-subtle: #0f172a;
+  --bg-card: #1e293b;
+  --navy-header: #0f172a;
+  --navy-header-text: #f8fafc;
+  --rust-accent: #f59e0b;
+  --rust-accent-light: #451a03;
+  --rust-accent-border: #78350f;
+  --border: #334155;
+  --border-strong: #475569;
+  --focus: #60a5fa;
+  --focus-subtle: #1e3a8a;
+
+  --badge-compliant-bg: #064e3b;
+  --badge-compliant-text: #a7f3d0;
+  --badge-compliant-border: #047857;
+
+  --badge-warning-bg: #78350f;
+  --badge-warning-text: #fef3c7;
+  --badge-warning-border: #b45309;
+
+  --badge-delinquent-bg: #7f1d1d;
+  --badge-delinquent-text: #fecaca;
+  --badge-delinquent-border: #b91c1c;
+
   color-scheme: dark;
 }
 
@@ -73,25 +144,22 @@
 
 body {
   margin: 0;
-  /* Belt-and-suspenders guard against page-level horizontal scroll: some
-     engines (observed in WebKit) let a nested overflow-x:auto container's
-     content affect the document's scrollable area even though every element
-     in the ancestor chain reports itself as fully contained. The ledger
-     table's own horizontal scrolling is handled by
-     .tableScroll { overflow-x: auto } in LedgerPage.module.css; this just
-     stops that from ever bubbling up into a page-level scrollbar. */
+  background-color: var(--bg);
+  color: var(--text);
   overflow-x: hidden;
 }
 
 #root {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 1.5rem;
   min-height: 100svh;
 }
 
 h1,
-h2 {
+h2,
+h3,
+h4 {
   color: var(--text);
 }
 
@@ -104,7 +172,6 @@ a {
   outline-offset: 2px;
 }
 
-/* Visually hide content while keeping it available to screen readers. */
 .visually-hidden {
   position: absolute;
   width: 1px;
