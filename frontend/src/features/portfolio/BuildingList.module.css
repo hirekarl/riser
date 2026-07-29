@@ -61,29 +61,23 @@
 
 .deleteButton {
   font: inherit;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid #7a8091;
-  border-radius: 6px;
-  background: var(--bg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 8px;
+  background-color: var(--surface);
+  color: var(--ink);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .deleteButton:hover {
-  background: #f0f1f3;
+  background-color: var(--status-delinquent-bg);
+  color: var(--status-delinquent-fg);
+  border-color: var(--status-delinquent-fg);
 }
 
-/* #7a8091 -> #9aa4b8 dark-mode lightening, same as LedgerPage.module.css's
-   equivalent buttons; background already tracks the theme via var(--bg). */
-:root[data-theme="dark"] .deleteButton {
-  border-color: #9aa4b8;
-}
-
-:root[data-theme="dark"] .deleteButton:hover {
-  background: #262b35;
-}
-
-/* Groups the cascade-impact warning paragraph with the Confirm delete/Cancel
-   pair so they wrap together as a unit (see .itemConfirming above). */
 .confirmDeleteGroup {
   display: flex;
   flex-direction: column;
@@ -92,83 +86,51 @@
   flex: 1 1 260px;
 }
 
-/* Deleting a building cascade-deletes all of its elevators server-side (see
-   App.tsx's handleBuildingDeleted) — this states that consequence as
-   visible copy, not just an aria-label, so a sighted user reads it before
-   confirming too. Reuses the same amber "warning" palette already validated
-   in StatusBadge.module.css's .warning (#7a5200 on #fff6e0, ~6.4:1 contrast,
-   comfortably clearing WCAG AA's 4.5:1) rather than inventing a new color. */
 .deleteWarning {
   align-self: stretch;
   margin: 0;
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
-  background-color: #fff6e0;
-  color: #7a5200;
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning-fg);
+  border: 1px solid var(--badge-warning-border);
   font-size: 0.85rem;
   font-weight: 600;
   text-align: left;
 }
 
-/* Dark-mode counterpart for the Warning palette, same pairing StatusBadge
-   .module.css uses for its own .warning dark variant: ~9.3:1 text-on-bg. */
-:root[data-theme="dark"] .deleteWarning {
-  background-color: #3a2c05;
-  color: #ffcf70;
-}
-
-/* Confirm delete/Cancel: intentionally matches LedgerPage.module.css's
-   .confirmDeleteButton/.cancelDeleteButton exactly (colors, spacing,
-   hover/focus-visible), not this file's own .deleteButton or
-   forms.module.css's .primaryButton/.secondaryButton — reusing the rust
-   "primary submit" color here would visually conflate a destructive,
-   cascading delete with a routine form-submit action. Colors are duplicated
-   rather than imported cross-module, same rationale as LedgerPage's copy of
-   this pair. */
 .confirmDeleteButton,
 .cancelDeleteButton {
   font: inherit;
+  font-size: 0.8125rem;
   font-weight: 600;
-  padding: 0.3rem 0.7rem;
-  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-/* border/background use var(--text) and text uses var(--bg) — same
-   inverted "commits" button dark-mode treatment as
-   LedgerPage.module.css's .saveDateButton/.confirmDeleteButton: pixel-
-   identical in light mode, flips to a light surface (~14.9:1) on dark bg
-   instead of the old near-black-on-near-black collision the task called
-   out for this "dark primary button" pattern. */
 .confirmDeleteButton {
   font-weight: 700;
-  border: 1px solid var(--text);
-  background-color: var(--text);
-  color: var(--bg);
+  border: 1px solid var(--status-delinquent-fg);
+  background-color: var(--status-delinquent-fg);
+  color: #ffffff;
 }
 
 .confirmDeleteButton:hover:not(:disabled) {
-  background-color: #333a4a;
-  border-color: #333a4a;
-}
-
-:root[data-theme="dark"] .confirmDeleteButton:hover:not(:disabled) {
-  background-color: #c7cbd6;
-  border-color: #c7cbd6;
+  opacity: 0.9;
+  filter: brightness(0.9);
 }
 
 .cancelDeleteButton {
-  border: 1px solid var(--text-muted);
-  background-color: transparent;
-  color: var(--text);
+  border: 1px solid var(--hairline-strong);
+  background-color: var(--surface);
+  color: var(--ink-quiet);
 }
 
 .cancelDeleteButton:hover:not(:disabled) {
-  background-color: #f0f1f3;
-}
-
-:root[data-theme="dark"] .cancelDeleteButton:hover:not(:disabled) {
-  background-color: #262b35;
+  background-color: var(--surface-sunken);
+  color: var(--ink);
 }
 
 .confirmDeleteButton:disabled,
