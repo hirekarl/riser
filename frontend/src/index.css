@@ -5,11 +5,11 @@
   --font-mono: "Riser Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Default Light Tokens */
-  --rust: #b4805a;
-  --rust-strong: #a8672e;
+  --rust: #8c5228;
+  --rust-strong: #7d441e;
   --rust-tint: #ffffff;
   --rust-tint-border: #bba995;
-  --rust-accent: #b4805a;
+  --rust-accent: #8c5228;
   --rust-accent-light: #fbf5ec;
   --rust-accent-border: #d8ccb6;
 
@@ -29,13 +29,13 @@
 
   --ink: #1c1a17;
   --ink-quiet: #4b4438;
-  --taupe: #8b7c68;
+  --taupe: #5e5241;
   --hairline: #e7dfd1;
   --hairline-strong: #d8ccb6;
 
   --text: #1c1a17;
   --text-secondary: #4b4438;
-  --text-muted: #8b7c68;
+  --text-muted: #5e5241;
   --border: #e7dfd1;
   --border-strong: #d8ccb6;
   --focus: #1c3a63;
@@ -47,7 +47,7 @@
   --status-compliant-bg: #e7f7ee;
   --status-compliant-fg: #1d7a46;
   --status-warning-bg: #fef7e6;
-  --status-warning-fg: #b47514;
+  --status-warning-fg: #8a5400;
   --status-delinquent-bg: #fdf0ee;
   --status-delinquent-fg: #b53027;
 
@@ -134,11 +134,11 @@
 }
 
 :root[data-theme="light"] {
-  --rust: #b4805a;
-  --rust-strong: #a8672e;
+  --rust: #8c5228;
+  --rust-strong: #7d441e;
   --rust-tint: #ffffff;
   --rust-tint-border: #bba995;
-  --rust-accent: #b4805a;
+  --rust-accent: #8c5228;
   --rust-accent-light: #fbf5ec;
   --rust-accent-border: #d8ccb6;
 
@@ -158,13 +158,13 @@
 
   --ink: #1c1a17;
   --ink-quiet: #4b4438;
-  --taupe: #8b7c68;
+  --taupe: #5e5241;
   --hairline: #e7dfd1;
   --hairline-strong: #d8ccb6;
 
   --text: #1c1a17;
   --text-secondary: #4b4438;
-  --text-muted: #8b7c68;
+  --text-muted: #5e5241;
   --border: #e7dfd1;
   --border-strong: #d8ccb6;
   --focus: #1c3a63;
@@ -176,7 +176,7 @@
   --status-compliant-bg: #e7f7ee;
   --status-compliant-fg: #1d7a46;
   --status-warning-bg: #fef7e6;
-  --status-warning-fg: #b47514;
+  --status-warning-fg: #8a5400;
   --status-delinquent-bg: #fdf0ee;
   --status-delinquent-fg: #b53027;
 
