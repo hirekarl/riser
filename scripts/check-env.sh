@@ -28,7 +28,7 @@ if command -v node >/dev/null 2>&1; then
     if [ "$node_version" = "$expected" ]; then
       pass "node $node_version matches frontend/.nvmrc"
     else
-      warn "node $node_version != frontend/.nvmrc ($expected) — consider: nvm use"
+      warn "node $node_version != frontend/.nvmrc ($expected) — run: (cd frontend && nvm use && npm ci). The pre-commit/pre-push hooks run vitest with whatever node is on PATH: on an unsupported node version, jsdom's internals (e.g. localStorage) can misbehave and fail tests in ways that look like real bugs but are pure environment drift — switch node and reinstall node_modules before chasing a frontend test failure that mentions jsdom internals."
     fi
   else
     pass "node installed ($node_version)"
