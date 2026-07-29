@@ -140,9 +140,33 @@ async function mockApi(page: Page) {
   });
 }
 
+/** Switches to the outer "Manage Portfolio" tab, where the address-lookup
+ * form, the manual building/elevator forms, and the buildings list now live
+ * — they only exist in the DOM (and are only interactable) while this outer
+ * tab is active. Scoped through the outer tablist's distinct aria-label
+ * since the inner Ledger/Timeline tab pair also has a "Ledger"-named tab. */
+async function goToManagePortfolio(page: Page) {
+  await page
+    .getByRole("tablist", { name: /portfolio sections/i })
+    .getByRole("tab", { name: /manage portfolio/i })
+    .click();
+}
+
+/** Switches back to the outer "Ledger" tab, where the stat band, AI
+ * narration panel, and the inner Ledger/Timeline tab pair live. */
+async function goToOuterLedger(page: Page) {
+  await page
+    .getByRole("tablist", { name: /portfolio sections/i })
+    .getByRole("tab", { name: /^ledger$/i })
+    .click();
+}
+
 /** Adds a building via the "Add a building" form — mirrors the inline
- * add-building steps repeated across this file's existing tests. */
+ * add-building steps repeated across this file's existing tests. Navigates
+ * to the outer "Manage Portfolio" tab first, since that's the only place
+ * this form is reachable. */
 async function addBuilding(page: Page, name: string, address: string) {
+  await goToManagePortfolio(page);
   const buildingForm = page.getByRole("form", { name: /^add a building$/i });
   await buildingForm.getByLabel(/building name/i).fill(name);
   await buildingForm.getByLabel(/address/i).fill(address);
@@ -152,7 +176,8 @@ async function addBuilding(page: Page, name: string, address: string) {
 /** Adds an elevator to the given (already-added) building via the "Add an
  * elevator" form. Explicitly selects the building, unlike this file's
  * existing single-building tests which rely on the form's default
- * first-building selection. */
+ * first-building selection. Navigates to the outer "Manage Portfolio" tab
+ * first, since that's the only place this form is reachable. */
 async function addElevator(
   page: Page,
   building: string,
@@ -160,6 +185,7 @@ async function addElevator(
   inspectionType: "CAT1" | "CAT5",
   lastInspectionDate: string,
 ) {
+  await goToManagePortfolio(page);
   const elevatorForm = page.getByRole("form", { name: /add an elevator/i });
   await expect(elevatorForm.getByLabel(/^building$/i)).toBeEnabled();
   await elevatorForm.getByLabel(/^building$/i).selectOption({ label: building });
@@ -199,6 +225,7 @@ test("search box narrows the ledger table by device id and by building name, and
   await mockApi(page);
   await page.goto("/");
   await seedTwoBuildingsThreeElevators(page);
+  await goToOuterLedger(page);
 
   await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "EL-2", exact: true })).toBeVisible();
@@ -231,6 +258,7 @@ test("group-by-building groups rows under building headers, preserves urgency or
   await mockApi(page);
   await page.goto("/");
   await seedTwoBuildingsThreeElevators(page);
+  await goToOuterLedger(page);
 
   const table = page.getByRole("table");
 
@@ -275,7 +303,14 @@ test("group-by-building groups rows under building headers, preserves urgency or
   await editForm.getByRole("button", { name: /save changes/i }).click();
 
   await expect(page.getByRole("form", { name: /add an elevator/i })).toBeVisible();
+
+  // Edit auto-navigated away to the outer "Manage Portfolio" tab, unmounting
+  // (not just hiding) the outer Ledger panel — LedgerPage's own local
+  // group-by-building state is lost with it, so re-enable it after switching
+  // back rather than assuming it survived the round trip.
+  await goToOuterLedger(page);
   await expect(page.getByRole("cell", { name: "EL-2-RENAMED", exact: true })).toBeVisible();
+  await groupToggle.check({ force: true });
   // The renamed row is still correctly grouped under Tower A afterward.
   await expect(page.getByRole("row").filter({ hasText: /Tower A — 2 devices/ })).toBeVisible();
 });
@@ -352,6 +387,7 @@ test("full add building -> add elevator -> status color -> edit date -> status u
   await expect(page.getByText(/look up your first building by address/i)).toBeVisible();
 
   // Add a building.
+  await goToManagePortfolio(page);
   const buildingForm = page.getByRole("form", { name: /^add a building$/i });
   await buildingForm.getByLabel(/building name/i).fill("Tower A");
   await buildingForm.getByLabel(/address/i).fill("1 Main St");
@@ -368,6 +404,7 @@ test("full add building -> add elevator -> status color -> edit date -> status u
   await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
 
   // Ledger shows the new elevator with a Delinquent status, high-contrast red.
+  await goToOuterLedger(page);
   const row = page.getByRole("row").filter({ hasText: "EL-1" });
   await expect(row).toBeVisible();
   await expect(row.getByText(/delinquent/i)).toBeVisible();
@@ -399,6 +436,7 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
   await page.goto("/");
 
   // Add a building.
+  await goToManagePortfolio(page);
   const buildingForm = page.getByRole("form", { name: /^add a building$/i });
   await buildingForm.getByLabel(/building name/i).fill("Tower A");
   await buildingForm.getByLabel(/address/i).fill("1 Main St");
@@ -413,11 +451,14 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
   await elevatorForm.getByLabel(/last inspection date/i).fill("2020-01-01");
   await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
 
+  await goToOuterLedger(page);
   const row = page.getByRole("row").filter({ hasText: "EL-1" });
   await expect(row).toBeVisible();
   await expect(row.getByText(/delinquent/i)).toBeVisible();
 
-  // Open the full edit form for this row.
+  // Open the full edit form for this row — this auto-navigates the browser
+  // to the outer "Manage Portfolio" tab, since that's where the edit form
+  // (ElevatorForm) now lives.
   await row.getByRole("button", { name: /edit el-1/i }).click();
 
   const editForm = page.getByRole("form", { name: /edit an elevator/i });
@@ -456,14 +497,21 @@ test("edit an elevator via the ledger row's Edit button, updating its device ide
   await editForm.getByLabel(/last inspection date/i).fill(new Date().toISOString().slice(0, 10));
   await editForm.getByRole("button", { name: /save changes/i }).click();
 
-  // The form reverts to create mode after a successful save.
+  // The form reverts to create mode after a successful save. Still on the
+  // outer "Manage Portfolio" tab (Save does not auto-navigate back), so the
+  // ledger table itself is unreachable until switching back.
   await expect(page.getByRole("form", { name: /add an elevator/i })).toBeVisible();
+  await goToOuterLedger(page);
 
   // The ledger reflects the renamed device and its new, live-updated status.
   const updatedRow = page.getByRole("row").filter({ hasText: "EL-1-RENAMED" });
   await expect(updatedRow).toBeVisible();
   await expect(updatedRow.getByText(/compliant/i)).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: /^EL-1$/ })).toHaveCount(0);
+  // Cell-scoped (not row-scoped): an anchored regex against a row's entire
+  // concatenated cell text (e.g. `hasText: /^EL-1$/`) can never match once
+  // other cells (status/date/etc.) are present, so it would pass trivially
+  // regardless of whether the rename actually happened.
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toHaveCount(0);
   // Scoped to the ledger table itself (not the whole page): the page also
   // always contains the word "Delinquent" in the collapsed status-meaning
   // legend, and — since the status filter dropdown added its own
@@ -486,6 +534,7 @@ test("visually marks the row currently open in the Edit form, distinct from othe
   await mockApi(page);
   await page.goto("/");
 
+  await goToManagePortfolio(page);
   const buildingForm = page.getByRole("form", { name: /^add a building$/i });
   await buildingForm.getByLabel(/building name/i).fill("Tower A");
   await buildingForm.getByLabel(/address/i).fill("1 Main St");
@@ -506,6 +555,7 @@ test("visually marks the row currently open in the Edit form, distinct from othe
   await elevatorForm.getByLabel(/last inspection date/i).fill("2020-01-01");
   await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
 
+  await goToOuterLedger(page);
   const editedRow = page.getByRole("row").filter({ hasText: "EL-1" });
   const otherRow = page.getByRole("row").filter({ hasText: "EL-2" });
   await expect(editedRow).toBeVisible();
@@ -516,8 +566,12 @@ test("visually marks the row currently open in the Edit form, distinct from othe
     .first()
     .evaluate((el) => getComputedStyle(el).backgroundColor);
 
+  // Opening the Edit form auto-navigates to the outer "Manage Portfolio" tab,
+  // unmounting the outer Ledger panel (and the row within it) entirely — so
+  // switch back before re-inspecting the row's background.
   await editedRow.getByRole("button", { name: /edit el-1/i }).click();
   await expect(page.getByRole("form", { name: /edit an elevator/i })).toBeVisible();
+  await goToOuterLedger(page);
 
   const backgroundDuringEdit = await editedRow
     .locator("td")
@@ -534,7 +588,9 @@ test("visually marks the row currently open in the Edit form, distinct from othe
   expect(backgroundDuringEdit).not.toBe(otherRowBackground);
 
   // Accessibility: zero critical/serious violations with the edited-row
-  // treatment and the edit form both visible at once.
+  // treatment visible on the outer Ledger tab (the edit form itself is on
+  // the outer Manage Portfolio tab, unmounted here, per the auto-navigate
+  // behavior above).
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
   const seriousOrCritical = accessibilityScanResults.violations.filter((violation: Result) =>
     ["serious", "critical"].includes(violation.impact ?? ""),
@@ -550,6 +606,7 @@ test("ledger table does not cause horizontal page overflow on a narrow (phone-wi
   await page.goto("/");
 
   // Add a building.
+  await goToManagePortfolio(page);
   const buildingForm = page.getByRole("form", { name: /^add a building$/i });
   await buildingForm.getByLabel(/building name/i).fill("Tower A");
   await buildingForm.getByLabel(/address/i).fill("1 Main St");
@@ -564,6 +621,7 @@ test("ledger table does not cause horizontal page overflow on a narrow (phone-wi
   await elevatorForm.getByLabel(/last inspection date/i).fill("2020-01-01");
   await elevatorForm.getByRole("button", { name: /add elevator/i }).click();
 
+  await goToOuterLedger(page);
   const row = page.getByRole("row").filter({ hasText: "EL-1" });
   await expect(row).toBeVisible();
 

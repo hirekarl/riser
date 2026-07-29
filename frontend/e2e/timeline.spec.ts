@@ -113,7 +113,12 @@ test("Timeline tab shows status badges and a distinct urgent treatment for a row
   await mockApiWithSeedData(page);
   await page.goto("/");
 
-  await page.getByRole("tab", { name: /^timeline$/i }).click();
+  // Scoped through the inner "Ledger views" tablist: the outer "Portfolio
+  // sections" tablist also has a "Ledger"-named tab, so an unscoped query for
+  // the inner tab pair would be ambiguous (a Playwright strict-mode
+  // violation) once both tablists coexist in the DOM.
+  const innerTablist = page.getByRole("tablist", { name: /ledger views/i });
+  await innerTablist.getByRole("tab", { name: /^timeline$/i }).click();
 
   const soonRow = page.getByRole("row").filter({ hasText: "EL-SOON" });
   const laterRow = page.getByRole("row").filter({ hasText: "EL-LATER" });
@@ -153,8 +158,11 @@ test("the tab switcher shows a visibly distinct active tab and a visible focus r
   await mockApiWithSeedData(page);
   await page.goto("/");
 
-  const ledgerTab = page.getByRole("tab", { name: /^ledger$/i });
-  const timelineTab = page.getByRole("tab", { name: /^timeline$/i });
+  // Scoped through the inner "Ledger views" tablist — see the comment on the
+  // previous test for why an unscoped query here is ambiguous.
+  const innerTablist = page.getByRole("tablist", { name: /ledger views/i });
+  const ledgerTab = innerTablist.getByRole("tab", { name: /^ledger$/i });
+  const timelineTab = innerTablist.getByRole("tab", { name: /^timeline$/i });
 
   const [ledgerBackgroundBefore, timelineBackgroundBefore] = await Promise.all([
     ledgerTab.evaluate((el) => getComputedStyle(el).backgroundColor),

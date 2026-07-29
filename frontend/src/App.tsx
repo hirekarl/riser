@@ -18,6 +18,7 @@ import type { Building, BuildingFineExposure, LedgerEntry } from "./types/domain
 import styles from "./App.module.css";
 
 type Tab = "ledger" | "timeline";
+type Section = "ledger" | "portfolio";
 
 function App() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -29,6 +30,7 @@ function App() {
   const [reloadSignal, setReloadSignal] = useState(0);
   const [editingElevator, setEditingElevator] = useState<EditableElevator | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("ledger");
+  const [activeSection, setActiveSection] = useState<Section>("ledger");
 
   const loadBuildings = useCallback(() => {
     return listBuildings()
@@ -122,6 +124,20 @@ function App() {
       inspection_type: entry.inspection_type,
       last_inspection_date: entry.last_inspection_date,
     });
+    // ElevatorForm (the actual edit target) now lives on the Manage Portfolio
+    // outer tab, not alongside the ledger — without this, Edit would prime
+    // state with no visible effect since the form would mount on a hidden
+    // tab. Batched into the same render as the setEditingElevator call
+    // above, so ElevatorForm's own priming/scroll/focus effect (keyed on
+    // editingElevator?.id) still fires correctly on that same mount.
+    setActiveSection("portfolio");
+  }
+
+  // Threaded into LedgerPage's empty state so its "Go to Manage Portfolio"
+  // CTA can switch tabs, since the address-lookup/building/elevator forms are
+  // no longer on the same screen as the empty ledger.
+  function handleNavigateToPortfolio() {
+    setActiveSection("portfolio");
   }
 
   function handleElevatorUpdated() {
@@ -226,111 +242,167 @@ function App() {
           </div>
         )}
 
-        <AddressLookupForm onSaved={handleAddressLookupSaved} />
-
-        <p className={styles.formsDivider}>or add manually</p>
-
-        <div className={styles.formsRow}>
-          <BuildingForm onCreated={handleBuildingCreated} />
-          <ElevatorForm
-            buildings={buildings}
-            onCreated={handleElevatorCreated}
-            editingElevator={editingElevator}
-            onUpdated={handleElevatorUpdated}
-            onEditCancel={handleEditCancel}
-          />
+        {/* Outer Ledger / Manage Portfolio tab pair — reuses the exact same
+          native-button tab mechanism as the inner Ledger/Timeline pair
+          below (role="tab"/aria-selected/aria-controls, role="tabpanel"/
+          hidden, conditional mounting), rather than a different pattern.
+          Ledger is the default landing tab: the PRD calls the risk-triage
+          ledger the app's centerpiece, so it shouldn't require scrolling
+          past the portfolio-management forms to reach. */}
+        <div role="tablist" aria-label="Portfolio sections" className={styles.tabList}>
+          <button
+            type="button"
+            role="tab"
+            id="section-ledger-tab"
+            aria-selected={activeSection === "ledger"}
+            aria-controls="section-ledger-panel"
+            className={styles.tab}
+            onClick={() => setActiveSection("ledger")}
+          >
+            Ledger
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="section-portfolio-tab"
+            aria-selected={activeSection === "portfolio"}
+            aria-controls="section-portfolio-panel"
+            className={styles.tab}
+            onClick={() => setActiveSection("portfolio")}
+          >
+            Manage Portfolio
+          </button>
         </div>
 
-        <BuildingList
-          buildings={buildings}
-          fineExposures={fineExposures}
-          fineExposuresError={fineExposuresError}
-          onDeleted={handleBuildingDeleted}
-        />
+        <div
+          role="tabpanel"
+          id="section-ledger-panel"
+          aria-labelledby="section-ledger-tab"
+          hidden={activeSection !== "ledger"}
+        >
+          <h2 className="visually-hidden">Ledger and timeline</h2>
+          {activeSection === "ledger" && (
+            <main className={styles.main}>
+              {/* Portfolio-wide stat band — sits above the narration panel as
+                the page's lead at-a-glance summary, computed client-side
+                from data already fetched above (never a separate summary
+                endpoint). */}
+              <ExecutiveSummaryBand
+                entries={entries ?? []}
+                buildingsCount={buildings.length}
+                fineExposures={fineExposures}
+              />
 
-        <main className={styles.main}>
-          {/* Portfolio-wide stat band — sits above the narration panel as the
-            page's lead at-a-glance summary, computed client-side from data
-            already fetched above (never a separate summary endpoint). */}
-          <ExecutiveSummaryBand
-            entries={entries ?? []}
-            buildingsCount={buildings.length}
-            fineExposures={fineExposures}
-          />
+              {/* Placed above the ledger as the page's lead feature, per the
+                v3 design pass (docs/design/) — matches the "AI Executive
+                Briefing" position in the reference mockup. */}
+              <NarrationPanel />
 
-          {/* Placed above the ledger as the page's lead feature, per the v3
-            design pass (docs/design/) — matches the "AI Executive
-            Briefing" position in the reference mockup. */}
-          <NarrationPanel />
+              <div role="tablist" aria-label="Ledger views" className={styles.tabList}>
+                <button
+                  type="button"
+                  role="tab"
+                  id="ledger-tab"
+                  aria-selected={activeTab === "ledger"}
+                  aria-controls="ledger-panel"
+                  className={styles.tab}
+                  onClick={() => setActiveTab("ledger")}
+                >
+                  Ledger
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="timeline-tab"
+                  aria-selected={activeTab === "timeline"}
+                  aria-controls="timeline-panel"
+                  className={styles.tab}
+                  onClick={() => setActiveTab("timeline")}
+                >
+                  Timeline
+                </button>
+              </div>
 
-          <div role="tablist" aria-label="Ledger views" className={styles.tabList}>
-            <button
-              type="button"
-              role="tab"
-              id="ledger-tab"
-              aria-selected={activeTab === "ledger"}
-              aria-controls="ledger-panel"
-              className={styles.tab}
-              onClick={() => setActiveTab("ledger")}
-            >
-              Ledger
-            </button>
-            <button
-              type="button"
-              role="tab"
-              id="timeline-tab"
-              aria-selected={activeTab === "timeline"}
-              aria-controls="timeline-panel"
-              className={styles.tab}
-              onClick={() => setActiveTab("timeline")}
-            >
-              Timeline
-            </button>
-          </div>
+              <div
+                role="tabpanel"
+                id="ledger-panel"
+                aria-labelledby="ledger-tab"
+                hidden={activeTab !== "ledger"}
+              >
+                <h2 className="visually-hidden">Portfolio ledger</h2>
+                {/* Only the active tab's page component is mounted — besides
+                  avoiding pointless work for the hidden tab, this also
+                  sidesteps the same LedgerEntry data being findable twice
+                  (once per view) if both were mounted simultaneously. Both
+                  `<div role="tabpanel">` wrappers stay in the DOM regardless,
+                  toggled via `hidden`, so `aria-controls` on each tab always
+                  points at a real element. */}
+                {activeTab === "ledger" && (
+                  <ErrorBoundary>
+                    <LedgerPage
+                      entries={entries}
+                      error={entriesError}
+                      buildings={buildings}
+                      onEditRequest={handleEditRequest}
+                      editingElevatorId={editingElevator?.id}
+                      onElevatorUpdated={handleLedgerEntryUpdated}
+                      onSeeded={handleDemoDataSeeded}
+                      onNavigateToPortfolio={handleNavigateToPortfolio}
+                    />
+                  </ErrorBoundary>
+                )}
+              </div>
 
-          <div
-            role="tabpanel"
-            id="ledger-panel"
-            aria-labelledby="ledger-tab"
-            hidden={activeTab !== "ledger"}
-          >
-            <h2 className="visually-hidden">Portfolio ledger</h2>
-            {/* Only the active tab's page component is mounted — besides
-              avoiding pointless work for the hidden tab, this also
-              sidesteps the same LedgerEntry data being findable twice
-              (once per view) if both were mounted simultaneously. Both
-              `<div role="tabpanel">` wrappers stay in the DOM regardless,
-              toggled via `hidden`, so `aria-controls` on each tab always
-              points at a real element. */}
-            {activeTab === "ledger" && (
-              <ErrorBoundary>
-                <LedgerPage
-                  entries={entries}
-                  error={entriesError}
+              <div
+                role="tabpanel"
+                id="timeline-panel"
+                aria-labelledby="timeline-tab"
+                hidden={activeTab !== "timeline"}
+              >
+                <h2 className="visually-hidden">Upcoming compliance due dates</h2>
+                {activeTab === "timeline" && (
+                  <ErrorBoundary>
+                    <TimelinePage entries={entries} error={entriesError} />
+                  </ErrorBoundary>
+                )}
+              </div>
+            </main>
+          )}
+        </div>
+
+        <div
+          role="tabpanel"
+          id="section-portfolio-panel"
+          aria-labelledby="section-portfolio-tab"
+          hidden={activeSection !== "portfolio"}
+        >
+          <h2 className="visually-hidden">Manage portfolio</h2>
+          {activeSection === "portfolio" && (
+            <>
+              <AddressLookupForm onSaved={handleAddressLookupSaved} />
+
+              <p className={styles.formsDivider}>or add manually</p>
+
+              <div className={styles.formsRow}>
+                <BuildingForm onCreated={handleBuildingCreated} />
+                <ElevatorForm
                   buildings={buildings}
-                  onEditRequest={handleEditRequest}
-                  editingElevatorId={editingElevator?.id}
-                  onElevatorUpdated={handleLedgerEntryUpdated}
-                  onSeeded={handleDemoDataSeeded}
+                  onCreated={handleElevatorCreated}
+                  editingElevator={editingElevator}
+                  onUpdated={handleElevatorUpdated}
+                  onEditCancel={handleEditCancel}
                 />
-              </ErrorBoundary>
-            )}
-          </div>
+              </div>
 
-          <div
-            role="tabpanel"
-            id="timeline-panel"
-            aria-labelledby="timeline-tab"
-            hidden={activeTab !== "timeline"}
-          >
-            <h2 className="visually-hidden">Upcoming compliance due dates</h2>
-            {activeTab === "timeline" && (
-              <ErrorBoundary>
-                <TimelinePage entries={entries} error={entriesError} />
-              </ErrorBoundary>
-            )}
-          </div>
-        </main>
+              <BuildingList
+                buildings={buildings}
+                fineExposures={fineExposures}
+                fineExposuresError={fineExposuresError}
+                onDeleted={handleBuildingDeleted}
+              />
+            </>
+          )}
+        </div>
       </div>
     </ThemeProvider>
   );
