@@ -114,15 +114,21 @@
   background: var(--border);
 }
 
-/* Tab switcher — visual states: inactive (muted text), hover (darker text +
-   subtle fill), and active/selected (full-contrast text + surface fill +
-   an accent underline reusing --focus, the same token the ledger table's
-   row-highlight/editing-row treatments use, so "this is the active/selected
-   thing" reads consistently everywhere in the app). Focus-visible styling is
-   deliberately *not* redefined here — these are real <button> elements, so
-   they already inherit the global `:focus-visible` outline treatment from
-   index.css (3px solid var(--focus), 2px offset), the same ring every other
-   interactive control in the app uses. */
+/* Inner "Ledger views" tabs (Ledger/Timeline) — nested inside the outer
+   "Ledger" section panel, directly under the stat band + AI briefing card,
+   so this stays deliberately the *smaller, quieter* control: an understated
+   underline switcher, one step down in both type size and weight from the
+   outer .tabListOuter/.tabOuter pair below, so the two levels never read as
+   "four tabs in a row." Visual states: inactive (muted text), hover (darker
+   text + subtle fill), and active/selected (full-contrast text + surface
+   fill + an accent underline reusing --focus, the same token the ledger
+   table's row-highlight/editing-row treatments use, so "this is the
+   active/selected thing" reads consistently everywhere in the app).
+   Focus-visible styling is deliberately *not* redefined here — these are
+   real <button> elements, so they already inherit the global
+   `:focus-visible` outline treatment from index.css (3px solid var(--focus),
+   2px offset), the same ring every other interactive control in the app
+   uses. */
 .tabList {
   display: flex;
   gap: 0.5rem;
@@ -131,8 +137,9 @@
 
 .tab {
   font: inherit;
+  font-size: 0.9375rem;
   font-weight: 600;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.875rem;
   border: 1px solid transparent;
   border-bottom: none;
   border-radius: 6px 6px 0 0;
@@ -163,6 +170,58 @@
 
 .tab[aria-selected="true"]:hover {
   background: var(--bg-subtle);
+}
+
+/* Outer "Portfolio sections" tabs (Ledger/Manage Portfolio) — the page-level
+   choice a user makes about what they're doing, so it reads as primary
+   navigation: a filled segmented-pill track rather than an underline, with
+   larger/bolder labels and more generous padding than the inner .tabList/
+   .tab pair above. The two levels are told apart by *shape* as well as
+   scale (pill vs underline) so the distinction survives even a quick skim.
+   Selected state is a raised, opaque --bg-card pill with --shadow-card (not
+   a color change alone), which also keeps this mechanism visually distinct
+   from the inner tabs' underline-accent selected state — same underlying
+   `aria-selected` wiring, deliberately different visual metaphor per level.
+   Focus-visible is likewise left alone here for the same reason as .tab
+   above. */
+.tabListOuter {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.tabOuter {
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tabOuter:hover {
+  color: var(--text);
+  background: var(--bg-card);
+}
+
+.tabOuter[aria-selected="true"] {
+  background: var(--bg-card);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+
+.tabOuter[aria-selected="true"]:hover {
+  background: var(--bg-card);
 }
 
 .errorBanner {

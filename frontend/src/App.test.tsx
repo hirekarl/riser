@@ -837,6 +837,26 @@ describe("App", () => {
       expect(screen.queryByRole("form", { name: /add a building/i })).not.toBeInTheDocument();
     });
 
+    it("gives the outer section tabs a visually distinct treatment from the inner Ledger/Timeline tabs, so the two tab levels don't read as one row of four identical tabs", async () => {
+      vi.spyOn(client, "listBuildings").mockResolvedValue([]);
+      vi.spyOn(client, "listLedger").mockResolvedValue([]);
+
+      render(<App />);
+
+      const outerTablist = within(
+        await screen.findByRole("tablist", { name: /portfolio sections/i }),
+      );
+      const outerLedgerTab = outerTablist.getByRole("tab", { name: /^ledger$/i });
+      const innerTablist = within(await screen.findByRole("tablist", { name: /ledger views/i }));
+      const innerLedgerTab = innerTablist.getByRole("tab", { name: /^ledger$/i });
+
+      // Same accessible name ("Ledger") at both levels, but they must not
+      // share a class — otherwise the two hierarchy levels are visually
+      // indistinguishable, which is the exact regression this styling pass
+      // fixes.
+      expect(outerLedgerTab.className).not.toBe(innerLedgerTab.className);
+    });
+
     it("is keyboard-operable: an outer tab button can be focused and activated via Enter/Space, being a real <button>", async () => {
       vi.spyOn(client, "listBuildings").mockResolvedValue([]);
       vi.spyOn(client, "listLedger").mockResolvedValue([]);
