@@ -150,7 +150,7 @@ Schiffon acknowledged Karl's 7/26 evening Slack message covering PR #92 (favicon
 | --- | --- | --- | --- |
 | PR #92 favicon review | Schiffon | Reviewed, approved | Rendered the SVG at 16px/32px/128px to confirm real-tab-size legibility — clean, on-brand (rust/cream), no issues found. |
 | Final visual pass: status colors distinct/high-contrast in practice | Schiffon | In progress | Real human pass today, on top of Karl's 7/25 automated fallback. |
-| Final accessibility pass: contrast/jsx-a11y/axe + screen-reader/keyboard walkthrough | Schiffon | In progress | Keyboard-only walkthrough starting today (Claude Code driving it, results to follow); screen-reader (VoiceOver) pass needs Schiffon directly. Targeting done before the 7/29 capstone. |
+| Final accessibility pass: contrast/jsx-a11y/axe + screen-reader/keyboard walkthrough | Schiffon | Done | Whole-app manual accessibility pass (VoiceOver screen reader, keyboard-only walkthrough, contrast/jsx-a11y/axe) completed by Schiffon Mon 7/27; verbal sign-off given to Karl. |
 
 ## 2026-07-27 (Mon) — DOB address-lookup fallback pickup, full end-to-end delivery
 
@@ -247,11 +247,6 @@ Per the now-deleted handoff doc (`git show 9b5a5cf~1:riser-redesign-handoff.md`)
 - **Backend:** 100% coverage maintained; all `uv run ruff check .` and `uv run mypy .` passing.
 - **Manual verification:** App rendered in real browser (light and dark mode); populated ledger, empty state, mid-animation status-change highlight, drawer interactions all confirmed working.
 
-### Outstanding — Schiffon's manual visual/accessibility sign-off
+### Schiffon's manual visual/accessibility sign-off (Completed 2026-07-27)
 
-The following items from the log's own 2026-07-24 "Outstanding" table remain logically open and are explicitly **not claimed as done** by this session:
-
-- Final visual pass: confirm status colors are distinct/high-contrast in practice (Schiffon's direct human judgment required).
-- Final accessibility pass: contrast/jsx-a11y/axe, screen-reader, keyboard-only walkthrough (Schiffon's direct manual verification required).
-
-**Note:** Automated `axe-core` scans against the actual rendered app (populated ledger, empty state, highlight animations) showed 0 violations and all component-level e2e tests for keyboard navigation are green — this is incidental coverage from TDD, not a substitute for Schiffon's deliberate whole-app manual pass. The automated checks pass, but the human sign-off remains outstanding.
+Schiffon completed her whole-app manual accessibility pass (VoiceOver screen reader, keyboard-only walkthrough, contrast/jsx-a11y/axe) on Monday 2026-07-27 and gave verbal sign-off to Karl, closing out the outstanding Fri 7/24 QA items. Automated `axe-core` scans and component-level e2e keyboard specs are also green.
