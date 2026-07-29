@@ -27,6 +27,7 @@ describe("App", () => {
       id: 1,
       name: "Tower A",
       address: "1 Main St",
+      bin: null,
       created_at: "x",
       updated_at: "x",
     };
@@ -62,6 +63,7 @@ describe("App", () => {
       id: 1,
       name: "Tower A",
       address: "1 Main St",
+      bin: null,
       created_at: "x",
       updated_at: "x",
     };
@@ -141,6 +143,7 @@ describe("App", () => {
       id: 9,
       name: "Tower A",
       address: "350 5 AVENUE",
+      bin: "1001686",
       created_at: "x",
       updated_at: "x",
     };
@@ -524,7 +527,7 @@ describe("App", () => {
 
   it("shows an error banner when the portfolio-wide fine-exposure fetch fails", async () => {
     vi.spyOn(client, "listBuildings").mockResolvedValue([
-      { id: 1, name: "Tower A", address: "1 Main St", created_at: "x", updated_at: "x" },
+      { id: 1, name: "Tower A", address: "1 Main St", bin: null, created_at: "x", updated_at: "x" },
     ]);
     vi.spyOn(client, "listLedger").mockResolvedValue([]);
     const fineExposureError = new Error("network down");
@@ -624,6 +627,7 @@ describe("App", () => {
       id: 1,
       name: "Tower A",
       address: "1 Main St",
+      bin: null,
       created_at: "x",
       updated_at: "x",
     };
@@ -631,6 +635,7 @@ describe("App", () => {
       id: 2,
       name: "Tower B",
       address: "2 Main St",
+      bin: null,
       created_at: "x",
       updated_at: "x",
     };
@@ -753,6 +758,7 @@ describe("App", () => {
       id: 1,
       name: "Tower A",
       address: "1 Main St",
+      bin: null,
       created_at: "x",
       updated_at: "x",
     };

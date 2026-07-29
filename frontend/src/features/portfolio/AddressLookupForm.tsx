@@ -156,6 +156,7 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
       const building = await createBuilding({
         name: buildingName,
         address: match.resolved_address,
+        bin: match.bin,
       });
       for (const row of rows) {
         if (!row.included) continue;

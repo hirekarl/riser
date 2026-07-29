@@ -283,6 +283,7 @@ describe("AddressLookupForm", () => {
         expect(createBuildingSpy).toHaveBeenCalledWith({
           name: "Brooklyn Tower",
           address: "200 WATER STREET",
+          bin: "3001234",
         }),
       );
     });
@@ -334,6 +335,7 @@ describe("AddressLookupForm", () => {
         id: 9,
         name: "Tower A",
         address: "350 5 AVENUE",
+        bin: "1001686",
         created_at: "x",
         updated_at: "x",
       };
@@ -360,6 +362,7 @@ describe("AddressLookupForm", () => {
       expect(createBuildingSpy).toHaveBeenCalledWith({
         name: "Tower A",
         address: "350 5 AVENUE",
+        bin: "1001686",
       });
       expect(createElevatorSpy).not.toHaveBeenCalled();
     });
@@ -420,6 +423,7 @@ describe("AddressLookupForm", () => {
         id: 9,
         name: "Tower A",
         address: "350 5 AVENUE",
+        bin: "1001686",
         created_at: "x",
         updated_at: "x",
       };
@@ -454,6 +458,7 @@ describe("AddressLookupForm", () => {
       expect(createBuildingSpy).toHaveBeenCalledWith({
         name: "Tower A",
         address: "350 5 AVENUE",
+        bin: "1001686",
       });
       expect(createElevatorSpy).toHaveBeenCalledTimes(1);
       expect(createElevatorSpy).toHaveBeenCalledWith({
@@ -471,6 +476,7 @@ describe("AddressLookupForm", () => {
         id: 9,
         name: "Tower A",
         address: "350 5 AVENUE",
+        bin: "1001686",
         created_at: "x",
         updated_at: "x",
       };
@@ -513,6 +519,7 @@ describe("AddressLookupForm", () => {
         id: 9,
         name: "Tower A",
         address: "350 5 AVENUE",
+        bin: "1001686",
         created_at: "x",
         updated_at: "x",
       };

@@ -13,6 +13,7 @@ interface MockBuilding {
   id: number;
   name: string;
   address: string;
+  bin: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +51,7 @@ async function mockApiWithSeedData(page: Page) {
       id: 1,
       name: "Tower A",
       address: "1 Main St",
+      bin: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
@@ -57,6 +59,7 @@ async function mockApiWithSeedData(page: Page) {
       id: 2,
       name: "Tower B",
       address: "2 Main St",
+      bin: null,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
