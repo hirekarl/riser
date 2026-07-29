@@ -1,13 +1,17 @@
 /* v3 design pass: styled as a bordered "AI Executive Briefing" card,
-   distinct from the neutral form/ledger cards elsewhere on the page. */
+   distinct from the neutral form/ledger cards elsewhere on the page. A
+   rust-tinted card (wash background, rust left-border accent) rather than a
+   plain neutral border, so it reads as a distinct "AI" surface next to the
+   ledger/form cards elsewhere on the page. */
 .panel {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding: 1.25rem 1.5rem;
-  border: 1px solid #bba995;
+  border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--rust);
   border-radius: 12px;
-  background: var(--bg);
+  background: var(--rust-wash);
 }
 
 .headerRow {
@@ -18,7 +22,7 @@
 }
 
 .icon {
-  color: #b4805a;
+  color: var(--rust);
   font-size: 1.1rem;
   line-height: 1;
 }
@@ -40,17 +44,10 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #a8672e;
-  border: 1px solid #bba995;
+  color: var(--rust-strong);
+  border: 1px solid var(--rust);
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
-}
-
-/* #a8672e against the dark-mode --bg (#14161b) is ~4.0:1, just under WCAG
-   AA's 4.5:1 — lighten it for dark mode, same as .wordmarkNavy in
-   App.module.css. ~7.5:1 against --bg in dark mode. */
-:root[data-theme="dark"] .onDemandTag {
-  color: #d99a5c;
 }
 
 .description {
@@ -61,8 +58,10 @@
 
 /* Solid rust fill, not the design mockup's gradient — see the comment on
    .primaryButton in forms.module.css for why (WCAG contrast + the
-   backgroundColor-must-differ e2e check). Same rust family, one solid
-   shade. */
+   backgroundColor-must-differ e2e check). --rust-strong/--bg-card are
+   defined as an inverse pair across light/dark mode (dark-on-light in light
+   mode, light-on-dark in dark mode), so this fill/text pairing stays
+   readable in both themes without a separate dark-mode override. */
 .generateButton {
   align-self: flex-start;
   font: inherit;
@@ -70,14 +69,13 @@
   padding: 0.5rem 1.25rem;
   border-radius: 6px;
   cursor: pointer;
-  border: 1px solid #8f5525;
-  background-color: #8f5525;
-  color: #fff9f1;
+  border: 1px solid var(--rust-strong);
+  background-color: var(--rust-strong);
+  color: var(--bg-card);
 }
 
 .generateButton:hover:not(:disabled) {
-  background-color: #7a4720;
-  border-color: #7a4720;
+  opacity: 0.85;
 }
 
 .generateButton:disabled {
@@ -90,10 +88,24 @@
   font-size: 0.9rem;
 }
 
+/* One <p> per detected narration segment (see splitNarration in
+   NarrationPanel.tsx) — regular weight body text, with only a detected
+   leading "Label:" bolded via <strong>. Replaces a blanket font-weight: 600
+   on the whole response, which reads as a dense, undifferentiated wall of
+   bold text with no visual hierarchy. */
 .narration {
-  white-space: pre-wrap;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.narration p {
   margin: 0;
-  font-weight: 600;
+  font-weight: 400;
+}
+
+.narration strong {
+  font-weight: 700;
 }
 
 .timestamp {

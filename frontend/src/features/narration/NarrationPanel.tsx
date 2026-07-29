@@ -11,6 +11,56 @@ type PanelState =
   | { status: "success"; narration: string; generatedAt: string }
   | { status: "error" };
 
+interface NarrationSegment {
+  label: string | null;
+  body: string;
+}
+
+// A leading "Word Word:" prefix (1-4 capitalized words, e.g. "Attention
+// Required:", "Action Recommended:") — matches the two-line structure the v3
+// design mockup shows for the AI narration, without hardcoding those exact
+// two labels: the real model output's wording isn't guaranteed to match the
+// mockup's placeholder text verbatim.
+const LABEL_LINE = /^([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,3}:)\s*([\s\S]*)$/;
+const INLINE_LABEL = /(?:^|\s)([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+){0,3}:)/g;
+
+/**
+ * Splits a narration string into one segment per detected "Label: body"
+ * line, so each can be rendered as its own paragraph with only the label
+ * bolded — rather than the whole response as one undifferentiated block.
+ * Falls back to a single unlabeled segment (rendered as plain body text,
+ * not bold) when no label structure is present at all, which is still
+ * strictly more readable than forcing every response into bold.
+ */
+function splitNarration(text: string): NarrationSegment[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  const lines = trimmed.split(/\n+/).filter((line) => line.trim().length > 0);
+  const rawSegments = lines.length > 1 ? lines : splitByInlineLabels(trimmed);
+
+  return rawSegments.map((segment) => {
+    const match = segment.match(LABEL_LINE);
+    return match ? { label: match[1], body: match[2] } : { label: null, body: segment };
+  });
+}
+
+/** Splits a single unbroken string on 2+ inline "Label:" occurrences (e.g. a
+ * model response that ran both lines together without a newline between
+ * them). Returns the original text as a single segment when fewer than two
+ * labels are found — one match alone isn't enough to safely infer where a
+ * second segment would start. */
+function splitByInlineLabels(text: string): string[] {
+  const matches = [...text.matchAll(INLINE_LABEL)];
+  if (matches.length < 2) return [text];
+
+  return matches.map((match, index) => {
+    const start = match.index! + (match[0].startsWith(" ") ? 1 : 0);
+    const end = index + 1 < matches.length ? matches[index + 1].index! : text.length;
+    return text.slice(start, end).trim();
+  });
+}
+
 /**
  * On-demand panel that calls GET /api/ledger/narration/ and renders the
  * returned AI narration text. Strictly button-triggered — no auto-fetch or
@@ -53,7 +103,7 @@ export function NarrationPanel() {
           ◈
         </span>
         <h2 className={styles.heading}>
-          AI Portfolio Briefing <span className={styles.poweredBy}>— Powered by Claude</span>
+          AI Executive Briefing <span className={styles.poweredBy}>— Powered by Claude</span>
         </h2>
         <span className={styles.onDemandTag}>ON DEMAND</span>
       </div>
@@ -82,7 +132,14 @@ export function NarrationPanel() {
 
       {state.status === "success" && (
         <>
-          <p className={styles.narration}>{state.narration}</p>
+          <div className={styles.narration}>
+            {splitNarration(state.narration).map((segment, index) => (
+              <p key={index}>
+                {segment.label && <strong>{segment.label} </strong>}
+                {segment.body}
+              </p>
+            ))}
+          </div>
           <p className={styles.timestamp}>
             Generated{" "}
             <time dateTime={state.generatedAt}>

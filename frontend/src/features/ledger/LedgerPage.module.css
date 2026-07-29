@@ -187,6 +187,197 @@
   color: var(--text-muted);
 }
 
+/* Ledger section header: an eyebrow-style title plus a live "N devices
+   across M buildings" count (always describing the full unfiltered
+   `entries`, never the post-filter/search subset — see the comment on
+   `uniqueBuildingCount` in LedgerPage.tsx), with the group-by-building
+   toggle at the trailing edge. */
+.ledgerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ledgerTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.ledgerTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ledgerCount {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Group-by-building toggle switch: a visually-hidden checkbox driving a
+   custom track, so it reads as an on/off switch rather than a checkbox.
+   Track/thumb colors track the theme via var(--text-muted)/var(--bg); the
+   "on" state reuses var(--navy), which already has its own dark-mode value
+   in index.css, so no separate dark-mode override is needed here. */
+.groupToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.groupToggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.switchTrack {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  position: relative;
+  transition: background 0.15s ease;
+  flex: none;
+}
+
+.switchTrack::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.groupToggle input:checked + .switchTrack {
+  background: var(--navy);
+}
+
+.groupToggle input:checked + .switchTrack::after {
+  transform: translateX(14px);
+}
+
+.groupToggle input:focus-visible + .switchTrack {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Group header row, shown between building groups when grouping is active —
+   a single full-width cell naming the building and its device count, no
+   per-column data, so it reads as a section divider rather than a data row. */
+.groupRow td {
+  font-weight: 700;
+  padding: 0.5rem 0.8rem;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Building filter, as a chip row (role="group") — pill buttons, one active
+   at a time. The active chip is a solid navy fill (clears WCAG contrast by
+   a wide margin); inactive chips use an outlined/ghost treatment matching
+   this app's existing .cancelDateButton/.cancelDeleteButton pattern. */
+.chipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chip,
+.chipActive {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.4375rem 0.8125rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip {
+  border: 1px solid var(--text-muted);
+  background: transparent;
+  color: var(--text);
+}
+
+.chip:hover {
+  background: var(--bg-subtle);
+}
+
+.chipActive {
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  color: var(--navy-header-text);
+}
+
+.chipActive:hover {
+  filter: brightness(0.94);
+}
+
+/* Search box: styled to match the .filterRow select's field treatment
+   (same border/background/focus language) but as a plain text input rather
+   than a dropdown. */
+.searchInput {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4375rem 0.75rem;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  min-width: 220px;
+}
+
+.searchInput:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+/* Due-date urgency color-coding — the ledger's signature visual feature.
+   Shares its color language (var(--due-overdue)/var(--due-soon)/
+   var(--due-ok), aliased in index.css to the same badge palette
+   StatusBadge already uses) with any other surface showing due-date
+   urgency, so "how urgent is this" reads the same everywhere. */
+.dueOverdue {
+  color: var(--due-overdue);
+  font-weight: 600;
+}
+
+.dueSoon {
+  color: var(--due-soon);
+  font-weight: 600;
+}
+
+.dueOk {
+  color: var(--due-ok);
+}
+
+.dueSubtext {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
 .filterRow {
   display: flex;
   align-items: center;
@@ -216,6 +407,11 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%23566274' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.625rem center;
+  /* Same fix as forms.module.css's .field select: this SVG has no intrinsic
+     size (viewBox only), so without an explicit background-size the default
+     sizing algorithm scales it to fill the whole select box — a chevron far
+     larger than intended. 10x6px matches a typical native-select chevron. */
+  background-size: 10px 6px;
 }
 
 .filterRow select:focus {
@@ -338,19 +534,45 @@
   opacity: 0.6;
 }
 
-.editButton {
-  font: inherit;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid #7a8091;
-  border-radius: 6px;
-  background: var(--bg);
-  cursor: pointer;
+/* Row-actions layout for the trailing Actions column (Edit/Delete plus the
+   secondary Remediation steps/Device details links). Two deliberate rows
+   instead of leaving four-plus inline elements to wrap wherever the browser
+   happens to break — row 1 groups the equal-weight primary actions (Edit,
+   and either Delete or its Confirm/Cancel pair); row 2 groups the
+   lower-priority text-style links. Both rows left-align and share the same
+   column, so the two rows read as one deliberate block rather than two
+   unrelated groups. */
+.actionsCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 
+.actionsPrimary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.actionsSecondary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* Edit and Delete deliberately share one visual weight class (same border,
+   background, padding, radius) — see the product feedback this addresses:
+   these are the row's two primary, equal-priority actions, so neither
+   should read as more "default" than the other. */
+.editButton,
 .deleteButton {
   font: inherit;
   padding: 0.3rem 0.7rem;
-  margin-left: 0.4rem;
+  min-width: 4.5rem;
+  text-align: center;
   border: 1px solid #7a8091;
   border-radius: 6px;
   background: var(--bg);
@@ -382,7 +604,6 @@
 .deleteActions {
   display: inline-flex;
   gap: 0.4rem;
-  margin-left: 0.4rem;
 }
 
 .confirmDeleteButton,
@@ -437,7 +658,6 @@
 .detailsButton {
   font: inherit;
   padding: 0.3rem 0.7rem;
-  margin-left: 0.4rem;
   border: 1px solid #1c3a63;
   border-radius: 6px;
   background: var(--bg);
@@ -460,6 +680,31 @@
 
 :root[data-theme="dark"] .detailsButton:hover {
   background: #1a2436;
+}
+
+/* Opens the ElevatorDetailDrawer (a slide-over panel with the row's full
+   detail set) for this row. Deliberately defined exactly once in this file
+   — a previous draft accidentally defined `.detailLink` twice with
+   different colors/padding, where the second definition silently won and
+   the first was dead code. */
+.detailLink {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--rust);
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.detailLink:hover {
+  text-decoration: underline;
+  color: var(--rust-strong);
 }
 
 .detailCell {
@@ -525,27 +770,47 @@
   color: var(--text-muted);
 }
 
-/* Open-violation indicator (issue #120), shown alongside StatusBadge. Deep
-   red text on a light red chip mirrors .errorBanner's palette (~8:1+
-   contrast) rather than inventing a new hue, and pairs an icon with the
-   text label so this never relies on color alone (WCAG 1.4.1), matching
-   StatusBadge's own icon+text convention. */
+/* Status cell wrapper: groups StatusBadge with the open-violation indicator
+   (when present) as one compound unit with a consistent, deliberate gap
+   between them, rather than the two pills relying on the indicator's own
+   margin-left to separate from whatever precedes it. */
+.statusCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Open-violation indicator (issue #120), shown alongside StatusBadge in the
+   same cell. Deliberately shares StatusBadge's exact pill geometry (padding,
+   font-size, font-weight, line-height, border-radius, border width — see
+   .badge in StatusBadge.module.css) so the two read as one coherent badge
+   family rather than two mismatched shapes bumped up against each other.
+   Differentiated by color instead: StatusBadge's palette is all reds/ambers/
+   greens (severity), so this uses the app's other brand hue (navy, the same
+   --navy-soft/-border/-text trio already used for the "chip" language
+   elsewhere — .panelIcon, .field select) to read as a distinct *category* of
+   information (an additional flag) rather than a competing severity color.
+   Icon+text still pairs with color per WCAG 1.4.1, matching StatusBadge's
+   own convention. Tokens re-derive automatically per theme, so (unlike the
+   red palette this replaced) no separate dark-mode override block is
+   needed. */
 .violationBadge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  margin-left: 0.5rem;
-  padding: 0.15rem 0.5rem;
+  gap: 0.4em;
+  padding: 0.25em 0.75em;
   border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: #fdecea;
-  color: #9c1c12;
-  border: 1px solid #9c1c12;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  background-color: var(--navy-soft);
+  color: var(--navy-soft-text);
+  border: 2px solid var(--navy-soft-border);
 }
 
-:root[data-theme="dark"] .violationBadge {
-  background-color: #3a1512;
-  color: #ff9c92;
-  border-color: #ff9c92;
+.violationIcon {
+  font-size: 1em;
+  line-height: 1;
 }

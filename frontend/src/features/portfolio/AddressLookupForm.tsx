@@ -183,21 +183,74 @@ export function AddressLookupForm({ onSaved }: AddressLookupFormProps) {
 
   return (
     <div className={styles.form}>
-      <h2>Look up an address</h2>
+      <div className={styles.panelHead}>
+        <span className={styles.panelIcon} aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M4 17.5V5.2L10 2.5l6 2.7v12.3"
+              stroke="var(--navy-soft-text)"
+              strokeWidth="1.4"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M7 8.5h.01M10 8.5h.01M13 8.5h.01M7 11.5h.01M10 11.5h.01M13 11.5h.01"
+              stroke="var(--navy-soft-text)"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+            <path
+              d="M8.3 17.5v-4.2h3.4v4.2"
+              stroke="var(--navy-soft-text)"
+              strokeWidth="1.4"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        <h2 className={styles.panelTitle}>
+          Building Lookup
+          <small>NYC DOB Integration</small>
+        </h2>
+      </div>
       <form aria-label="Look up building by address" onSubmit={handleSubmit}>
         <div className={styles.field}>
-          <label htmlFor={addressId}>Street address</label>
+          <label htmlFor={addressId} className={styles.fieldLabelEyebrow}>
+            Building address
+          </label>
           <input
             id={addressId}
             type="text"
+            className={styles.fieldNavy}
+            placeholder="Enter building address…"
             value={address}
             required
             onChange={(event) => setAddress(event.target.value)}
           />
         </div>
-        <button type="submit" className={styles.primaryButton} disabled={isLoading}>
-          Look up address
+        <button
+          type="submit"
+          className={`${styles.primaryButton} ${styles.blockButton}`}
+          disabled={isLoading}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              d="M2 8.5 6 12l8-8"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Resolve & Verify
         </button>
+        <p className={styles.helperText}>
+          We match this against NYC DOB filings and show you exactly what's on file before anything
+          is added — nothing saves automatically.
+        </p>
       </form>
 
       {isLoading && (

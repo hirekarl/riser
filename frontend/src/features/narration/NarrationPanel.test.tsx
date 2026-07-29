@@ -39,7 +39,7 @@ describe("NarrationPanel", () => {
   it("shows the AI briefing heading, attributed to Claude, in every state", () => {
     render(<NarrationPanel />);
 
-    const heading = screen.getByRole("heading", { name: /ai portfolio briefing/i });
+    const heading = screen.getByRole("heading", { name: /ai executive briefing/i });
     expect(heading).toBeInTheDocument();
     expect(screen.getByText(/powered by claude/i)).toBeInTheDocument();
   });
@@ -232,5 +232,57 @@ describe("NarrationPanel", () => {
 
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("bolds only a detected 'Label:' prefix per line, not the whole response", async () => {
+    vi.spyOn(client, "fetchNarration").mockResolvedValue({
+      narration:
+        "Attention Required: 3 elevators are overdue.\nAction Recommended: File the CAT1 renewal first.",
+      generated_at: "2026-07-25T00:00:00Z",
+    });
+    const user = userEvent.setup();
+
+    render(<NarrationPanel />);
+    await user.click(screen.getByRole("button", { name: /generate briefing/i }));
+
+    const attentionLine = await screen.findByText(/3 elevators are overdue/i);
+    const attentionLabel = screen.getByText("Attention Required:");
+    expect(attentionLabel.tagName).toBe("STRONG");
+    expect(attentionLine.closest("p")).toContainElement(attentionLabel);
+
+    const actionLabel = screen.getByText("Action Recommended:");
+    expect(actionLabel.tagName).toBe("STRONG");
+    // The label is bold; the sentence that follows it is not.
+    expect(screen.getByText(/file the cat1 renewal first/i).closest("p")?.tagName).toBe("P");
+  });
+
+  it("renders unlabeled narration as plain (non-bold) text, not forced into a label structure", async () => {
+    vi.spyOn(client, "fetchNarration").mockResolvedValue({
+      narration: "Two elevators are delinquent and need attention this week.",
+      generated_at: "2026-07-25T00:00:00Z",
+    });
+    const user = userEvent.setup();
+
+    render(<NarrationPanel />);
+    await user.click(screen.getByRole("button", { name: /generate briefing/i }));
+
+    const paragraph = await screen.findByText(/two elevators are delinquent/i);
+    expect(paragraph.querySelector("strong")).toBeNull();
+  });
+
+  it("splits an inline (single-line) response on 2+ 'Label:' occurrences", async () => {
+    vi.spyOn(client, "fetchNarration").mockResolvedValue({
+      narration: "Attention Required: one overdue filing. Action Recommended: file it this week.",
+      generated_at: "2026-07-25T00:00:00Z",
+    });
+    const user = userEvent.setup();
+
+    render(<NarrationPanel />);
+    await user.click(screen.getByRole("button", { name: /generate briefing/i }));
+
+    expect(await screen.findByText("Attention Required:")).toBeInTheDocument();
+    expect(screen.getByText("Action Recommended:")).toBeInTheDocument();
+    expect(screen.getByText(/one overdue filing/i)).toBeInTheDocument();
+    expect(screen.getByText(/file it this week/i)).toBeInTheDocument();
   });
 });

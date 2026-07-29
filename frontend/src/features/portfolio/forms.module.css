@@ -1,21 +1,138 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.25rem;
+  gap: var(--space-4);
+  padding: var(--space-5);
   border: 1px solid var(--border);
   border-radius: 10px;
   text-align: left;
+  /* var(--shadow-card) already carries its own dark-mode value (see
+     index.css), so unlike the rest of this file's hand-rolled dark-mode
+     overrides, this needs no separate :root[data-theme="dark"] rule. */
+  box-shadow: var(--shadow-card);
 }
 
 .form h2 {
   margin: 0;
 }
 
+/* Secondary/manual-entry panel treatment (BuildingForm, and ElevatorForm's
+   create-mode "Add Device" panel) — visually de-emphasized relative to
+   AddressLookupForm's "Building Lookup" panel (which keeps the default
+   .form look: solid border, drop shadow) so a first-time user reads the
+   lookup panel as the primary/featured path and these as the secondary
+   fallback, echoing the same relationship .secondaryButton already has to
+   .primaryButton (outlined/lighter-weight vs. filled/bold). A dashed border
+   and no drop shadow reads as "lower-ceremony, optional path" without
+   looking broken or disabled. Not applied to ElevatorForm's edit-mode panel
+   — editing an existing elevator isn't an alternative to anything, so it
+   keeps the standard .form treatment. */
+.formSecondary {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  box-shadow: none;
+  background: var(--bg-subtle);
+}
+
+/* Explicit "why does this exist next to the lookup form" framing, read by
+   both sighted users (as body copy under the panel head) and screen reader
+   users (plain paragraph, no special treatment needed). */
+.fallbackHint {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Panel header: icon badge + eyebrow-style title/subtitle, matching the v3
+   design mockup's .panel-head/.panel-icon/.panel-title (docs/design/
+   riser-executive-dashboard.html) for the Building Lookup, Add Building, and
+   Add Device cards. */
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.panelIcon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Same navy-chip pair as the "drop box" select/date treatment below
+     (.field select / .dateNavy) — reuses --navy-soft/--navy-soft-border so
+     the icon badge and those fields read as one consistent navy-chip
+     language rather than independently-tuned near-duplicates. Themed
+     automatically via the token; no separate dark-mode override needed. */
+  background-color: var(--navy-soft);
+  border: 1px solid var(--navy-soft-border);
+}
+
+.panelIcon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.8125rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.panelTitle small {
+  display: block;
+  font-weight: 600;
+  font-size: 0.71875rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+}
+
+/* Eyebrow-style field label, matching the mockup's .field-label — used only
+   on the panels with a .panelHead above (Building Lookup, Add Building, Add
+   Device); the plain sentence-case .field label styling stays the default
+   elsewhere (e.g. AddressLookupForm's review-screen fields).
+   Selector is `.field label.fieldLabelEyebrow` (specificity 0,2,1) rather
+   than bare `.fieldLabelEyebrow` (0,1,0) so it reliably outranks
+   `.field label` (0,1,1) below for the font-weight/font-size it needs to
+   override — a bare single-class selector here would lose that fight and
+   silently render at the wrong size/weight. */
+.field label.fieldLabelEyebrow {
+  font-size: 0.71875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.helperText {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
+}
+
+/* The gap immediately before a form's commit button/action row, deliberately
+   larger than the var(--space-4) gap .form's flex layout already applies
+   between ordinary fields — so the submit action reads as a distinct,
+   deliberate "next step" rather than just one more item in the field stack.
+   Targets whichever element (a bare submit button, or ElevatorForm's
+   .actions row) immediately follows the last field. */
+.field + .primaryButton,
+.field + .actions {
+  margin-top: var(--space-2);
 }
 
 .field label {
@@ -39,21 +156,34 @@
 /* Matches the "drop box" treatment from the v3 design pass
    (docs/design/riser-executive-dashboard.html's .select-navy): a light
    navy-tinted field with a custom chevron instead of the browser default,
-   rather than looking like an unstyled native control. */
+   rather than looking like an unstyled native control. Colors come from the
+   --navy-soft/--navy-soft-border/--navy-soft-text trio (same one used by
+   .panelIcon above and .dateNavy below) so this reads as one consistent
+   "navy chip field" pattern rather than a hand-rolled one-off; the trio
+   already carries its own dark-mode values via index.css, so only the
+   chevron's inline SVG (which can't reference a CSS custom property inside
+   a data-URI) still needs an explicit dark-mode override below. */
 .field select {
   width: 100%;
   font: inherit;
   font-weight: 600;
   font-size: 0.875rem;
   padding: 0.6875rem 2.125rem 0.6875rem 0.8125rem;
-  background-color: #edf0f4;
-  color: #1c3a63;
-  border: 1px solid #c9d2de;
+  background-color: var(--navy-soft);
+  color: var(--navy-soft-text);
+  border: 1px solid var(--navy-soft-border);
   border-radius: 9px;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%23566274' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.8125rem center;
+  /* This SVG only declares a viewBox, not width/height, so it has no
+     intrinsic size — without an explicit background-size the CSS default
+     background-size algorithm scales it up to fill the entire background
+     positioning area (i.e. the whole select box), producing a chevron much
+     larger than intended and, on narrow selects, overlapping the option
+     text. 10x6px matches a typical native-select chevron. */
+  background-size: 10px 6px;
 }
 
 .field select:focus {
@@ -61,23 +191,74 @@
   outline-offset: 1px;
 }
 
-/* Dark-mode counterpart to the navy chip above — the light treatment's
-   #edf0f4/#1c3a63/#c9d2de trio doesn't work once inverted onto a dark page,
-   so this re-derives the same relationships (light text on a tinted navy
-   chip, muted chevron) against the dark palette instead of just lightening
-   a border like .field input's dark rule does: ~8.8:1 text-on-chip, ~5.7:1
-   chevron-on-chip, chip itself reads as a bounded control against
-   --bg/--bg-subtle the same way the light chip reads against white. */
+/* The navy-soft/-border/-text trio above already re-derives itself for dark
+   mode via index.css's tokens; only the chevron's inline SVG stroke color
+   (baked into a data-URI, so it can't reference a CSS custom property)
+   still needs an explicit swap here. */
 :root[data-theme="dark"] .field select {
-  background-color: #232e46;
-  color: #c3d1ea;
-  border-color: #5b6a94;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%239aa8cc' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* The single, deliberately dramatic "smart lookup" field (AddressLookupForm's
+   address input) — a solid dark navy gradient rather than the lighter
+   .field select/.dateNavy chip treatment, to visually set the AI-assisted
+   lookup apart from ordinary form fields. Both gradient stops are derived
+   from --navy (the same base hue as every other navy surface in this file)
+   rather than fresh hex, via a local --field-navy-deep custom property, so
+   this reads as "the same navy, darker" and re-derives itself automatically
+   per theme instead of needing a separate dark-mode override block.
+   var(--navy-header-text) for the field text mirrors the "text drawn on a
+   navy surface" pairing index.css already establishes for --navy-header —
+   white in light mode, warm off-white in dark — and clears WCAG AA by a
+   wide margin against both gradient stops in both themes, since the
+   gradient never leaves the dark end of the navy family. */
+.fieldNavy {
+  --field-navy-deep: color-mix(in srgb, var(--navy) 55%, black);
+  width: 100%;
+  font: inherit;
+  font-size: 0.90625rem;
+  background: linear-gradient(135deg, var(--navy), var(--field-navy-deep));
+  color: var(--navy-header-text);
+  border: 1px solid var(--field-navy-deep);
+  border-radius: 9px;
+  padding: 0.75rem 0.8125rem;
+}
+
+.fieldNavy::placeholder {
+  color: color-mix(in srgb, var(--navy-header-text) 50%, transparent);
+}
+
+.fieldNavy:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* Same navy-chip treatment as .field select, applied to the "Last inspection
+   date" input on ElevatorForm's create panel — matches the mockup's
+   .select-navy being reused on both <select> and <input type="date">
+   (docs/design/riser-executive-dashboard.html's #addDate). No chevron here,
+   so (unlike .field select) the token trio alone is enough — no separate
+   dark-mode override block needed. */
+.dateNavy {
+  width: 100%;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.6875rem 0.8125rem;
+  background-color: var(--navy-soft);
+  color: var(--navy-soft-text);
+  border: 1px solid var(--navy-soft-border);
+  border-radius: 9px;
+}
+
+.dateNavy:focus {
+  outline: 2px solid #8f5525;
+  outline-offset: 1px;
 }
 
 .actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .primaryButton,
@@ -89,7 +270,15 @@
   cursor: pointer;
 }
 
-/* The single committing action in a form (e.g. "Add elevator"/"Save
+/* Rule: the single committing action in a form is always .primaryButton;
+   .secondaryButton is reserved for Cancel/dismiss actions only. Every form
+   in this file (AddressLookupForm's lookup + save, BuildingForm's add,
+   ElevatorForm's add/save changes) must keep its one commit button on
+   .primaryButton even when it also gets .blockButton's full-width layout —
+   do not demote a create-mode submit to .secondaryButton just because it's
+   full-width, that produces an unjustified asymmetry with no visual
+   hierarchy rationale.
+   The single committing action in a form (e.g. "Add elevator"/"Save
    changes"): filled, bold, highest visual weight. Solid rust fill rather
    than the design mockup's diagonal gradient: a gradient under fixed light
    text can't clear WCAG AA contrast across its whole range (the mockup's
@@ -99,10 +288,28 @@
    e2e/ledger.spec.ts. #8f5525 is the same rust family, one solid shade,
    ~5.7:1 contrast against #fff9f1 text. */
 .primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   font-weight: 700;
   border: 1px solid #8f5525;
   background-color: #8f5525;
   color: #fff9f1;
+}
+
+.primaryButton svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* Full-width layout modifier, combined with .primaryButton on the single
+   panel-head forms (AddressLookupForm, BuildingForm, ElevatorForm's
+   create-mode submit) — never applied to .secondaryButton (see the rule
+   above .primaryButton). */
+.blockButton {
+  width: 100%;
 }
 
 .primaryButton:hover:not(:disabled) {

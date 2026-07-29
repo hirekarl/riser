@@ -3,16 +3,16 @@ import { deleteElevator, updateElevator } from "../../api/client";
 import { EmptyState } from "../../components/EmptyState";
 import { Spinner } from "../../components/Spinner";
 import { StatusBadge } from "../../components/StatusBadge";
+import { getDueUrgency } from "../../lib/dueUrgency";
 import { logError } from "../../lib/logger";
 import type { Building, ComplianceStatus, LedgerEntry } from "../../types/domain";
+import { ElevatorDetailDrawer } from "./ElevatorDetailDrawer";
 import styles from "./LedgerPage.module.css";
 
 // Matches the sweep-fade animation duration in LedgerPage.module.css, plus a
 // small margin, so the highlight class clears after the animation (or, under
 // prefers-reduced-motion, the static background) has had time to be seen.
 const HIGHLIGHT_DURATION_MS = 1800;
-
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 // Same urgency order the ledger endpoint itself sorts by (see LedgerEntry in
 // types/domain.ts) — the status filter's options follow that order rather
@@ -43,6 +43,12 @@ const SORTABLE_COLUMNS: { column: SortColumn; label: string }[] = [
   { column: "due_date", label: "Due date" },
 ];
 
+// Total column count of the table (the sortable columns above plus the
+// trailing, non-sortable Actions column) — used both for the header row and
+// for the colSpan of any full-width row (the expanded remediation panel, the
+// group-by-building section header).
+const COLUMN_COUNT = SORTABLE_COLUMNS.length + 1;
+
 // Status sorts by urgency rank (via STATUS_FILTER_OPTIONS' Delinquent > Warning
 // > Compliant order), not alphabetically; last_inspection_date/due_date are
 // plain YYYY-MM-DD strings, so lexicographic comparison is already
@@ -70,15 +76,11 @@ function getRemediationCopy(entry: LedgerEntry): {
   whereToGo: string;
   openViolationNote: string | null;
 } {
-  // entry.due_date is a date-only string, which Date parses as UTC midnight;
-  // normalize "now" to a UTC-midnight Date built from the local calendar date
-  // (not new Date() directly) so the diff isn't skewed by the viewer's
-  // timezone offset/time-of-day — the same UTC-date-only convention
+  // Sources its day-count math from the same shared helper the due-date
+  // column's urgency styling uses (frontend/src/lib/dueUrgency.ts), so the
+  // two never drift out of sync on the UTC-midnight-normalization convention
   // backend/apps/compliance/services.py uses for this math server-side.
-  const dueDate = new Date(entry.due_date);
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  const dayDiff = Math.round((dueDate.getTime() - today.getTime()) / MS_PER_DAY);
+  const { dayDiff } = getDueUrgency(entry);
 
   const whatsWrong =
     entry.status === "Delinquent"
@@ -119,8 +121,9 @@ export interface LedgerPageProps {
    */
   error?: string | null;
   /**
-   * Buildings available to filter the ledger by. The filter control only
-   * renders when this is non-empty.
+   * Buildings available to filter the ledger by. The building chip row and
+   * the group-by-building toggle only render when there's more than one
+   * (filtering/grouping by a single building has no effect).
    */
   buildings?: Building[];
   /**
@@ -161,12 +164,16 @@ export function LedgerPage({
   onElevatorUpdated,
   onSeeded = () => {},
 }: LedgerPageProps) {
-  const filterId = useId();
   const statusFilterId = useId();
+  const searchId = useId();
+  const groupToggleId = useId();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<ComplianceStatus | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [groupByBuilding, setGroupByBuilding] = useState(false);
+  const [detailDrawerEntry, setDetailDrawerEntry] = useState<LedgerEntry | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [justChangedIds, setJustChangedIds] = useState<Set<number>>(new Set());
   const [sort, setSort] = useState<SortState | null>(null);
@@ -318,21 +325,266 @@ export function LedgerPage({
 
   // LedgerEntry (see types/domain.ts) deliberately omits the building's
   // numeric id, exposing only `building_name` — so the filter matches by
-  // name rather than id. Both filters below only ever narrow the
+  // name rather than id. All three filters below only ever narrow the
   // already server-sorted `entries` down to a subset (order preserved, AND'd
   // together); neither ever re-sorts them. The trailing `.sort()` is a
   // deliberate exception to that: it only runs when `sort` is non-null, i.e.
   // the user explicitly clicked a sortable column header, not an incidental
   // client-side re-sort.
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
   const visibleEntries =
     entries === null
       ? null
       : entries
           .filter((entry) => !selectedBuilding || entry.building_name === selectedBuilding.name)
           .filter((entry) => !selectedStatus || entry.status === selectedStatus)
+          .filter(
+            (entry) =>
+              !normalizedSearch ||
+              entry.building_name.toLowerCase().includes(normalizedSearch) ||
+              entry.device_identifier.toLowerCase().includes(normalizedSearch) ||
+              (entry.dob_device_number?.toLowerCase().includes(normalizedSearch) ?? false) ||
+              entry.status.toLowerCase().includes(normalizedSearch),
+          )
           .slice()
           .sort((a, b) => (sort ? compareEntries(a, b, sort) : 0));
+
+  // "N devices across M buildings" always describes the full unfiltered
+  // `entries` array (and the distinct building names within it), never the
+  // post-filter/search `visibleEntries` — narrowing the visible rows via a
+  // filter or search shouldn't make this header read as if data went
+  // missing from the portfolio.
+  const uniqueBuildingCount = entries
+    ? new Set(entries.map((entry) => entry.building_name)).size
+    : 0;
+
+  // Groups preserve visibleEntries' existing status-urgency (and any active
+  // column sort's) order within each building, and buildings are ordered by
+  // first appearance in that same ordered list — so the most urgent
+  // building's group still leads, matching the flat view's overall priority
+  // ordering rather than falling back to something arbitrary like
+  // alphabetical.
+  const groupedEntries: { buildingName: string; entries: LedgerEntry[] }[] = [];
+  if (visibleEntries) {
+    const groupsByName = new Map<string, LedgerEntry[]>();
+    for (const entry of visibleEntries) {
+      const existing = groupsByName.get(entry.building_name);
+      if (existing) {
+        existing.push(entry);
+      } else {
+        groupsByName.set(entry.building_name, [entry]);
+      }
+    }
+    for (const [buildingName, groupEntries] of groupsByName) {
+      groupedEntries.push({ buildingName, entries: groupEntries });
+    }
+  }
+
+  function renderEntryRow(entry: LedgerEntry) {
+    const isEditingRow = editingElevatorId === entry.id;
+    const rowClassName =
+      [
+        justChangedIds.has(entry.id) ? styles.highlighting : null,
+        isEditingRow ? styles.editingRow : null,
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined;
+    const pendingDate = pendingDates[entry.id];
+    const hasPendingEdit = pendingDate !== undefined && pendingDate !== entry.last_inspection_date;
+    const isSaving = pendingId === entry.id;
+    const needsRemediation = entry.status === "Warning" || entry.status === "Delinquent";
+    const isExpanded = expandedId === entry.id;
+    const isConfirmingDelete = confirmingDeleteId === entry.id;
+    const isDeleting = deletingId === entry.id;
+    const urgency = getDueUrgency(entry);
+    const dueDateClassName =
+      urgency.level === "overdue"
+        ? styles.dueOverdue
+        : urgency.level === "soon"
+          ? styles.dueSoon
+          : styles.dueOk;
+
+    return (
+      <Fragment key={entry.id}>
+        <tr className={rowClassName}>
+          <td>
+            <span className={styles.statusCell}>
+              <StatusBadge status={entry.status} />
+              {entry.has_open_violation && (
+                <span className={styles.violationBadge}>
+                  <span className={styles.violationIcon} aria-hidden="true">
+                    ⚠
+                  </span>{" "}
+                  Open violation
+                </span>
+              )}
+            </span>
+          </td>
+          <td>{entry.building_name}</td>
+          <td>
+            {entry.device_identifier}
+            {entry.dob_device_number && (
+              <span className={styles.dobDeviceNumber}>(DOB #{entry.dob_device_number})</span>
+            )}
+          </td>
+          <td>{entry.inspection_type}</td>
+          <td>
+            <label>
+              <span className="visually-hidden">
+                Last inspection date for {entry.device_identifier}
+              </span>
+              <input
+                type="date"
+                className={styles.dateInput}
+                value={pendingDate ?? entry.last_inspection_date}
+                disabled={isSaving || isEditingRow}
+                onChange={(event) => handleDateInputChange(entry.id, event.target.value)}
+              />
+            </label>
+            {hasPendingEdit && (
+              <span className={styles.dateActions}>
+                <button
+                  type="button"
+                  className={styles.saveDateButton}
+                  aria-label={`Save inspection date for ${entry.device_identifier}`}
+                  disabled={isSaving}
+                  onClick={() => handleDateSave(entry.id)}
+                >
+                  {isSaving ? "Saving…" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.cancelDateButton}
+                  aria-label={`Cancel editing inspection date for ${entry.device_identifier}`}
+                  disabled={isSaving}
+                  onClick={() => handleDateCancel(entry.id)}
+                >
+                  Cancel
+                </button>
+              </span>
+            )}
+          </td>
+          <td>
+            <span className={dueDateClassName}>{entry.due_date}</span>
+            {urgency.subtext && <span className={styles.dueSubtext}>{urgency.subtext}</span>}
+          </td>
+          <td>
+            {/* Two deliberate rows rather than letting four+ controls wrap
+                wherever the browser happens to break the line: row 1 is the
+                primary, equal-weight Edit/Delete pair (or Edit alongside the
+                Confirm delete/Cancel pair once Delete is clicked); row 2 is
+                the lower-priority, text-style Remediation steps/Device
+                details links. Keeps action weight and alignment consistent
+                regardless of which optional buttons are present on a given
+                row. */}
+            <div className={styles.actionsCell}>
+              <div className={styles.actionsPrimary}>
+                <button
+                  type="button"
+                  className={styles.editButton}
+                  aria-label={`Edit ${entry.device_identifier}`}
+                  onClick={() => onEditRequest?.(entry)}
+                >
+                  Edit
+                </button>
+                {isConfirmingDelete ? (
+                  <span className={styles.deleteActions}>
+                    <button
+                      type="button"
+                      className={styles.confirmDeleteButton}
+                      aria-label={`Confirm delete ${entry.device_identifier}`}
+                      disabled={isDeleting}
+                      onClick={() => handleDeleteConfirm(entry.id)}
+                    >
+                      {isDeleting ? "Deleting…" : "Confirm delete"}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cancelDeleteButton}
+                      aria-label={`Cancel deleting ${entry.device_identifier}`}
+                      disabled={isDeleting}
+                      onClick={handleDeleteCancel}
+                    >
+                      Cancel
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.deleteButton}
+                    aria-label={`Delete ${entry.device_identifier}`}
+                    onClick={() => handleDeleteRequest(entry.id)}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+              <div className={styles.actionsSecondary}>
+                {needsRemediation && (
+                  <button
+                    type="button"
+                    className={styles.detailsButton}
+                    aria-label={`${isExpanded ? "Hide" : "Show"} remediation steps for ${entry.device_identifier}`}
+                    aria-expanded={isExpanded}
+                    onClick={() => handleToggleDetails(entry.id)}
+                  >
+                    {isExpanded ? "Hide remediation steps" : "Remediation steps"}
+                  </button>
+                )}
+                {/* Distinct from "Remediation steps" above: that's
+                    plain-language guidance on what to do next, this opens a
+                    structured reference view (raw inspection/violation data +
+                    the DOB BIS lookup link) — named "Device details" rather
+                    than a "full"/"more" variant of the other label so the two
+                    don't read as the same action at two depths. */}
+                <button
+                  type="button"
+                  className={styles.detailLink}
+                  aria-label={`View device details for ${entry.device_identifier}`}
+                  onClick={() => setDetailDrawerEntry(entry)}
+                >
+                  Device details <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {isExpanded && (
+          <tr>
+            <td colSpan={COLUMN_COUNT} className={styles.detailCell}>
+              {(() => {
+                const { whatsWrong, nextStep, whereToGo, openViolationNote } =
+                  getRemediationCopy(entry);
+                return (
+                  <dl className={styles.detailPanel}>
+                    <div>
+                      <dt>What&apos;s wrong</dt>
+                      <dd>{whatsWrong}</dd>
+                    </div>
+                    {openViolationNote && (
+                      <div>
+                        <dt>Open DOB safety violation</dt>
+                        <dd>{openViolationNote}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt>Next step</dt>
+                      <dd>{nextStep}</dd>
+                    </div>
+                    <div>
+                      <dt>Where to go</dt>
+                      <dd>{whereToGo}</dd>
+                    </div>
+                  </dl>
+                );
+              })()}
+            </td>
+          </tr>
+        )}
+      </Fragment>
+    );
+  }
 
   return (
     <div className={styles.wrapper}>
@@ -384,24 +636,68 @@ export function LedgerPage({
         </dl>
       </details>
 
-      {buildings.length > 0 && (
-        <div className={styles.filterRow}>
-          <label htmlFor={filterId}>Filter by building</label>
-          <select
-            id={filterId}
-            value={selectedBuildingId ?? ""}
-            onChange={(event) => {
-              const { value } = event.target;
-              setSelectedBuildingId(value === "" ? undefined : Number(value));
-            }}
+      {/* The whole toolbar (title, count, group-by toggle, chip row, search
+          box) renders together, gated on there being at least one entry —
+          nothing here is useful over an empty ledger. */}
+      {entries && entries.length > 0 && (
+        <div className={styles.ledgerHead}>
+          <div className={styles.ledgerTitleRow}>
+            <h2 className={styles.ledgerTitle}>Portfolio Ledger</h2>
+            <span className={styles.ledgerCount}>
+              {entries.length} device{entries.length === 1 ? "" : "s"} across {uniqueBuildingCount}{" "}
+              building{uniqueBuildingCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          {buildings.length > 1 && (
+            <label className={styles.groupToggle} htmlFor={groupToggleId}>
+              Group by building
+              <input
+                id={groupToggleId}
+                type="checkbox"
+                checked={groupByBuilding}
+                onChange={(event) => setGroupByBuilding(event.target.checked)}
+              />
+              <span className={styles.switchTrack} aria-hidden="true"></span>
+            </label>
+          )}
+        </div>
+      )}
+
+      {entries && entries.length > 0 && buildings.length > 1 && (
+        <div className={styles.chipRow} role="group" aria-label="Filter by building">
+          <button
+            type="button"
+            className={selectedBuildingId === undefined ? styles.chipActive : styles.chip}
+            aria-pressed={selectedBuildingId === undefined}
+            onClick={() => setSelectedBuildingId(undefined)}
           >
-            <option value="">All buildings</option>
-            {buildings.map((building) => (
-              <option key={building.id} value={building.id}>
-                {building.name}
-              </option>
-            ))}
-          </select>
+            All buildings
+          </button>
+          {buildings.map((building) => (
+            <button
+              key={building.id}
+              type="button"
+              className={selectedBuildingId === building.id ? styles.chipActive : styles.chip}
+              aria-pressed={selectedBuildingId === building.id}
+              onClick={() => setSelectedBuildingId(building.id)}
+            >
+              {building.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {entries && entries.length > 0 && (
+        <div className={styles.filterRow}>
+          <label htmlFor={searchId}>Search ledger</label>
+          <input
+            id={searchId}
+            type="search"
+            className={styles.searchInput}
+            placeholder="Search by building, device, DOB #, or status"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
         </div>
       )}
 
@@ -475,177 +771,23 @@ export function LedgerPage({
               </tr>
             </thead>
             <tbody>
-              {visibleEntries.map((entry) => {
-                const isEditingRow = editingElevatorId === entry.id;
-                const rowClassName =
-                  [
-                    justChangedIds.has(entry.id) ? styles.highlighting : null,
-                    isEditingRow ? styles.editingRow : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" ") || undefined;
-                const pendingDate = pendingDates[entry.id];
-                const hasPendingEdit =
-                  pendingDate !== undefined && pendingDate !== entry.last_inspection_date;
-                const isSaving = pendingId === entry.id;
-                const needsRemediation =
-                  entry.status === "Warning" || entry.status === "Delinquent";
-                const isExpanded = expandedId === entry.id;
-                const isConfirmingDelete = confirmingDeleteId === entry.id;
-                const isDeleting = deletingId === entry.id;
-
-                return (
-                  <Fragment key={entry.id}>
-                    <tr className={rowClassName}>
-                      <td>
-                        <StatusBadge status={entry.status} />
-                        {entry.has_open_violation && (
-                          <span className={styles.violationBadge}>
-                            <span aria-hidden="true">⚠</span> Open violation
-                          </span>
-                        )}
+              {groupByBuilding
+                ? groupedEntries.flatMap((group) => [
+                    <tr key={`group-${group.buildingName}`} className={styles.groupRow}>
+                      <td colSpan={COLUMN_COUNT}>
+                        {group.buildingName} — {group.entries.length} device
+                        {group.entries.length === 1 ? "" : "s"}
                       </td>
-                      <td>{entry.building_name}</td>
-                      <td>
-                        {entry.device_identifier}
-                        {entry.dob_device_number && (
-                          <span className={styles.dobDeviceNumber}>
-                            (DOB #{entry.dob_device_number})
-                          </span>
-                        )}
-                      </td>
-                      <td>{entry.inspection_type}</td>
-                      <td>
-                        <label>
-                          <span className="visually-hidden">
-                            Last inspection date for {entry.device_identifier}
-                          </span>
-                          <input
-                            type="date"
-                            className={styles.dateInput}
-                            value={pendingDate ?? entry.last_inspection_date}
-                            disabled={isSaving || isEditingRow}
-                            onChange={(event) =>
-                              handleDateInputChange(entry.id, event.target.value)
-                            }
-                          />
-                        </label>
-                        {hasPendingEdit && (
-                          <span className={styles.dateActions}>
-                            <button
-                              type="button"
-                              className={styles.saveDateButton}
-                              aria-label={`Save inspection date for ${entry.device_identifier}`}
-                              disabled={isSaving}
-                              onClick={() => handleDateSave(entry.id)}
-                            >
-                              {isSaving ? "Saving…" : "Save"}
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.cancelDateButton}
-                              aria-label={`Cancel editing inspection date for ${entry.device_identifier}`}
-                              disabled={isSaving}
-                              onClick={() => handleDateCancel(entry.id)}
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        )}
-                      </td>
-                      <td>{entry.due_date}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.editButton}
-                          aria-label={`Edit ${entry.device_identifier}`}
-                          onClick={() => onEditRequest?.(entry)}
-                        >
-                          Edit
-                        </button>
-                        {needsRemediation && (
-                          <button
-                            type="button"
-                            className={styles.detailsButton}
-                            aria-label={`${isExpanded ? "Hide" : "View"} details for ${entry.device_identifier}`}
-                            aria-expanded={isExpanded}
-                            onClick={() => handleToggleDetails(entry.id)}
-                          >
-                            {isExpanded ? "Hide details" : "View details"}
-                          </button>
-                        )}
-                        {isConfirmingDelete ? (
-                          <span className={styles.deleteActions}>
-                            <button
-                              type="button"
-                              className={styles.confirmDeleteButton}
-                              aria-label={`Confirm delete ${entry.device_identifier}`}
-                              disabled={isDeleting}
-                              onClick={() => handleDeleteConfirm(entry.id)}
-                            >
-                              {isDeleting ? "Deleting…" : "Confirm delete"}
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.cancelDeleteButton}
-                              aria-label={`Cancel deleting ${entry.device_identifier}`}
-                              disabled={isDeleting}
-                              onClick={handleDeleteCancel}
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            className={styles.deleteButton}
-                            aria-label={`Delete ${entry.device_identifier}`}
-                            onClick={() => handleDeleteRequest(entry.id)}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan={7} className={styles.detailCell}>
-                          {(() => {
-                            const { whatsWrong, nextStep, whereToGo, openViolationNote } =
-                              getRemediationCopy(entry);
-                            return (
-                              <dl className={styles.detailPanel}>
-                                <div>
-                                  <dt>What&apos;s wrong</dt>
-                                  <dd>{whatsWrong}</dd>
-                                </div>
-                                {openViolationNote && (
-                                  <div>
-                                    <dt>Open DOB safety violation</dt>
-                                    <dd>{openViolationNote}</dd>
-                                  </div>
-                                )}
-                                <div>
-                                  <dt>Next step</dt>
-                                  <dd>{nextStep}</dd>
-                                </div>
-                                <div>
-                                  <dt>Where to go</dt>
-                                  <dd>{whereToGo}</dd>
-                                </div>
-                              </dl>
-                            );
-                          })()}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
+                    </tr>,
+                    ...group.entries.map((entry) => renderEntryRow(entry)),
+                  ])
+                : visibleEntries.map((entry) => renderEntryRow(entry))}
             </tbody>
           </table>
         </div>
       ) : null}
+
+      <ElevatorDetailDrawer entry={detailDrawerEntry} onClose={() => setDetailDrawerEntry(null)} />
     </div>
   );
 }

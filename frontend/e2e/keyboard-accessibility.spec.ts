@@ -239,9 +239,16 @@ test("keyboard-only walkthrough: every control is reachable, operable, and visib
   expect(traceText).toContain("add elevator");
   expect(traceText).toContain("generate briefing");
   expect(traceText).toContain("what do these statuses mean");
-  expect(traceText).toContain("filter by building");
+  // The building filter is a chip row (role="group", individual buttons with
+  // aria-pressed) rather than a <select> — its group label itself isn't
+  // focusable, so the trace is checked against the chips themselves.
+  expect(traceText).toContain("all buildings");
+  expect(traceText).toContain("tower a");
+  expect(traceText).toContain("search ledger");
+  expect(traceText).toContain("group by building");
   expect(traceText).toContain("edit el-");
-  expect(traceText).toContain("view details");
+  expect(traceText).toContain("remediation steps");
+  expect(traceText).toContain("view device details");
 
   // No step should be missing a visible focus indicator — this is the
   // single most common real-world keyboard-accessibility failure (a control
@@ -269,14 +276,14 @@ test("keyboard-only: the status legend opens via keyboard, not just mouse click"
   await expect(page.getByText(/more than 30 days/i)).toBeVisible();
 });
 
-test("keyboard-only: View details expands/collapses the remediation panel without a mouse", async ({
+test("keyboard-only: Remediation steps expands/collapses the remediation panel without a mouse", async ({
   page,
 }) => {
   await mockApiWithSeedData(page);
   await page.goto("/");
 
   const row = page.getByRole("row").filter({ hasText: "EL-1" }); // Delinquent
-  const viewDetailsButton = row.getByRole("button", { name: /view details/i });
+  const viewDetailsButton = row.getByRole("button", { name: /remediation steps/i });
 
   await viewDetailsButton.focus();
   await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
@@ -319,16 +326,130 @@ test("keyboard-only: the elevator Edit form opens, is fully tabbable, and Cancel
   await expect(editForm).not.toBeVisible();
 });
 
-test("keyboard-only: the building filter select is fully operable via keyboard", async ({
+test("keyboard-only: the building filter chip row is fully operable via keyboard", async ({
   page,
 }) => {
   await mockApiWithSeedData(page);
   await page.goto("/");
 
-  const filterSelect = page.getByLabel(/filter by building/i);
-  await filterSelect.focus();
+  const chipGroup = page.getByRole("group", { name: /filter by building/i });
+  const towerBChip = chipGroup.getByRole("button", { name: "Tower B" });
+
+  await towerBChip.focus();
   await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
-  await filterSelect.selectOption({ label: "Tower B" });
+  await expect(towerBChip).toHaveAttribute("aria-pressed", "false");
+
+  // Buttons activate on Enter (and Space, per native button semantics) —
+  // Enter is exercised here since it's the more common expectation for a
+  // keyboard user tabbing through a row of chips.
+  await page.keyboard.press("Enter");
+
+  await expect(towerBChip).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("table")).toBeVisible();
   await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).not.toBeVisible();
+
+  // The "All buildings" chip un-narrows the table again, also via keyboard.
+  const allBuildingsChip = chipGroup.getByRole("button", { name: "All buildings" });
+  await allBuildingsChip.focus();
+  await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
+  await page.keyboard.press("Enter");
+  await expect(allBuildingsChip).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toBeVisible();
+});
+
+test("keyboard-only: the search box narrows the ledger table via keyboard", async ({ page }) => {
+  await mockApiWithSeedData(page);
+  await page.goto("/");
+
+  const searchBox = page.getByLabel(/search ledger/i);
+  await searchBox.focus();
+  await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
+
+  await page.keyboard.type("EL-3");
+  await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).not.toBeVisible();
+
+  // Clearing the box via keyboard (select-all + delete) restores the full list.
+  await page.keyboard.press("Control+A");
+  await page.keyboard.press("Delete");
+  await expect(page.getByRole("cell", { name: "EL-1", exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "EL-3", exact: true })).toBeVisible();
+});
+
+test("keyboard-only: the group-by-building toggle is operable via keyboard", async ({ page }) => {
+  await mockApiWithSeedData(page);
+  await page.goto("/");
+
+  const groupToggle = page.getByLabel(/group by building/i);
+  await groupToggle.focus();
+  await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
+  await expect(groupToggle).not.toBeChecked();
+
+  await page.keyboard.press(" ");
+
+  await expect(groupToggle).toBeChecked();
+  await expect(page.getByRole("row").filter({ hasText: /Tower A — 2 devices/ })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: /Tower B — 1 device/ })).toBeVisible();
+});
+
+test.describe("keyboard-only: ElevatorDetailDrawer", () => {
+  test("opens via the row's Device details button, moves focus to its close button, and Escape closes it back to a sensible focus target", async ({
+    page,
+  }) => {
+    await mockApiWithSeedData(page);
+    await page.goto("/");
+
+    const row = page.getByRole("row").filter({ hasText: "EL-1" });
+    const detailButton = row.getByRole("button", { name: /view device details for el-1/i });
+    await detailButton.focus();
+    await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
+    await page.keyboard.press("Enter");
+
+    const dialog = page.getByRole("dialog", { name: /device details — el-1/i });
+    await expect(dialog).toBeVisible();
+
+    // Focus must land on the drawer's own close button on open (per its
+    // useEffect), not stay on the trigger or fall back to <body>.
+    const closeButton = dialog.getByRole("button", { name: /close details drawer/i });
+    await expect(closeButton).toBeFocused();
+    await expect((await inspectFocused(page)).hasFocusRing).toBeTruthy();
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test("closing the drawer's close button via keyboard also dismisses it", async ({ page }) => {
+    await mockApiWithSeedData(page);
+    await page.goto("/");
+
+    const row = page.getByRole("row").filter({ hasText: "EL-2" });
+    await row.getByRole("button", { name: /view device details for el-2/i }).click();
+
+    const dialog = page.getByRole("dialog", { name: /device details — el-2/i });
+    await expect(dialog).toBeVisible();
+    const closeButton = dialog.getByRole("button", { name: /close details drawer/i });
+    await expect(closeButton).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test("clicking the backdrop closes the drawer", async ({ page }) => {
+    await mockApiWithSeedData(page);
+    await page.goto("/");
+
+    const row = page.getByRole("row").filter({ hasText: "EL-3" });
+    await row.getByRole("button", { name: /view device details for el-3/i }).click();
+
+    const dialog = page.getByRole("dialog", { name: /device details — el-3/i });
+    await expect(dialog).toBeVisible();
+
+    // The backdrop button is deliberately excluded from the tab order
+    // (tabIndex=-1, aria-hidden) — it's a mouse/touch-only dismiss affordance
+    // layered behind the real dialog, so it's exercised via a real click here
+    // rather than the keyboard-only helpers used elsewhere in this file.
+    await page.getByTestId("drawer-overlay").click({ force: true });
+    await expect(dialog).not.toBeVisible();
+  });
 });
