@@ -47,8 +47,8 @@ const ambiguousResponse: AddressLookupResponse = {
 };
 
 async function submitAddress(user: ReturnType<typeof userEvent.setup>, address = "350 5th Ave") {
-  await user.type(screen.getByLabelText(/street address/i), address);
-  await user.click(screen.getByRole("button", { name: /look up address/i }));
+  await user.type(screen.getByLabelText(/building address/i), address);
+  await user.click(screen.getByRole("button", { name: /resolve.*verify/i }));
 }
 
 describe("AddressLookupForm", () => {
@@ -63,8 +63,8 @@ describe("AddressLookupForm", () => {
   it("shows an address input and submit button in the idle state", () => {
     render(<AddressLookupForm onSaved={vi.fn()} />);
 
-    expect(screen.getByLabelText(/street address/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /look up address/i })).toBeEnabled();
+    expect(screen.getByLabelText(/building address/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /resolve.*verify/i })).toBeEnabled();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -86,11 +86,11 @@ describe("AddressLookupForm", () => {
     await submitAddress(user);
 
     expect(screen.getByRole("status")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /look up address/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /resolve.*verify/i })).toBeDisabled();
 
     resolveLookup(successResponse);
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /look up address/i })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /resolve.*verify/i })).toBeEnabled(),
     );
   });
 

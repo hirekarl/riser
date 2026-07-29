@@ -160,7 +160,28 @@ export function ElevatorForm({
       onSubmit={handleSubmit}
       aria-label={isEditing ? "Edit an elevator" : "Add an elevator"}
     >
-      <h2>{editingElevator ? `Edit "${editingElevator.device_identifier}"` : "Add an elevator"}</h2>
+      {isEditing ? (
+        <h2>{`Edit "${editingElevator.device_identifier}"`}</h2>
+      ) : (
+        <div className={styles.panelHead}>
+          <span className={styles.panelIcon} aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="7" stroke="#1c3a63" strokeWidth="1.4" />
+              <circle cx="10" cy="10" r="2.4" stroke="#1c3a63" strokeWidth="1.4" />
+              <path
+                d="M10 3v1.6M10 15.4V17M17 10h-1.6M4.6 10H3M15 5l-1.1 1.1M6.1 13.9 5 15M15 15l-1.1-1.1M6.1 6.1 5 5"
+                stroke="#1c3a63"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
+          <h2 className={styles.panelTitle}>
+            Add Device
+            <small>Manual entry</small>
+          </h2>
+        </div>
+      )}
       {error && (
         <div className={styles.errorBanner} role="alert">
           {error}
@@ -171,7 +192,9 @@ export function ElevatorForm({
       )}
       {!isEditing && (
         <div className={styles.field}>
-          <label htmlFor={buildingId}>Building</label>
+          <label htmlFor={buildingId} className={styles.fieldLabelEyebrow}>
+            Building
+          </label>
           <select
             id={buildingId}
             value={selectedBuilding}
@@ -188,7 +211,9 @@ export function ElevatorForm({
         </div>
       )}
       <div className={styles.field}>
-        <label htmlFor={deviceId}>Device identifier</label>
+        <label htmlFor={deviceId} className={styles.fieldLabelEyebrow}>
+          Device identifier
+        </label>
         <input
           ref={deviceInputRef}
           id={deviceId}
@@ -200,7 +225,9 @@ export function ElevatorForm({
         />
       </div>
       <div className={styles.field}>
-        <label htmlFor={typeId}>Inspection type</label>
+        <label htmlFor={typeId} className={styles.fieldLabelEyebrow}>
+          Inspection type
+        </label>
         <select
           id={typeId}
           value={inspectionType}
@@ -212,10 +239,13 @@ export function ElevatorForm({
         </select>
       </div>
       <div className={styles.field}>
-        <label htmlFor={dateId}>Last inspection date</label>
+        <label htmlFor={dateId} className={styles.fieldLabelEyebrow}>
+          Last inspection date
+        </label>
         <input
           id={dateId}
           type="date"
+          className={styles.dateNavy}
           value={lastInspectionDate}
           disabled={fieldsDisabled}
           required
@@ -225,7 +255,9 @@ export function ElevatorForm({
       <div className={styles.actions}>
         <button
           type="submit"
-          className={styles.primaryButton}
+          className={
+            isEditing ? styles.primaryButton : `${styles.secondaryButton} ${styles.blockButton}`
+          }
           disabled={submitting || fieldsDisabled}
         >
           {submitting

@@ -156,8 +156,8 @@ describe("App", () => {
     render(<App />);
 
     const lookupForm = await screen.findByRole("form", { name: /look up building by address/i });
-    await user.type(within(lookupForm).getByLabelText(/street address/i), "350 5th Ave");
-    await user.click(within(lookupForm).getByRole("button", { name: /look up address/i }));
+    await user.type(within(lookupForm).getByLabelText(/building address/i), "350 5th Ave");
+    await user.click(within(lookupForm).getByRole("button", { name: /resolve.*verify/i }));
 
     const reviewForm = await screen.findByRole("form", { name: /review and save building/i });
     await user.type(within(reviewForm).getByLabelText(/building name/i), "Tower A");
