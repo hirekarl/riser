@@ -645,6 +645,61 @@ describe("LedgerPage", () => {
     expect(screen.getByText("EL-3")).toBeInTheDocument();
   });
 
+  it("filters the displayed rows using a building filter chip, without triggering a new fetch", () => {
+    const listLedgerSpy = vi.spyOn(client, "listLedger");
+
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Tower B" }));
+
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
+    expect(listLedgerSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows the unfiltered ledger again when clicking the 'All buildings' chip", () => {
+    render(<LedgerPage entries={mixedStatusEntries} buildings={buildings} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Tower B" }));
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "All buildings" }));
+
+    expect(screen.getByText("EL-1")).toBeInTheDocument();
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.getByText("EL-3")).toBeInTheDocument();
+  });
+
+  it("filters the displayed rows via the search box, matching building name, device identifier, or DOB device number", async () => {
+    const entries: LedgerEntry[] = [
+      { ...mixedStatusEntries[0], dob_device_number: "1P766" },
+      mixedStatusEntries[1],
+      mixedStatusEntries[2],
+    ];
+    const user = userEvent.setup();
+
+    render(<LedgerPage entries={entries} />);
+    const search = screen.getByLabelText(/search ledger/i);
+
+    await user.type(search, "Tower B");
+    expect(screen.getByText("EL-2")).toBeInTheDocument();
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
+
+    await user.clear(search);
+    await user.type(search, "EL-1");
+    expect(screen.getByText("EL-1")).toBeInTheDocument();
+    expect(screen.queryByText("EL-2")).not.toBeInTheDocument();
+    expect(screen.queryByText("EL-3")).not.toBeInTheDocument();
+
+    await user.clear(search);
+    await user.type(search, "1p766");
+    expect(screen.getByText("EL-3")).toBeInTheDocument();
+    expect(screen.queryByText("EL-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("EL-2")).not.toBeInTheDocument();
+  });
+
   it("reveals Confirm delete/Cancel controls when Delete is clicked, without calling deleteElevator yet", () => {
     const entry: LedgerEntry = {
       id: 1,
