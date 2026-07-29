@@ -249,14 +249,14 @@ function App() {
           Ledger is the default landing tab: the PRD calls the risk-triage
           ledger the app's centerpiece, so it shouldn't require scrolling
           past the portfolio-management forms to reach. */}
-        <div role="tablist" aria-label="Portfolio sections" className={styles.tabList}>
+        <div role="tablist" aria-label="Portfolio sections" className={styles.tabListOuter}>
           <button
             type="button"
             role="tab"
             id="section-ledger-tab"
             aria-selected={activeSection === "ledger"}
             aria-controls="section-ledger-panel"
-            className={styles.tab}
+            className={styles.tabOuter}
             onClick={() => setActiveSection("ledger")}
           >
             Ledger
@@ -267,7 +267,7 @@ function App() {
             id="section-portfolio-tab"
             aria-selected={activeSection === "portfolio"}
             aria-controls="section-portfolio-panel"
-            className={styles.tab}
+            className={styles.tabOuter}
             onClick={() => setActiveSection("portfolio")}
           >
             Manage Portfolio
