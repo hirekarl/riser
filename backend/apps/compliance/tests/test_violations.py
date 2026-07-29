@@ -110,26 +110,38 @@ class TestFetchBuildingFineExposures:
         monkeypatch.setattr(violations, "_http_get_json", boom)
         assert violations.fetch_building_fine_exposures([]) == {}
 
-    def test_sums_only_positive_balances_per_bin(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Rows are grouped by bin; a zero/paid-off balance doesn't contribute."""
-        rows = [
-            {"bin": "1001026", "balance_due": "3000.00"},
-            {"bin": "1001026", "balance_due": "0.00"},
-            {"bin": "1001026", "balance_due": "150.50"},
-            {"bin": "2000094", "balance_due": "500.00"},
-        ]
-        monkeypatch.setattr(violations, "_http_get_json", lambda url: rows)
+    def test_sums_only_positive_balances_and_combines_safety_violations(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Safety violations from 855j-jady and positive-balance ECB violations are aggregated."""
+
+        def fake_get_json(url: str) -> list[dict[str, Any]]:
+            if violations.DOB_VIOLATIONS_URL in url:
+                return [
+                    {"bin": "1001026"},
+                    {"bin": "1001026"},
+                ]
+            if violations.ECB_VIOLATIONS_URL in url:
+                return [
+                    {"bin": "1001026", "balance_due": "3000.00"},
+                    {"bin": "1001026", "balance_due": "0.00"},
+                    {"bin": "1001026", "balance_due": "150.50"},
+                    {"bin": "2000094", "balance_due": "500.00"},
+                ]
+            return []
+
+        monkeypatch.setattr(violations, "_http_get_json", fake_get_json)
         exposures = violations.fetch_building_fine_exposures(["1001026", "2000094"])
 
         assert exposures["1001026"].total_balance_due == decimal.Decimal("3150.50")
-        assert exposures["1001026"].open_violation_count == 2
+        assert exposures["1001026"].open_violation_count == 4  # 2 safety + 2 ECB positive balance
         assert exposures["2000094"].total_balance_due == decimal.Decimal("500.00")
-        assert exposures["2000094"].open_violation_count == 1
+        assert exposures["2000094"].open_violation_count == 1  # 0 safety + 1 ECB positive balance
 
     def test_bin_with_no_rows_gets_explicit_zero_entry(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A BIN with nothing in the response still gets a zero/zero entry, not an omission."""
+        """A BIN with nothing in either response still gets a zero/zero entry, not an omission."""
         monkeypatch.setattr(violations, "_http_get_json", lambda url: [])
         exposures = violations.fetch_building_fine_exposures(["1001026"])
 
@@ -139,38 +151,60 @@ class TestFetchBuildingFineExposures:
 
     def test_rows_for_unrequested_bins_are_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A row for a bin outside the requested set doesn't leak into the result."""
-        rows = [{"bin": "9999999", "balance_due": "1000.00"}]
-        monkeypatch.setattr(violations, "_http_get_json", lambda url: rows)
+
+        def fake_get_json(url: str) -> list[dict[str, Any]]:
+            if violations.ECB_VIOLATIONS_URL in url:
+                return [{"bin": "9999999", "balance_due": "1000.00"}]
+            if violations.DOB_VIOLATIONS_URL in url:
+                return [{"bin": "9999999"}]
+            return []
+
+        monkeypatch.setattr(violations, "_http_get_json", fake_get_json)
         exposures = violations.fetch_building_fine_exposures(["1001026"])
 
         assert exposures.keys() == {"1001026"}
         assert exposures["1001026"].total_balance_due == decimal.Decimal("0")
+        assert exposures["1001026"].open_violation_count == 0
 
     def test_duplicate_bins_are_deduped(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Passing the same BIN twice doesn't double-count or duplicate the request filter."""
-        seen: dict[str, str] = {}
+        seen: list[str] = []
 
         def fake(url: str) -> list[Any]:
-            seen["url"] = url
+            seen.append(url)
             return []
 
         monkeypatch.setattr(violations, "_http_get_json", fake)
         exposures = violations.fetch_building_fine_exposures(["1001026", "1001026"])
 
         assert exposures.keys() == {"1001026"}
-        assert seen["url"].count("1001026") == 1
+        assert len(seen) == 2  # one call per endpoint
+        for url in seen:
+            assert url.count("1001026") == 1
 
     def test_queries_with_bin_in_filter(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """The BINs are passed as a SoQL 'in (...)' filter."""
-        seen: dict[str, str] = {}
-        monkeypatch.setattr(violations, "_http_get_json", lambda url: seen.update(url=url) or [])
+        """The BINs are passed as a SoQL 'in (...)' filter to both endpoints."""
+        seen: list[str] = []
+
+        def fake(url: str) -> list[Any]:
+            seen.append(url)
+            return []
+
+        monkeypatch.setattr(violations, "_http_get_json", fake)
         violations.fetch_building_fine_exposures(["1001026", "2000094"])
-        assert "bin+in" in seen["url"] or "bin in" in seen["url"].replace("%20", " ")
+        assert len(seen) == 2
+        for url in seen:
+            assert "bin+in" in url or "bin in" in url.replace("%20", " ")
 
     def test_malformed_balance_is_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """A row with an unparseable balance contributes zero, not a crash."""
-        rows = [{"bin": "1001026", "balance_due": "garbage"}]
-        monkeypatch.setattr(violations, "_http_get_json", lambda url: rows)
+
+        def fake_get_json(url: str) -> list[dict[str, Any]]:
+            if violations.ECB_VIOLATIONS_URL in url:
+                return [{"bin": "1001026", "balance_due": "garbage"}]
+            return []
+
+        monkeypatch.setattr(violations, "_http_get_json", fake_get_json)
         exposures = violations.fetch_building_fine_exposures(["1001026"])
         assert exposures["1001026"].total_balance_due == decimal.Decimal("0")
         assert exposures["1001026"].open_violation_count == 0
