@@ -230,6 +230,42 @@ class TestMapDobDevicesToDrafts:
         drafts = dob.map_dob_devices_to_drafts([device_a, device_b])
         assert [d.dob_device_number for d in drafts] == ["A", "B"]
 
+    def test_inactive_devices_are_omitted(self) -> None:
+        """Non-active devices (e.g. Inactive, Dismantled) produce no drafts."""
+        inactive_device = dob.DobDevice(
+            device_number="INACT1",
+            device_type="Elevator",
+            device_status="Inactive",
+            cat1_latest_report_filed=datetime.date(2026, 1, 1),
+            cat5_latest_report_filed=datetime.date(2020, 1, 1),
+            house_number="1",
+            street_name="MAIN ST",
+            bin="1001026",
+        )
+        dismantled_device = dob.DobDevice(
+            device_number="DISM1",
+            device_type="Elevator",
+            device_status="Dismantled",
+            cat1_latest_report_filed=datetime.date(2025, 1, 1),
+            cat5_latest_report_filed=None,
+            house_number="1",
+            street_name="MAIN ST",
+            bin="1001026",
+        )
+        active_device = dob.DobDevice(
+            device_number="ACT1",
+            device_type="Elevator",
+            device_status="Active",
+            cat1_latest_report_filed=datetime.date(2026, 2, 1),
+            cat5_latest_report_filed=None,
+            house_number="1",
+            street_name="MAIN ST",
+            bin="1001026",
+        )
+        drafts = dob.map_dob_devices_to_drafts([inactive_device, dismantled_device, active_device])
+        assert len(drafts) == 1
+        assert drafts[0].dob_device_number == "ACT1"
+
 
 class TestParseDobDate:
     """Tests for the internal date parser."""
